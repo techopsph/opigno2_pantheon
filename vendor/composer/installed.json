@@ -5055,6 +5055,7 @@
             "drupal/inline_entity_form": "^1",
             "drupal/video_embed_field": "^2"
         },
+        "time": "2018-04-05T08:15:29+00:00",
         "type": "drupal-module",
         "extra": {
             "branch-alias": {
@@ -6901,6 +6902,7 @@
         "require": {
             "drupal/core": "*"
         },
+        "time": "2018-10-04T16:03:11+00:00",
         "type": "drupal-module",
         "extra": {
             "branch-alias": {
@@ -7769,6 +7771,7 @@
         "require": {
             "drupal/core": "~8.0"
         },
+        "time": "2018-02-12T12:03:58+00:00",
         "type": "drupal-module",
         "extra": {
             "branch-alias": {
@@ -7816,6 +7819,7 @@
         "require": {
             "drupal/core": "*"
         },
+        "time": "2015-05-14T10:07:37+00:00",
         "type": "drupal-module",
         "extra": {
             "branch-alias": {

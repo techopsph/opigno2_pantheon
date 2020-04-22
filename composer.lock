@@ -1319,8 +1319,7 @@
             "support": {
                 "source": "https://git.drupalcode.org/project/calendar",
                 "issues": "https://www.drupal.org/project/issues/calendar"
-            },
-            "time": "2018-01-04T14:54:04+00:00"
+            }
         },
         {
             "name": "drupal/calendar_datetime",
@@ -6790,8 +6789,7 @@
                 "url": "https://github.com/mozilla/pdf.js",
                 "reference": "origin/gh-pages"
             },
-            "type": "drupal-library",
-            "time": "2020-04-21T21:34:30+00:00"
+            "type": "drupal-library"
         },
         {
             "name": "namshi/jose",
