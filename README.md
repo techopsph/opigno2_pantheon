@@ -1,2 +1,2 @@
-### Opigno LMS project installation.
-use `composer create-project opigno/opigno-composer`
+### Opigno LMS project installation For Pantheon.
+
