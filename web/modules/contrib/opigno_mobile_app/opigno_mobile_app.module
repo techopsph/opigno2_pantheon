@@ -1,0 +1,116 @@
+<?php
+
+/**
+ * @file
+ * Contains opigno_mobile_app.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\group\Entity\Group;
+use Drupal\opigno_mobile_app\Access\PMTAccessHandler;
+use Drupal\file\Entity\File;
+
+/**
+ * Implements hook_help().
+ */
+function opigno_mobile_app_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the opigno_mobile_app module.
+    case 'help.page.opigno_mobile_app':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('My Awesome Module') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function opigno_mobile_app_entity_type_alter(array &$entity_types) {
+  // Override access handler for private_message_thread.
+  $entity_types['private_message_thread']->setHandlerClass('access', PMTAccessHandler::class);
+}
+
+
+/**
+ *  Get user's picture url.
+ *
+ * @param \Drupal\user\UserInterface $user
+ *
+ * @return string
+ *   Return url with user's picture.
+ */
+function opigno_mobile_app_get_user_picture(\Drupal\user\UserInterface $user) {
+  $user_picture = $user->get('user_picture')->target_id;
+  if ($user_picture) {
+    $file = File::load($user_picture);
+    $uri = $file->getFileUri();
+    $url = file_create_url($uri);
+  }
+//  else {
+//     // Default picture.
+//    $request = \Drupal::request();
+//    $path = drupal_get_path('theme', 'platon');
+//    $url = $request->getSchemeAndHttpHost() . '/' . $path . '/images/picto-profile-default.svg';
+//  }
+
+  return isset($url) ? $url : '';
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function opigno_mobile_app_preprocess_page(&$variables) {
+  if (!opigno_mobile_app_is_mobile_mode_route()) {
+    return;
+  }
+
+  /** @var \Drupal\Core\TempStore\PrivateTempStore $store */
+  $store = \Drupal::service('user.private_tempstore')->get('opigno_mobile_app');
+  $mobile_mode_status = $store->get('mobile_mode');
+  if ($mobile_mode_status) {
+    // Unset page contents for trainings steps pages.
+    unset($variables['page']['branding']);
+    unset($variables['page']['menu']);
+    unset($variables['page']['admin_opigno']);
+    unset($variables['page']['sidebar_first']);
+    //    unset($variables['page']['top']);
+    unset($variables['page']['help']);
+    unset($variables['page']['footer']);
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function opigno_mobile_app_page_attachments(array &$attachments) {
+  if (!opigno_mobile_app_is_mobile_mode_route()) {
+    return;
+  }
+  /** @var \Drupal\Core\TempStore\PrivateTempStore $store */
+  $store = \Drupal::service('user.private_tempstore')->get('opigno_mobile_app');
+  $mobile_mode_status = $store->get('mobile_mode');
+  if ($mobile_mode_status) {
+    // Hide hardcoded header for trainings steps pages.
+    $attachments['#attached']['library'][] = 'opigno_mobile_app/mobile_mode';
+  }
+}
+
+/**
+ * Check if user is on mobile_mode route.
+ */
+function opigno_mobile_app_is_mobile_mode_route() {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $allowed_routes = [
+    'entity.group.canonical',
+    'opigno_module.take_module',
+    'opigno_learning_path.steps.next',
+    'opigno_module.group.answer_form',
+    'opigno_module.module_result',
+    'tft.group',
+  ];
+  return in_array($route_name, $allowed_routes);
+}

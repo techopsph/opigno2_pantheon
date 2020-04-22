@@ -1,0 +1,23 @@
+base theme: false
+type: theme
+
+name: Platon
+description: 'HTML5, SASS, Responsive grid base theme.'
+package: 'Platon'
+core: 8.x
+
+regions:
+  help: 'Help'
+  branding: 'Branding'
+  menu: 'Menu'
+  admin_opigno: 'Admin opigno menu'
+  status_messages: 'Status messages'
+  top: 'Top'
+  sidebar_first: 'Sidebar first'
+  content: 'Content'
+  footer: 'Footer'
+
+# Information added by Drupal.org packaging script on 2020-01-30
+version: '8.x-1.6'
+project: 'platon'
+datestamp: 1580377429

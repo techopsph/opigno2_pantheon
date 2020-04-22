@@ -1,0 +1,15 @@
+name: Opigno Course
+type: module
+description: Adds course feature to your Opigno instance.
+core: 8.x
+package: Opigno
+dependencies:
+  - group:group
+  - opigno_module:opigno_module
+  - opigno_module:opigno_module_group
+  - opigno_class:opigno_class
+
+# Information added by Drupal.org packaging script on 2019-10-02
+version: '8.x-1.3'
+project: 'opigno_course'
+datestamp: 1570005806

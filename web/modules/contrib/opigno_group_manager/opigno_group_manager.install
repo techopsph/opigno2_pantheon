@@ -1,0 +1,78 @@
+<?php
+
+/**
+ * @file
+ * Opigno group manager install/update functionality.
+ */
+
+use Drupal\Core\Field\BaseFieldDefinition;
+
+function opigno_group_manager_install() {
+  $definition = \Drupal::entityTypeManager()->getDefinition('opigno_group_link');
+  // Make field "required_activities" value to be null.
+  // @todo: add this settings to BaseFieldDefinition::create() for this field.
+  $schema = \Drupal::database()->schema();
+  if ($schema->fieldExists($definition->getBaseTable(), 'required_activities')) {
+    $schema->changeField($definition->getBaseTable(), 'required_activities', 'required_activities', [
+      'type' => 'varchar',
+      'length' => 8191,
+      'not null' => FALSE,
+    ]);
+  }
+}
+
+/**
+ * Add check if the content in the skills system.
+ */
+function opigno_group_manager_update_8001() {
+  $definition_manager = \Drupal::entityDefinitionUpdateManager();
+
+  $field = BaseFieldDefinition::create('boolean')
+    ->setLabel(t('In the sills system'))
+    ->setDescription(t('Indicate if this module in the skills system.'))
+    ->setDefaultValue(0);
+
+  $definition_manager->installFieldStorageDefinition('in_skills_system', 'opigno_group_content', 'opigno_group_manager', $field);
+}
+
+/**
+ * Add required activities field to Opigno Link entity.
+ */
+function opigno_group_manager_update_8002() {
+  // Create a new field definition.
+  $field = BaseFieldDefinition::create('string')
+    ->setLabel(t('Required activities'))
+    ->setDescription(t('The required activities of previous step'))
+    ->setSetting('max_length', 8191);
+
+  // Install the new definition.
+  $definition_manager = \Drupal::entityDefinitionUpdateManager();
+  $definition_manager->installFieldStorageDefinition('required_activities', 'opigno_group_link', 'opigno_group_link', $field);
+}
+
+function opigno_group_manager_update_8003() {
+  // Inapplicable update.
+}
+
+/**
+ * Update required activities field. Set default value to NULL.
+ */
+function opigno_group_manager_update_8004() {
+  $definition = \Drupal::entityTypeManager()->getDefinition('opigno_group_link');
+
+  $schema = \Drupal::database()->schema();
+  if ($schema->fieldExists($definition->getBaseTable(), 'required_activities')) {
+    $schema->changeField($definition->getBaseTable(), 'required_activities', 'required_activities', [
+      'type' => 'varchar',
+      'length' => 8191,
+      'not null' => FALSE,
+    ]);
+  }
+}
+
+/**
+ * Enable Serialization module for training objects export-import can work.
+ */
+function opigno_group_manager_update_8005() {
+  \Drupal::service('module_installer')->install(['serialization']);
+}

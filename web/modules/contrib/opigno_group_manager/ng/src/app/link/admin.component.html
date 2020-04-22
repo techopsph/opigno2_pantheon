@@ -1,0 +1,107 @@
+<div id="link-panel-content" (clickOutside)="close()" [exclude]="'.link-path'">
+  <div [hidden]="confirmCreateOrphan">
+    <h2 i18n>Conditions</h2>
+
+    <div class="condition score clearfix" [ngClass]="{'hidden': !isScoreConditionExists()}">
+      <div class="condition-content" i18n><span class="label" i18n>Score:</span> {{selectedLink.score}}%</div>
+      <div class="condition-actions">
+        <button class="btn btn-success" (click)="addConditionInput('score')" i18n>edit</button>
+        <button class="btn btn-danger delete-link" (click)="deleteScoreCondition()" i18n>delete</button>
+      </div>
+    </div>
+
+    <div class="condition activities clearfix" [ngClass]="{'hidden': !isActivitiesConditionExists()}">
+      <div class="condition-content">
+        <div class="label" i18n>Last step:</div>
+        <ng-container *ngFor="let activity of requiredActivitiesNames">
+          <div class="activity clearfix">
+            <div class="parent-wrapper">
+              <div i18n>{{activity.name}}</div>
+            </div>
+            <div class="children" *ngIf="!!activity.answers">
+              <ng-container *ngFor="let answer of activity.answers">
+                <div class="child-wrapper">
+                  {{answer}}
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+      <div class="condition-actions">
+        <button class="btn btn-success" (click)="addConditionInput('activities')" i18n>edit</button>
+        <button class="btn btn-danger delete-link" (click)="deleteActivitiesCondition()" i18n>delete</button>
+      </div>
+    </div>
+
+    <hr *ngIf="conditionExists">
+
+    <div class="top-block clearfix" *ngIf="!conditionsExist">
+      <select class="condition-type form-control left" [attr.disabled] = "addCondition ? 'disabled' : null" [(ngModel)]="condition">
+        <ng-container *ngFor="let condition of conditionTypes">
+          <option value="{{condition.id}}" i18n>{{condition.name}}</option>
+        </ng-container>
+      </select>
+      <button mat-raised-button color="basic" class="btn btn-add right" [ngClass]="{'hidden': addCondition }" (click)="addConditionInput()" i18n>Add</button>
+    </div>
+
+    <div class="conditions-edit clearfix">
+      <mat-form-field *ngIf="showScoreField" class="score left">
+        <input matInput [(ngModel)]="minScore">
+      </mat-form-field>
+
+      <div class="activities" *ngIf="showActivitiesField">
+        <ng-container *ngFor="let activity of activities">
+          <div class="activity clearfix">
+            <div class="parent-wrapper">
+              <input type="checkbox"
+                     class="parent"
+                     value="{{activity.id}}"
+                     id="activity-{{activity.id}}"
+                     [checked]="getChecked(activity.id)"
+                     (change)="checkboxChanged($event)">
+              <label for="activity-{{activity.id}}">{{activity.name}}</label>
+            </div>
+            <div class="children" *ngIf="!!activity.answers">
+              <ng-container *ngFor="let answer of activity.answers">
+                <div class="child-wrapper">
+                  <input type="checkbox"
+                         class="child"
+                         value="{{answer.id}}"
+                         id="{{answer.id}}"
+                         [checked]="getChecked(answer.id)"
+                         (change)="checkboxChanged($event)">
+                  <label for="{{answer.id}}">{{answer.text}}</label>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </ng-container>
+        <script>
+
+        </script>
+      </div>
+
+      <button mat-raised-button color="primary" class="btn btn-validate right" [ngClass]="{'hidden': !addCondition }" (click)="validateCondition()" i18n>Validate</button>
+    </div>
+
+    <div [hidden]="!errorMessage&&!scoreMessage" class="alert alert-danger">
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">×</span>
+      </button>
+      <div [hidden]="!errorMessage" [class.mb-2]="errorMessage&&scoreMessage">{{errorMessage}}</div>
+      <div [hidden]="!scoreMessage">{{scoreMessage}}</div>
+    </div>
+    <div class="bottom-actions">
+      <button mat-button class="btn btn-close left" (click)="cancel()" i18n>cancel</button>
+      <button mat-raised-button color="warn" class="btn btn-delete right" (click)="delete()" i18n>delete link</button>
+    </div>
+  </div>
+  <div [hidden]="!confirmCreateOrphan">
+    <h5 i18n>This action create an orphan, confirm:</h5>
+    <div>
+      <button mat-button (click)="close()" i18n>cancel</button>
+      <button mat-raised-button color="warn" (click)="delete()" i18n>confirm</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+name: Opigno Migration
+type: module
+description: List of migrations for Opigno LMS.
+core: 8.x
+# version: '8.x-1.1'
+package: Opigno Migration
+dependencies:
+  - drupal:migrate
+  - drupal:migrate_drupal
+  - drupal:migrate_drupal_ui
+  - migrate_plus:migrate_plus
+  - migrate_tools:migrate_tools
+
+# Information added by Drupal.org packaging script on 2020-01-30
+version: '8.x-1.5'
+project: 'opigno_migration'
+datestamp: 1580377239

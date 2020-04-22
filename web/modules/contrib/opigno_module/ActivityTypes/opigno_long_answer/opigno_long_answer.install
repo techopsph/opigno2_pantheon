@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * @file
+ * Contains opigno_long_answer.install.
+ */
+
+use Drupal\Core\Config\FileStorage;
+
+/**
+ * Update Opigno Long Answer activity to add "opigno_evaluation_method".
+ */
+function opigno_long_answer_update_8001() {
+  $config_path = drupal_get_path('module', 'opigno_long_answer') . '/config/optional';
+  /* @var Drupal\Core\Config\CachedStorage $config_storage */
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $configs = [
+    'field.field.opigno_activity.opigno_long_answer.opigno_evaluation_method',
+    'core.entity_form_display.opigno_activity.opigno_long_answer.default',
+    'core.entity_view_display.opigno_activity.opigno_long_answer.activity',
+    'core.entity_view_display.opigno_activity.opigno_long_answer.default',
+  ];
+
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+}

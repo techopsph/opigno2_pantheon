@@ -1,0 +1,165 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Opigno skills system module.
+ */
+
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Site\Settings;
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_install().
+ */
+function opigno_skills_system_install() {
+  // Give an access to manage skills vocabulary.
+  $role = Role::load('content_manager');
+  $issueAccessPermissions = [
+    'create terms in skills',
+    'delete terms in skills',
+    'edit terms in skills'
+  ];
+  foreach ($issueAccessPermissions as $permission) {
+    $role->grantPermission($permission);
+  }
+  $role->save();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function opigno_skills_system_uninstall () {
+  $config_path = drupal_get_path('module', 'opigno_module')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_activities_bank_lp_interface');
+  $config_storage->write('views.view.opigno_activities_bank_lp_interface', $data);
+}
+
+/*
+ * Update view 'activities bank'.
+ */
+function opigno_skills_system_update_8001() {
+  $config_path = drupal_get_path('module', 'opigno_skills_system')
+    . '/config/rewrite';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_activities_bank_lp_interface');
+  $config_storage->write('views.view.opigno_activities_bank_lp_interface', $data);
+}
+
+/*
+ * Update view 'activities bank lp_interface'.
+ * Restore view 'activities bank'.
+ */
+function opigno_skills_system_update_8002() {
+  // Update view 'activities bank lp_interface'.
+  $config_path = drupal_get_path('module', 'opigno_skills_system')
+    . '/config/rewrite';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_activities_bank_lp_interface');
+  $config_storage->write('views.view.opigno_activities_bank_lp_interface', $data);
+
+  // Restore view 'activities bank'.
+  $config_path = drupal_get_path('module', 'opigno_module')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_activities_bank');
+  $config_storage->write('views.view.opigno_activities_bank', $data);
+}
+
+/**
+ * Update skills vocabulary.
+ */
+function opigno_skills_system_update_8003() {
+  $config_path = drupal_get_path('module', 'opigno_skills_system')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('taxonomy.vocabulary.skills');
+  $config_storage->write('taxonomy.vocabulary.skills', $data);
+
+  $data = $storage->read('core.entity_form_display.taxonomy_term.skills.default');
+  $config_storage->write('core.entity_form_display.taxonomy_term.skills.default', $data);
+
+  $data = $storage->read('core.entity_view_display.taxonomy_term.skills.default');
+  $config_storage->write('core.entity_view_display.taxonomy_term.skills.default', $data);
+
+  $data = $storage->read('field.field.taxonomy_term.skills.field_minimum_count_of_answers');
+  $config_storage->write('field.field.taxonomy_term.skills.field_minimum_count_of_answers', $data);
+
+  $data = $storage->read('field.field.taxonomy_term.skills.field_minimum_score');
+  $config_storage->write('field.field.taxonomy_term.skills.field_minimum_score', $data);
+
+  $data = $storage->read('field.storage.taxonomy_term.field_level_names');
+  $config_storage->write('field.storage.taxonomy_term.field_level_names', $data);
+}
+
+/**
+ * Integrate skills system into old group content type 'ContentTypeModule'.
+ */
+function opigno_skills_system_update_8004(&$sandbox) {
+  $database = \Drupal::database();
+
+  if (!isset($sandbox['current'])) {
+    // Set batch ops sandbox.
+    $sandbox['current'] = 0;
+    $sandbox['limit'] = 50;
+
+    // Get count of entities which needs to update.
+    $select = $database->select('opigno_group_content', 'o_g_c');
+    $select->condition('in_skills_system', NULL, 'IS NULL');
+    $sandbox['max'] = $select
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
+
+  $select = $database->select('opigno_group_content', 'o_g_c')
+    ->fields('o_g_c', ['id'])
+    ->range(0, $sandbox['limit'])
+    ->condition('in_skills_system', NULL, 'IS NULL');
+  $results = $select->execute()->fetchAll();
+
+  $content_ids = array_map(function ($content) {
+    return $content->id;
+  }, $results);
+
+  if (!empty($content_ids)) {
+    $select = $database->update('opigno_group_content')
+      ->condition('id', $content_ids, 'IN')
+      ->fields(['in_skills_system' => 0])
+      ->execute();
+  }
+
+  $sandbox['current'] += 50;
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['current'] / $sandbox['max']);
+}
+
+/**
+ * Update skills vocabulary.
+ */
+function opigno_skills_system_update_8005() {
+  $config_path = drupal_get_path('module', 'opigno_skills_system')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('field.storage.taxonomy_term.field_level_names');
+  $config_storage->write('field.storage.taxonomy_term.field_level_names', $data);
+}

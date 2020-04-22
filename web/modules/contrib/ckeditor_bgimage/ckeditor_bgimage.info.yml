@@ -1,0 +1,19 @@
+name: CKEditor Background
+type: module
+description: This plugin module adds background image to CKEditor in Drupal 8
+package: CKEditor
+dependencies:
+  - ckeditor
+  - drupal:ckeditor
+  - drupal:editor
+  - drupal:filter
+  - drupal:file
+configure: filter.admin_overview
+# version: '8.x-1.0'
+# core: '8.x'
+# project: 'ckeditor_bgimage'
+# Information added by Drupal.org packaging script on 2019-04-11
+version: '8.x-1.1'
+core: '8.x'
+project: 'ckeditor_bgimage'
+datestamp: 1555000688

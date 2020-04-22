@@ -1,0 +1,179 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Opigno Course module.
+ */
+
+use Drupal\Core\Config\FileStorage;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Import Opigno Course configs for adding badges fields.
+ *
+ * Implements hook_update_N().
+ */
+function opigno_course_update_8001() {
+  \Drupal::service('config.installer')->installDefaultConfig('module', 'opigno_course');
+}
+
+/**
+ * Update configs in opigno_course.
+ */
+function opigno_course_update_8002() {
+
+  $config_path = drupal_get_path('module', 'opigno_course')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  // Install new field.
+  $data = $storage->read('field.storage.group.field_course_media_image');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.group.opigno_course.field_course_media_image');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+
+  $configs = [
+    'core.entity_form_display.group.opigno_course.default',
+    'core.entity_view_display.group.opigno_course.default',
+  ];
+
+  $config_storage = \Drupal::service('config.storage');
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Replace badge_image field with badge_media_image field.
+ * Update configs in opigno_course. Create new media type - Image (png).
+ */
+function opigno_course_update_8003() {
+
+  $config_path = drupal_get_path('module', 'opigno_course')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  // Install new field.
+  $data = $storage->read('field.storage.group.badge_media_image');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.group.opigno_course.badge_media_image');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('media.type.image_png');
+  $config_storage->write('media.type.image_png', $data);
+
+  // Install configs from optional folder.
+  $config_optional_path = drupal_get_path('module', 'opigno_course')
+    . '/config/optional';
+  $storage = new FileStorage($config_optional_path);
+
+  $configs = [
+    'core.entity_form_display.group.opigno_course.default',
+    'core.entity_view_display.group.opigno_course.default',
+    'core.entity_form_display.media.image_png.default',
+    'core.entity_view_display.media.image_png.default',
+    'core.entity_view_display.media.image_png.image_only',
+    'field.field.media.image_png.field_media_image',
+    'views.view.media_browser_images_png',
+    'entity_browser.browser.media_entity_browser_badge_images',
+  ];
+
+  $config_storage = \Drupal::service('config.storage');
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+}
+
+/**
+ * Update Media Browser Images (png) views to remove html tags from fields.
+ *
+ * Update translations.
+ */
+function opigno_course_update_8004() {
+  // Update views.
+  $display_name = 'default';
+  $field_name = 'name';
+  $config_factory = \Drupal::configFactory();
+  $view = $config_factory->getEditable('views.view.media_browser_images_png');
+  $displays = $view->get('display');
+  $alter_option = $displays[$display_name]['display_options']['fields'][$field_name]['alter'];
+  $alter_option['alter_text'] = FALSE;
+  $alter_option['text'] = '';
+  $base = "display.$display_name.display_options.fields.$field_name";
+  $view->set($base . '.alter', $alter_option);
+  $view->save(TRUE);
+
+  // Update translations.
+  $db_connection = \Drupal::service('database');
+  // Get id of translation.
+  try {
+    $lid = $db_connection->select('locales_source', 'ls')
+      ->fields('ls', ['lid'])
+      ->condition('source', "<div class=\"media-info\">\r\n<span class=\"media-info--{{ bundle }}\">{{ bundle }}</span>\r\n{{ name }}\r\n</div>")
+      ->execute()->fetchField();
+    if ($lid) {
+      // Remove sourse translation.
+      $db_connection->delete('locales_source')
+        ->condition('lid', $lid)
+        ->execute();
+      // Remove target translation.
+      $db_connection->delete('locales_target')
+        ->condition('lid', $lid)
+        ->execute();
+    }
+  }
+  catch (Exception $e) {
+    \Drupal::logger('opigno_course')->error($e->getMessage());
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ *  Update field.field.media.image_png.field_media_image config
+ *  (delete unnecessary dependencies)
+ */
+function opigno_course_update_8005() {
+  // Install configs from optional folder.
+  $config_optional_path = drupal_get_path('module', 'opigno_course')
+    . '/config/optional';
+  $storage = new FileStorage($config_optional_path);
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('field.field.media.image_png.field_media_image');
+  $config_storage->write('field.field.media.image_png.field_media_image', $data);
+}
+
+/**
+ * Reload Course Media Entity Browser config to fix translations.
+ */
+function opigno_course_update_8006() {
+}
+
+/**
+ * Reload Course Media Entity Browser config to fix translations.
+ */
+function opigno_course_update_8007() {
+  $config_path = drupal_get_path('module', 'opigno_course')
+    . '/config/optional';
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('entity_browser.browser.media_entity_browser_badge_images');
+  $config_storage->write('entity_browser.browser.media_entity_browser_badge_images', $data);
+}

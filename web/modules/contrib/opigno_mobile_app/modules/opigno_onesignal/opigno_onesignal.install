@@ -1,0 +1,77 @@
+<?php
+
+/**
+ * @file
+ * Opigno onesignal install/update functionality.
+ */
+
+///**
+// * Implements hook_schema().
+// */
+//function opigno_onesignal_schema() {
+//  $schema['opigno_onesignal_users'] = [
+//    'description' => 'Subscribed to One Signal users',
+//    'fields' => [
+//      'id' => [
+//        'type' => 'serial',
+//        'not null' => TRUE,
+//      ],
+//      'uid' => [
+//        'description' => 'User ID',
+//        'type' => 'int',
+//        'unsigned' => TRUE,
+//        'not null' => TRUE,
+//      ],
+//      'player_id' => [
+//        'description' => 'One Signal user id',
+//        'type' => 'varchar',
+//        'length' => 255,
+//      ],
+//    ],
+//    'primary key' => ['id', 'uid'],
+//    'indexes' => [
+//      'uid' => ['uid'],
+//    ],
+//    'foreign keys' => [
+//      'users' => ['uid' => 'uid'],
+//    ],
+//  ];
+//
+//  return $schema;
+//}
+//
+//function opigno_onesignal_update_8001() {
+//  $schema = \Drupal::database()->schema();
+//  $table_name = 'opigno_onesignal_users';
+//  if (!$schema->tableExists($table_name)) {
+//    $table = [
+//      'description' => 'Subscribed to One Signal users',
+//      'fields' => [
+//        'id' => [
+//          'type' => 'serial',
+//          'not null' => TRUE,
+//        ],
+//        'uid' => [
+//          'description' => 'User ID',
+//          'type' => 'int',
+//          'unsigned' => TRUE,
+//          'not null' => TRUE,
+//        ],
+//        'player_id' => [
+//          'description' => 'One Signal user id',
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => TRUE,
+//        ],
+//      ],
+//      'primary key' => ['uid'],
+//      'indexes' => [
+//        'uid' => ['uid'],
+//      ],
+//      'foreign keys' => [
+//        'users' => ['uid' => 'uid'],
+//      ]
+//    ];
+//    $schema->createTable($table_name, $table);
+//  }
+//}

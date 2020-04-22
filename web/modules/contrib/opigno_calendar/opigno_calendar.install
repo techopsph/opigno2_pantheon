@@ -1,0 +1,75 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Opigno Calendar module.
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Config\FileStorage;
+
+/**
+ * Creates the members field in the opigno calendar event type.
+ */
+function opigno_calendar_update_8001() {
+  $config_path = drupal_get_path('module', 'opigno_calendar')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $data = $storage->read('field.storage.opigno_calendar_event.field_calendar_event_members');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.opigno_calendar_event.opigno_calendar_event.field_calendar_event_members');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+}
+
+/**
+ * Updates Opigno Calendar views to remove html tags from fields.
+ *
+ * Update translations.
+ */
+function opigno_calendar_update_8002() {
+  // Update views.
+  $display_name = 'month_block';
+  $field_name = 'date_daterange';
+
+  $config_factory = \Drupal::configFactory();
+  $view = $config_factory->getEditable('views.view.opigno_calendar');
+  $displays = $view->get('display');
+
+  $alter_option = $displays[$display_name]['display_options']['fields'][$field_name]['alter'];
+  $alter_option['alter_text'] = FALSE;
+  $alter_option['text'] = '';
+
+  $base = "display.$display_name.display_options.fields.$field_name";
+  $view->set($base . '.alter', $alter_option);
+  $view->save(TRUE);
+
+  // Update translations.
+  $db_connection = \Drupal::service('database');
+  // Get id of translation.
+  try {
+    $lid = $db_connection->select('locales_source', 'ls')
+      ->fields('ls', ['lid'])
+      ->condition('source', '<div class="time">{{ date_daterange }}</div>')
+      ->execute()->fetchField();
+    if ($lid) {
+      // Remove sourse translation.
+      $db_connection->delete('locales_source')
+        ->condition('lid', $lid)
+        ->execute();
+      // Remove target translation.
+      $db_connection->delete('locales_target')
+        ->condition('lid', $lid)
+        ->execute();
+    }
+  }
+  catch (Exception $e) {
+    \Drupal::logger('opigno_calendar')->error($e->getMessage());
+  }
+}

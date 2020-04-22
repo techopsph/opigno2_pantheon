@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Module install/update functionality.
+ */
+
+use Drupal\search_api\Entity\Index;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstall core module 'Search'.
+ */
+function opigno_search_update_8001() {
+  $moduleHandler = \Drupal::service('module_handler');
+
+  if ($moduleHandler->moduleExists('search')) {
+    \Drupal::service('module_installer')->uninstall(['search']);
+  }
+}

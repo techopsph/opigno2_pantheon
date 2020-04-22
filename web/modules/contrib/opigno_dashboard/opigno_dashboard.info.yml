@@ -1,0 +1,11 @@
+name: Opigno Dashboard
+type: module
+description: Opigno dashboard.
+core: 8.x
+package: Opigno
+configure: opigno_dashboard.dashboard_admin_settings_form
+
+# Information added by Drupal.org packaging script on 2020-01-30
+version: '8.x-1.5'
+project: 'opigno_dashboard'
+datestamp: 1580375890

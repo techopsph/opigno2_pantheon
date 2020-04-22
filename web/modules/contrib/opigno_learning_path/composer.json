@@ -1,0 +1,12 @@
+{
+  "name": "drupal/opigno_learning_path",
+  "type": "drupal-module",
+  "description": "Opigno Learning Path Module.",
+  "homepage": "http://drupal.org/project/opigno_learning_path",
+  "license": "GPL-2.0+",
+  "require": {
+      "drupal/views_role_based_global_text": "1.x-dev#550f8e0",
+      "drupal/media_entity_browser": "2.x-dev#c75921d"
+  },
+  "minimum-stability": "dev"
+}

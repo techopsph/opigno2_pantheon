@@ -1,0 +1,15 @@
+name: Opigno Messaging
+type: module
+description: Opigno app for messaging.
+core: 8.x
+package: Opigno
+
+dependencies:
+  - multiselect:multiselect
+  - private_message:private_message
+  - group:group
+
+# Information added by Drupal.org packaging script on 2019-10-02
+version: '8.x-1.3'
+project: 'opigno_messaging'
+datestamp: 1570006102
