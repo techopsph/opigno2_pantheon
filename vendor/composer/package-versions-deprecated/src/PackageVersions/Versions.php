@@ -237,9 +237,9 @@ final class Versions
   'symfony/finder' => 'v3.4.42@5ec813ccafa8164ef21757e8c725d3a57da59200',
   'symfony/polyfill-php80' => 'v1.17.0@5e30b2799bc1ad68f7feb62b60a73743589438dd',
   'symfony/var-dumper' => 'v4.4.10@56b3aa5eab0ac6720dcd559fd1d590ce301594ac',
-  'h5p/h5p-core' => '*@b00995fbde7432182ff56f3812065b871c84b6ad',
-  'h5p/h5p-editor' => '*@b00995fbde7432182ff56f3812065b871c84b6ad',
-  'opigno/opigno-composer' => 'dev-master@b00995fbde7432182ff56f3812065b871c84b6ad',
+  'h5p/h5p-core' => '*@a2be0ea9e0e3d138edb9baf73f8a98b3218e91b6',
+  'h5p/h5p-editor' => '*@a2be0ea9e0e3d138edb9baf73f8a98b3218e91b6',
+  'opigno/opigno-composer' => 'dev-master@a2be0ea9e0e3d138edb9baf73f8a98b3218e91b6',
 );
 
     private function __construct()
