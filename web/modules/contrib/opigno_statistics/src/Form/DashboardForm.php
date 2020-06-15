@@ -9,6 +9,7 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
+use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_statistics\StatisticsPageTrait;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultAllowed;
@@ -509,7 +510,7 @@ class DashboardForm extends FormBase {
       ->orderBy('year', 'DESC')
       ->execute()
       ->fetchAll();
-    $years = [];
+    $years = ['none' => '- None -'];
     foreach ($data as $row) {
       $year = $row->year;
       if (!isset($years[$year])) {
@@ -520,27 +521,40 @@ class DashboardForm extends FormBase {
     $year_select = [
       '#type' => 'select',
       '#options' => $years,
-      '#default_value' => $max_year,
+      '#default_value' => 'none',
       '#ajax' => [
         'event' => 'change',
         'callback' => '::submitFormAjax',
         'wrapper' => 'statistics-trainings-progress',
       ],
     ];
-    $year = $form_state->getValue('year', $max_year);
+
+    $year_current = $form_state->getValue('year');
+
+    if ($year_current == NULL || $year_current == 'none') {
+      if ($max_year == 'none') {
+        $max_year = date('Y');
+      }
+      $year = $max_year;
+    }
+    else {
+      $year = $year_current;
+    }
 
     $query = $this->database
       ->select('opigno_learning_path_achievements', 'a');
     $query->addExpression('MONTH(a.registered)', 'month');
+    $query->addExpression('YEAR(a.registered)', 'year');
     $data = $query
       ->groupBy('month')
+      ->groupBy('year')
       ->orderBy('month')
       ->execute()
       ->fetchAll();
-    $months = [];
+    $months = ['none' => '- None -'];
     foreach ($data as $row) {
       $month = $row->month;
-      if (!isset($months[$month])) {
+      if (!isset($months[$month]) && $row->year == $year) {
         $timestamp = mktime(0, 0, 0, $month, 1);
         $months[$month] = $this->date_formatter
           ->format($timestamp, 'custom', 'F');
@@ -550,7 +564,7 @@ class DashboardForm extends FormBase {
     $month_select = [
       '#type' => 'select',
       '#options' => $months,
-      '#default_value' => $max_month,
+      '#default_value' => 'none',
       '#ajax' => [
         'event' => 'change',
         'callback' => '::submitFormAjax',
@@ -558,6 +572,13 @@ class DashboardForm extends FormBase {
       ],
     ];
     $month = $form_state->getValue('month', $max_month);
+
+    if ($month == 'none' || $year_current == NULL || $year_current == 'none') {
+      if ($max_month == 'none') {
+        $max_month = date('n');
+      }
+      $month = $max_month;
+    }
 
     $timestamp = mktime(0, 0, 0, $month, 1, $year);
     $datetime = DrupalDateTime::createFromTimestamp($timestamp);
@@ -578,9 +599,13 @@ class DashboardForm extends FormBase {
         'id' => 'statistics-trainings-progress',
       ],
       'year' => $year_select,
-      'month' => $month_select,
-      'trainings_progress' => $this->buildTrainingsProgress($datetime, $lp_ids),
     ];
+
+    if ($year_current != NULL && $year_current != 'none') {
+      $form['trainings_progress']['month'] = $month_select;
+    }
+
+    $form['trainings_progress']['trainings_progress'] = $this->buildTrainingsProgress($datetime, $lp_ids);
 
     $form['content_statistics'] = [
       '#type' => 'container',
@@ -636,6 +661,12 @@ class DashboardForm extends FormBase {
         ];
       }
     }, $rows);
+
+    $rows = array_filter($rows);
+
+    if (empty($rows)) {
+      return [];
+    }
 
     return [
       '#type' => 'container',
@@ -695,17 +726,9 @@ class DashboardForm extends FormBase {
     }
     else {
       // Check if user has role 'student manager' in any of trainings.
-      $connection = Database::getConnection();
-      $query_c = $connection
-        ->select('group_content_field_data', 'g_c_f_d')
-        ->fields('g_c_f_d', ['gid']);
-      $query_c->leftJoin('group_content__group_roles', 'g_c_g_r', 'g_c_f_d.id = g_c_g_r.entity_id');
-      $query_c->condition('g_c_g_r.group_roles_target_id', 'learning_path-user_manager');
-      $query_c->condition('g_c_f_d.entity_id', $uid);
-      $query_c->condition('g_c_f_d.type', 'learning_path-group_membership');
-      $lp_counts = $query_c->countQuery()->execute()->fetchField();
+      $is_user_manager = LearningPathAccess::memberHasRole('user_manager', $account);
 
-      if ($lp_counts > 0) {
+      if ($is_user_manager) {
         return AccessResultAllowed::allowed()->mergeCacheMaxAge(0);
       }
       else {
@@ -717,7 +740,12 @@ class DashboardForm extends FormBase {
   /**
    * Ajax form submit.
    */
-  public function submitFormAjax(array &$form, FormStateInterface $form_state) {
+  public function submitFormAjax(array &$form, FormStateInterface &$form_state) {
+    $trigger = $form_state->getTriggeringElement();
+    if (isset($trigger['#name']) && $trigger['#name'] == 'year') {
+      $form['trainings_progress']['month']['#value'] = 'none';
+    }
+
     return $form['trainings_progress'];
   }
 

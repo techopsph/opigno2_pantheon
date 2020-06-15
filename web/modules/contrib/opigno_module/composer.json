@@ -5,7 +5,7 @@
   "homepage": "http://drupal.org/project/opigno_module",
   "license": "GPL-2.0+",
   "require": {
-      "drupal/pdf": "1.x-dev#f558259"
+    "drupal/pdf": "1.x-dev#ec8d13d"
   },
   "minimum-stability": "dev"
 }

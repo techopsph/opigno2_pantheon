@@ -130,12 +130,30 @@ class DefaultPaymentAdminTest extends CommerceBrowserTestBase {
   }
 
   /**
-   * Tests that a Payments tab is visible on the order page.
+   * Tests the Payments tab.
    */
   public function testPaymentTab() {
+    // Confirm that the tab is visible on the order page.
     $this->drupalGet($this->order->toUrl());
     $this->assertSession()->linkExists('Payments');
     $this->assertSession()->linkByHrefExists($this->paymentUri);
+
+    // Confirm that a payment is visible.
+    $this->createEntity('commerce_payment', [
+      'payment_gateway' => $this->paymentGateway->id(),
+      'payment_method' => $this->paymentMethod->id(),
+      'order_id' => $this->order->id(),
+      'amount' => new Price('10', 'USD'),
+    ]);
+    $this->drupalGet($this->paymentUri);
+    $this->assertSession()->pageTextContains('$10.00');
+    $this->assertSession()->pageTextContains($this->paymentGateway->label());
+
+    // Confirm that the payment is visible even if the gateway was deleted.
+    $this->paymentGateway->delete();
+    $this->drupalGet($this->paymentUri);
+    $this->assertSession()->pageTextContains('$10.00');
+    $this->assertSession()->pageTextNotContains($this->paymentGateway->label());
   }
 
   /**
@@ -153,10 +171,11 @@ class DefaultPaymentAdminTest extends CommerceBrowserTestBase {
     $this->assertSession()->addressEquals($this->paymentUri);
     $this->assertSession()->pageTextContains('Completed');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([1]);
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = Payment::load(1);
-    $this->assertEquals($payment->getOrderId(), $this->order->id());
-    $this->assertEquals($payment->getAmount()->getNumber(), '100');
+    $this->assertEquals($this->order->id(), $payment->getOrderId());
+    $this->assertEquals('100.00', $payment->getAmount()->getNumber());
     $this->assertNotEmpty($payment->getCompletedTime());
   }
 
@@ -182,6 +201,7 @@ class DefaultPaymentAdminTest extends CommerceBrowserTestBase {
     $this->assertSession()->pageTextNotContains('Authorization');
     $this->assertSession()->pageTextContains('Completed');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([$payment->id()]);
     $payment = Payment::load($payment->id());
     $this->assertEquals($payment->getState()->getLabel(), 'Completed');
   }
@@ -208,6 +228,7 @@ class DefaultPaymentAdminTest extends CommerceBrowserTestBase {
     $this->assertSession()->pageTextNotContains('Completed');
     $this->assertSession()->pageTextContains('Refunded');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([$payment->id()]);
     $payment = Payment::load($payment->id());
     $this->assertEquals($payment->getState()->getLabel(), 'Refunded');
   }
@@ -229,10 +250,12 @@ class DefaultPaymentAdminTest extends CommerceBrowserTestBase {
     $this->assertSession()->pageTextContains('Authorization');
 
     $this->drupalGet($this->paymentUri . '/' . $payment->id() . '/operation/void');
+    $this->assertSession()->pageTextContains('Are you sure you want to void the 10 USD payment?');
     $this->getSession()->getPage()->pressButton('Void');
     $this->assertSession()->addressEquals($this->paymentUri);
     $this->assertSession()->pageTextContains('Authorization (Voided)');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([$payment->id()]);
     $payment = Payment::load($payment->id());
     $this->assertEquals($payment->getState()->getLabel(), 'Authorization (Voided)');
   }
@@ -258,6 +281,7 @@ class DefaultPaymentAdminTest extends CommerceBrowserTestBase {
     $this->assertSession()->addressEquals($this->paymentUri);
     $this->assertSession()->pageTextNotContains('Authorization');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([$payment->id()]);
     $payment = Payment::load($payment->id());
     $this->assertNull($payment);
   }

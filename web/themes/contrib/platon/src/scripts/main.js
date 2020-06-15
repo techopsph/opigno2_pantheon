@@ -68,23 +68,29 @@ import 'iframe-resizer';
         }
       });
     },
-
     searchBar(context) {
-      $('.search-trigger a', context).once().click(function (e) {
-        e.preventDefault();
+      let $toggleButton = $('.search-trigger a', context);
+      let $searchForm = $('#search-form', context);
+      let $searchInput = $searchForm.find('input[type="search"]');
 
-        if ($(this).hasClass('open')) {
-          $(this).removeClass('open');
-          $('#search-form', context).hide();
+      $toggleButton.once('searchBar').on('click.searchBar', function (e) {
+        if ($toggleButton.is('.open')) {
+          $toggleButton.removeClass('open');
+          $searchForm.hide();
         }
         else {
-          $(this).addClass('open');
-          $('#search-form', context).show();
-          $('#search-form form input[type="search"]', context).focus();
+          $toggleButton.addClass('open');
+          $searchForm.show();
+          $searchInput.focus();
         }
+
+        e.preventDefault();
+      });
+
+      $searchInput.on('blur.searchBar', function () {
+        $toggleButton.trigger('click.searchBar');
       });
     },
-
     trainingCatalog(context) {
       $('body.page-catalogue .views-exposed-form fieldset#edit-sort-by--wrapper legend', context).once().click(function () {
         if ($(this).hasClass('active')) {
@@ -139,6 +145,11 @@ import 'iframe-resizer';
           $('a#lp-steps-trigger', context).addClass('open');
           $('#sidebar-first', context).show();
           $('#content', context).attr('class', defaultMainClass);
+        }
+
+        $(window).trigger('resize');
+        if (typeof H5P !== 'undefined') {
+          H5P.jQuery(window).trigger('resize');
         }
       });
     },
@@ -219,6 +230,72 @@ import 'iframe-resizer';
         $('form#views-form-opigno-activities-bank-lp-interface-default > table', context).after($pager);
       }
     },
+
+    /**
+     * Trigger click. Use for fake buttons.
+     *
+     * @param context
+     */
+    triggerClick(context) {
+      $('[data-toggle="trigger_click"]', context).each(function () {
+        let $this = $(this);
+        let $target = $($this.data().target);
+
+        $this.on('click', function (e) {
+          if ($target.length) {
+            $target.trigger('click');
+
+            e.preventDefault();
+          }
+        })
+      })
+    },
+
+    /**
+     * Simple loader.
+     *
+     * @param context
+     */
+    pageLoader(context) {
+      // Move to execution.
+      setTimeout(function () {
+        $('body', context).addClass('page-ready');
+      });
+    },
+    ajaxFullScreenLoader: {
+      show: function () {
+        var $spinner = $('<div id="ajaxFullScreenLoader" class="spinner-overlay">' +
+          '<div class="spinner" role="status"><span class="sr-only">Loading...</span>\n' +
+          '</div>');
+
+        if (!$('#ajaxFullScreenLoader').length) {
+          $('body').append($spinner);
+          $spinner.fadeIn('fast');
+        }
+      },
+      hide: function () {
+        var $spinner = $('#ajaxFullScreenLoader');
+        $spinner.fadeOut('fast', function () {
+          $spinner.remove();
+        })
+      }
+    },
+    videoPreview: function (context) {
+      $('.file-video-wrapper', context).once('videoPreview').each(function () {
+        var $wrapper = $(this);
+        var $img = $wrapper.find('.video-image-preview');
+
+        if ($img.length) {
+          var $video = $wrapper.find('video');
+
+          $img.one('click', function () {
+            $img.hide();
+            $video.show();
+            $video[0].play();
+          });
+        }
+      });
+    }
   };
 
   Drupal.behaviors.platon = {
@@ -233,8 +310,23 @@ import 'iframe-resizer';
       Drupal.platon.fileWidget(context);
       Drupal.platon.packageFileInput(context);
       Drupal.platon.viewOpignoActivitiesBank(context);
+      Drupal.platon.triggerClick(context);
+      Drupal.platon.pageLoader(context);
+      Drupal.platon.videoPreview(context);
 
-      $('iframe').iFrameResize();
+      // Temp class to calc iframe height.
+      $('#training-content-wrapper iframe', context).parents('.tab-pane').addClass('adapt-iframe-size');
+
+      $('iframe').iFrameResize({
+        resizedCallback: function (event) {
+          if (+event.height) {
+            $(event.iframe).parent().height(+event.height);
+          }
+
+          // Remove temp class.
+          $(event.iframe).parents('.adapt-iframe-size').removeClass('adapt-iframe-size');
+        }
+      });
 
       $('a[href="#documents-library"]', context).once().click(() => {
         Drupal.platon.formatTFTOperations(context);

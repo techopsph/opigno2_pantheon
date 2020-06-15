@@ -18,7 +18,15 @@
   #}
   {{ q }}
 {% endif %}
-<div class="form--inline form-inline clearfix">
+<div class="form--inline form-inline clearfix" id="catalog-filter-parent">
   {{ form.sort_by }}
-  {{ form|without('sort_by') }}
+
+  <button class="btn-collapse collapsed" type="button" data-toggle="collapse" data-target="#catalog-filter" aria-expanded="false">
+   {{ form.opigno_group_membership['#title'] }}
+     <i class="icon-chevron-right"></i>
+  </button>
+
+  <div id="catalog-filter" class="collapse" data-parent="#catalog-filter-parent">
+    {{ form|without('sort_by') }}
+  </div>
 </div>

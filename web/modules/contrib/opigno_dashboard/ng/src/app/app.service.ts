@@ -11,6 +11,7 @@ import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 export class AppService {
 
   private _columns = new BehaviorSubject<number>(0);
+  manageDashboardAccess: boolean;
   managePanel = false;
   positions = [[], [], [], []];
   blocksContents: [string];

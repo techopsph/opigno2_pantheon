@@ -192,6 +192,29 @@ class ExternalPackageController extends ControllerBase {
       elseif (file_exists($tincan_file)) {
         $package_type = 'tincan';
       }
+      else {
+        $files = scandir($extract_dir);
+        $count_files = count($files);
+
+        if ($count_files == 3 && is_dir($extract_dir. '/' . $files[2])) {
+          $subfolder_files = scandir($extract_dir. '/' . $files[2]);
+
+          if (in_array('imsmanifest.xml', $subfolder_files)) {
+            $source = $extract_dir. '/' . $files[2];
+
+            $i = new \RecursiveDirectoryIterator($source);
+            foreach($i as $f) {
+              if($f->isFile()) {
+                rename($f->getPathname(), $extract_dir . '/' . $f->getFilename());
+              } else if($f->isDir()) {
+                rename($f->getPathname(), $extract_dir . '/' . $f->getFilename());
+                unlink($f->getPathname());
+              }
+            }
+            $package_type = 'scorm';
+          }
+        }
+      }
       // Delete extracted archive.
       \Drupal::service('file_system')->deleteRecursive($extract_dir);
 
@@ -502,25 +525,39 @@ class ExternalPackageController extends ControllerBase {
    *   Uploaded file objects.
    */
   public static function cleanDirectoryFiles($ppt_dir_real_path, array $files = NULL) {
+    // Latest H5P lib core deletes uploaded files but not from database.
     // Delete uploaded files from database.
     if ($files) {
       foreach ($files as $file) {
-        $db_connection = \Drupal::service('database');
-        $db_connection->delete('file_managed')
-          ->condition('uri', $file->getFileUri())
-          ->condition('fid', $file->id())
-          ->execute();
+        if ($f = File::load($file->id())) {
+          try {
+            $f->delete();
+          }
+          catch (\Exception $e) {
+            \Drupal::logger('opigno_module')->error($e->getMessage());
+            \Drupal::messenger()->addMessage($e->getMessage(), 'error');
+          }
+        }
       }
     }
 
-    // Delete files in a directory.
+    // Latest H5P lib core deletes H5P uploaded content directory.
+    // Delete files in a directory if not deleted.
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
     $file_system = \Drupal::service('file_system');
-    $files = $file_system->scanDirectory($ppt_dir_real_path, '/.*\.*$/');
-    if ($files) {
-      foreach ($files as $file) {
-        if (file_exists($file->uri)) {
-          \Drupal::service('file_system')->delete($file->uri);
+    if (is_dir($ppt_dir_real_path)) {
+      $files = $file_system->scanDirectory($ppt_dir_real_path, '/.*\.*$/');
+      if ($files) {
+        foreach ($files as $file) {
+          try {
+            if (file_exists($file->uri)) {
+              \Drupal::service('file_system')->delete($file->uri);
+            }
+          }
+          catch (\Exception $e) {
+            \Drupal::logger('opigno_module')->error($e->getMessage());
+            \Drupal::messenger()->addMessage($e->getMessage(), 'error');
+          }
         }
       }
     }
@@ -570,8 +607,8 @@ class ExternalPackageController extends ControllerBase {
    */
   public static function getLibreofficeConfigsDir() {
     $config = \Drupal::configFactory()->get('opigno_module.settings');
-    $output = $config->get('libreoffice_configs_path', '/tmp/LibreOffice_Conversion_${USER}');
-    $output = !empty($output) ? $output : '/tmp/LibreOffice_Conversion_${USER}';
+    $output = $config->get('libreoffice_configs_path', '/tmp/LibreOffice_Conversion');
+    $output = !empty($output) ? $output : '/tmp/LibreOffice_Conversion';
     return $output;
   }
 

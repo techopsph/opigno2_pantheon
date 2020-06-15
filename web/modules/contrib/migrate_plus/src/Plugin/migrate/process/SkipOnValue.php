@@ -20,10 +20,12 @@ use Drupal\migrate\Row;
  * - value: An single value or array of values against which the source value
  *   should be compared.
  * - not_equals: (optional) If set, skipping occurs when values are not equal.
- * - method: What to do if the input value is empty. Possible values:
- *   - row: Skips the entire row when an empty value is encountered.
- *   - process: Prevents further processing of the input property when the value
- *     is empty.
+ * - method: What to do if the input value equals to value given in
+ *   configuration key value. Possible values:
+ *   - row: Skips the entire row.
+ *   - process: Prevents further processing of the input property
+ *
+ * @codingStandardsIgnoreStart
  *
  * Examples:
  *
@@ -32,12 +34,11 @@ use Drupal\migrate\Row;
  *   type:
  *     plugin: skip_on_value
  *     source: content_type
- *     method: row
+ *     method: process
  *     value: blog
  * @endcode
- *
- * The above example will skip processing the input property if the content_type
- * source field equals "blog".
+ * The above example will skip further processing of the input property if
+ * the content_type source field equals "blog".
  *
  * Example usage with full configuration:
  * @code
@@ -50,9 +51,10 @@ use Drupal\migrate\Row;
  *       - article
  *       - testimonial
  * @endcode
- *
  * The above example will skip processing any row for which the source row's
  * content type field is not "article" or "testimonial".
+ *
+ * @codingStandardsIgnoreEnd
  */
 class SkipOnValue extends ProcessPluginBase {
 

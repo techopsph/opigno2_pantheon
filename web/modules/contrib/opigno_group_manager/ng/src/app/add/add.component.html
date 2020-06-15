@@ -3,12 +3,12 @@
   <div class="info d-flex">
     <div class="flex-1 text-uppercase">
       <div>
-        <h2 *ngIf="step==1">1/2 <span i18n>ADD A STEP</span></h2>
-        <h2 *ngIf="step==2">2/2 <span i18n>ADD A </span>{{ getBundleTitle(form.bundle) }}</h2>
+        <h2 *ngIf="step==1">1/2 <span>{{ text_add_a_step }}</span></h2>
+        <h2 *ngIf="step==2">2/2 <span>{{ text_add_a }} </span>{{ getBundleTitle(form.bundle) }}</h2>
       </div>
     </div>
     <button mat-icon-button color="basic" class="close" (click)="close()">
-      <mat-icon class="mat-24" aria-label="Close" i18n>close</mat-icon>
+      <mat-icon class="mat-24" aria-label="Close">{{ text_close }}</mat-icon>
     </button>
   </div>
 
@@ -21,18 +21,18 @@
 
     <div class="step-2" *ngIf="(form.bundle || form.bundle===0) && step==2">
       <div>
-        <button (click)="getAddForm()" i18n>Create a new {{ getBundleTitle(form.bundle) }}</button>
+        <button (click)="getAddForm()">{{ text_create_a_new }} {{ getBundleTitle(form.bundle) }}</button>
       </div>
-      <div class="mt-3" i18n>Or add from existing catalogue</div>
-      <input type="text" placeholder="Search {{ getBundleTitle(form.bundle) }}" [(ngModel)]="filterEntity" (paste)="updateResults()" (keydown)="updateResults()">
+      <div class="mt-3">{{ text_or_add_from_existing_catalogue }}</div>
+      <input type="text" placeholder="{{ text_search }} {{ getBundleTitle(form.bundle) }}" [(ngModel)]="filterEntity" (paste)="updateResults()" (keydown)="updateResults()">
       <mat-radio-group class="w-100 d-flex flex-column" [(ngModel)]="form.existingEntity">
         <mat-radio-button *ngFor="let result of results" [value]="result" (click)="addEntityToLearningPath()">{{result.entity.title}}</mat-radio-button>
       </mat-radio-group>
     </div>
 
     <div class="step-pager mt-4 text-center">
-      <button type="button" (click)="step=1" [class.active]="step==1">1</button>
-      <button type="button" (click)="step=2" [class.active]="step==2">2</button>
+      <button type="button" (click)="step=1;form.bundle=null" [class.active]="step==1">1</button>
+      <button type="button" (click)="step=2" [class.active]="step==2" [disabled]="!form.bundle">2</button>
     </div>
   </div>
 

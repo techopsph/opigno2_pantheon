@@ -7,7 +7,7 @@ dependencies:
 package: Opigno
 core: 8.x
 
-# Information added by Drupal.org packaging script on 2020-01-30
-version: '8.x-1.3'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.4'
 project: 'opigno_calendar_event'
-datestamp: 1580375806
+datestamp: 1591085725

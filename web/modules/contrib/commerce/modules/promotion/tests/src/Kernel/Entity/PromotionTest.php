@@ -2,14 +2,14 @@
 
 namespace Drupal\Tests\commerce_promotion\Kernel\Entity;
 
-use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_order\Entity\OrderType;
 use Drupal\commerce_price\RounderInterface;
 use Drupal\commerce_promotion\Entity\Coupon;
 use Drupal\commerce_promotion\Entity\Promotion;
 use Drupal\commerce_promotion\Plugin\Commerce\PromotionOffer\OrderItemPercentageOff;
 use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\Tests\commerce_order\Kernel\OrderKernelTestBase;
 
 /**
  * Tests the Promotion entity.
@@ -18,7 +18,7 @@ use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
  *
  * @group commerce
  */
-class PromotionTest extends CommerceKernelTestBase {
+class PromotionTest extends OrderKernelTestBase {
 
   /**
    * Modules to enable.
@@ -26,11 +26,6 @@ class PromotionTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'entity_reference_revisions',
-    'profile',
-    'state_machine',
-    'commerce_order',
-    'commerce_product',
     'commerce_promotion',
   ];
 
@@ -40,28 +35,17 @@ class PromotionTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('commerce_promotion');
     $this->installEntitySchema('commerce_promotion_coupon');
     $this->installSchema('commerce_promotion', ['commerce_promotion_usage']);
-    $this->installConfig([
-      'profile',
-      'commerce_order',
-      'commerce_promotion',
-    ]);
-
-    OrderItemType::create([
-      'id' => 'test',
-      'label' => 'Test',
-      'orderType' => 'default',
-    ])->save();
+    $this->installConfig(['commerce_promotion']);
   }
 
   /**
    * @covers ::getName
    * @covers ::setName
+   * @covers ::getDisplayName
+   * @covers ::setDisplayName
    * @covers ::getDescription
    * @covers ::setDescription
    * @covers ::getOrderTypes
@@ -100,6 +84,9 @@ class PromotionTest extends CommerceKernelTestBase {
 
     $promotion->setName('My Promotion');
     $this->assertEquals('My Promotion', $promotion->getName());
+
+    $promotion->setDisplayName('50% off');
+    $this->assertEquals('50% off', $promotion->getDisplayName());
 
     $promotion->setDescription('My Promotion Description');
     $this->assertEquals('My Promotion Description', $promotion->getDescription());
@@ -155,6 +142,7 @@ class PromotionTest extends CommerceKernelTestBase {
 
     // Check Coupon::postDelete() remove Coupon reference from promotion.
     $promotion->save();
+    /** @var \Drupal\commerce_promotion\Entity\PromotionInterface $promotion */
     $promotion = $this->reloadEntity($promotion);
     $this->assertEquals($promotion->id(), 1);
     $coupon1->delete();
@@ -163,14 +151,43 @@ class PromotionTest extends CommerceKernelTestBase {
     $promotion->setUsageLimit(10);
     $this->assertEquals(10, $promotion->getUsageLimit());
 
-    $promotion->setStartDate(new DrupalDateTime('2017-01-01'));
-    $this->assertEquals('2017-01-01', $promotion->getStartDate()->format('Y-m-d'));
+    $date_pattern = DateTimeItemInterface::DATETIME_STORAGE_FORMAT;
+    $time = $this->container->get('datetime.time');
+    $default_start_date = gmdate($date_pattern, $time->getRequestTime());
+    $this->assertEquals($default_start_date, $promotion->getStartDate()->format($date_pattern));
+    $promotion->setStartDate(new DrupalDateTime('2017-01-01 12:12:12'));
+    $this->assertEquals('2017-01-01 12:12:12 UTC', $promotion->getStartDate()->format('Y-m-d H:i:s T'));
+    $this->assertEquals('2017-01-01 12:12:12 CET', $promotion->getStartDate('Europe/Berlin')->format('Y-m-d H:i:s T'));
 
-    $promotion->setEndDate(new DrupalDateTime('2017-01-31'));
-    $this->assertEquals('2017-01-31', $promotion->getEndDate()->format('Y-m-d'));
+    $this->assertNull($promotion->getEndDate());
+    $promotion->setEndDate(new DrupalDateTime('2017-01-31 17:15:00'));
+    $this->assertEquals('2017-01-31 17:15:00 UTC', $promotion->getEndDate()->format('Y-m-d H:i:s T'));
+    $this->assertEquals('2017-01-31 17:15:00 CET', $promotion->getEndDate('Europe/Berlin')->format('Y-m-d H:i:s T'));
 
     $promotion->setEnabled(TRUE);
     $this->assertEquals(TRUE, $promotion->isEnabled());
+  }
+
+  /**
+   * @covers ::createDuplicate
+   */
+  public function testDuplicate() {
+    $coupon = Coupon::create([
+      'code' => $this->randomMachineName(),
+      'status' => TRUE,
+    ]);
+    $coupon->save();
+    $promotion = Promotion::create([
+      'name' => '10% off',
+      'coupons' => [$coupon],
+      'status' => FALSE,
+    ]);
+    $promotion->save();
+    $this->assertNotEmpty($promotion->getCouponIds());
+
+    $duplicate_promotion = $promotion->createDuplicate();
+    $this->assertEquals('10% off', $duplicate_promotion->label());
+    $this->assertFalse($duplicate_promotion->hasCoupons());
   }
 
 }

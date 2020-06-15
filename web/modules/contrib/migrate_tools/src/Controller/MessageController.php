@@ -104,18 +104,21 @@ class MessageController extends ControllerBase {
       'field' => 'message',
     ];
 
+    $result = [];
     $message_table = $migration_plugin->getIdMap()->messageTableName();
-    $map_table = $migration_plugin->getIdMap()->mapTableName();
-    $query = $this->database->select($message_table, 'msg')
-      ->extend('\Drupal\Core\Database\Query\PagerSelectExtender')
-      ->extend('\Drupal\Core\Database\Query\TableSortExtender');
-    $query->innerJoin($map_table, 'map', 'msg.source_ids_hash=map.source_ids_hash');
-    $query->fields('msg');
-    $query->fields('map');
-    $result = $query
-      ->limit(50)
-      ->orderByHeader($header)
-      ->execute();
+    if ($this->database->schema()->tableExists($message_table)) {
+      $map_table = $migration_plugin->getIdMap()->mapTableName();
+      $query = $this->database->select($message_table, 'msg')
+        ->extend('\Drupal\Core\Database\Query\PagerSelectExtender')
+        ->extend('\Drupal\Core\Database\Query\TableSortExtender');
+      $query->innerJoin($map_table, 'map', 'msg.source_ids_hash=map.source_ids_hash');
+      $query->fields('msg');
+      $query->fields('map');
+      $result = $query
+        ->limit(50)
+        ->orderByHeader($header)
+        ->execute();
+    }
 
     foreach ($result as $message_row) {
       $column_number = 1;
@@ -139,6 +142,24 @@ class MessageController extends ControllerBase {
     $build['message_pager'] = ['#type' => 'pager'];
 
     return $build;
+  }
+
+  /**
+   * Get the title of the page.
+   *
+   * @param \Drupal\migrate_plus\Entity\MigrationGroupInterface $migration_group
+   *   The migration group.
+   * @param \Drupal\migrate_plus\Entity\MigrationInterface $migration
+   *   The $migration.
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup
+   *   The translated title.
+   */
+  public function title(MigrationGroupInterface $migration_group, MigratePlusMigrationInterface $migration) {
+    return $this->t(
+      'Messages of %migration',
+      ['%migration' => $migration->label()]
+    );
   }
 
 }

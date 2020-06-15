@@ -10,7 +10,7 @@ dependencies:
     - platon
 id: opigno_training_catalog_filter
 theme: platon
-region: content
+region: sidebar_first
 weight: -1
 provider: null
 plugin: 'views_exposed_filter_block:opigno_training_catalog-training_catalogue'
@@ -18,7 +18,7 @@ settings:
   id: 'views_exposed_filter_block:opigno_training_catalog-training_catalogue'
   label: ''
   provider: views
-  label_display: visible
+  label_display: '0'
   views_label: ''
 visibility:
   request_path:

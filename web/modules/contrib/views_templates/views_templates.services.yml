@@ -6,4 +6,3 @@ services:
   views_templates.loader:
     class: Drupal\views_templates\ViewsTemplateLoader
     arguments: []
-

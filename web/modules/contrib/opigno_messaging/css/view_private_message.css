@@ -75,18 +75,21 @@
 
 .view-private-message .views-row {
   background-color: #fff;
-  border-left: solid 2.5px #95d5f4;
   padding: 20px 0;
   position: relative;
+  border-left: solid 2.5px #95d5f4;
+  background-size: 200% 100%;
+  background-image: linear-gradient(to right, #ffffff 50%, #95d5f4 50%);
+  transition: background-position 0.2s;
+}
+
+.view-private-message .views-row:hover {
+  background-position: -100% 0;
+  cursor: pointer;
 }
 
 .view-private-message .views-row+.views-row {
   margin-top: 10px;
-}
-
-.view-private-message .views-row:hover {
-  background-color: #95d5f4;
-  cursor: pointer;
 }
 
 .view-private-message .views-row:hover::before {
@@ -210,100 +213,6 @@
   }
 }
 
-#private-message-add-form .multiselect-wrapper>.multiselect-available,
-#private-message-add-form .multiselect-wrapper>.multiselect-btns,
-#private-message-add-form .multiselect-wrapper>.multiselect-selected {
-  display: inline-block;
-  float: none;
-  vertical-align: middle;
-}
-
-@media (max-width: 768px) {
-  #private-message-add-form .multiselect-wrapper>.multiselect-available,
-  #private-message-add-form .multiselect-wrapper>.multiselect-btns,
-  #private-message-add-form .multiselect-wrapper>.multiselect-selected {
-    display: block;
-  }
-}
-
-#private-message-add-form .multiselect-wrapper>.multiselect-available,
-#private-message-add-form .multiselect-wrapper>.multiselect-selected {
-  width: 45%;
-}
-
-@media (max-width: 768px) {
-  #private-message-add-form .multiselect-wrapper>.multiselect-available,
-  #private-message-add-form .multiselect-wrapper>.multiselect-selected {
-    width: 100%;
-  }
-}
-
-#private-message-add-form .multiselect-wrapper>.multiselect-btns {
-  width: 10%;
-}
-
-#private-message-add-form .multiselect-wrapper>.multiselect-btns,
-#private-message-add-form .multiselect-wrapper>.multiselect-selected {
-  margin-left: -4px;
-}
-
-@media (max-width: 768px) {
-  #private-message-add-form .multiselect-wrapper>.multiselect-btns {
-    width: 100%;
-    margin: 1.5rem 0;
-  }
-}
-
-#private-message-add-form .multiselect-wrapper .form-multiselect {
-  width: 100%;
-}
-
-#private-message-add-form .multiselect-btns>ul {
-  margin: 0;
-  width: 100%;
-}
-
-@media (max-width: 768px) {
-  #private-message-add-form .multiselect-btns>ul {
-    left: 0;
-    top: 0;
-  }
-}
-
-#private-message-add-form .multiselect-add,
-#private-message-add-form .multiselect-remove {
-  height: 23px;
-  margin: 10px auto 0;
-  width: 32px;
-}
-
-@media (max-width: 768px) {
-  #private-message-add-form .multiselect-add,
-  #private-message-add-form .multiselect-remove {
-    margin: 0 auto;
-  }
-}
-
-#private-message-add-form .multiselect-add {
-  background: url('../img/arrow-right.png');
-}
-
-@media (max-width: 768px) {
-  #private-message-add-form .multiselect-add {
-    transform: rotate(90deg);
-  }
-}
-
-#private-message-add-form .multiselect-remove {
-  background: url('../img/arrow-left.png');
-}
-
-@media (max-width: 768px) {
-  #private-message-add-form .multiselect-remove {
-    transform: rotate(90deg);
-  }
-}
-
 #private-message-add-form #edit-message-wrapper>.form-item {
   margin-left: 0;
 }
@@ -338,8 +247,15 @@
 
 #private-message-page .field-pm-subject,
 #private-message-page .private-message-recipients {
-  font-size: 25px;
+  font-size: 18px;
   font-weight: normal;
+}
+
+@media (min-width: 768px) {
+  #private-message-page .field-pm-subject,
+  #private-message-page .private-message-recipients {
+    font-size: 25px;
+  }
 }
 
 #private-message-page .field-pm-subject .label,
@@ -412,4 +328,13 @@
 
 .view-private-message .new {
   font-weight: bold;
+}
+
+@media (max-width: 991px) {
+  .view-private-message.view-display-id-block_all .view-header .messages,
+  body.page-private-message-create .view-private-message.view-display-id-block_all .view-header,
+  body.page-private-message-create .view-private-message.view-display-id-block_all .view-content,
+  body[class*='page-private-messages-'] .view-private-message.view-display-id-block_all .view-content {
+    display: none !important;
+  }
 }

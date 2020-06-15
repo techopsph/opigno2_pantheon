@@ -4,6 +4,8 @@ dependencies:
   config:
     - field.field.group.learning_path.field_anonymous_visibility
     - field.field.group.learning_path.field_certificate
+    - field.field.group.learning_path.field_certificate_expire
+    - field.field.group.learning_path.field_certificate_expire_results
     - field.field.group.learning_path.field_learning_path_category
     - field.field.group.learning_path.field_learning_path_description
     - field.field.group.learning_path.field_learning_path_duration
@@ -54,6 +56,8 @@ hidden:
   entity_print_view_word_docx: true
   field_anonymous_visibility: true
   field_certificate: true
+  field_certificate_expire: true
+  field_certificate_expire_results: true
   field_learning_path_category: true
   field_learning_path_duration: true
   field_learning_path_enable_forum: true

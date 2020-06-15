@@ -1,3 +1,4 @@
+uuid: null
 langcode: en
 status: true
 dependencies:
@@ -21,8 +22,14 @@ settings:
         -
           name: Formatting
           items:
+            - Format
             - Bold
             - Italic
+            - Font
+            - FontSize
+            - JustifyLeft
+            - JustifyCenter
+            - JustifyRight
         -
           name: Links
           items:
@@ -44,12 +51,10 @@ settings:
           items:
             - Source
   plugins:
-    stylescombo:
-      styles: ''
     language:
       language_list: un
-    tokenbrowser:
-      token_types: {  }
+    stylescombo:
+      styles: ''
 image_upload:
   status: true
   scheme: public

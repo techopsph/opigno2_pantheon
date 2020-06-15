@@ -5,9 +5,12 @@ namespace Drupal\commerce_store\Form;
 use Drupal\commerce\Form\CommerceBundleEntityFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\entity\Form\EntityDuplicateFormTrait;
 use Drupal\language\Entity\ContentLanguageSettings;
 
 class StoreTypeForm extends CommerceBundleEntityFormBase {
+
+  use EntityDuplicateFormTrait;
 
   /**
    * {@inheritdoc}
@@ -31,10 +34,13 @@ class StoreTypeForm extends CommerceBundleEntityFormBase {
         'exists' => '\Drupal\commerce_store\Entity\StoreType::load',
       ],
       '#maxlength' => EntityTypeInterface::BUNDLE_MAX_LENGTH,
+      '#disabled' => !$store_type->isNew(),
+
     ];
     $form['description'] = [
-      '#type' => 'textfield',
+      '#type' => 'textarea',
       '#title' => $this->t('Description'),
+      '#description' => $this->t('This text will be displayed on the <em>Add store</em> page.'),
       '#default_value' => $store_type->getDescription(),
     ];
     $form = $this->buildTraitForm($form, $form_state);
@@ -56,7 +62,7 @@ class StoreTypeForm extends CommerceBundleEntityFormBase {
       $form['#submit'][] = 'language_configuration_element_submit';
     }
 
-    return $this->protectBundleIdElement($form);
+    return $form;
   }
 
   /**
@@ -71,6 +77,7 @@ class StoreTypeForm extends CommerceBundleEntityFormBase {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $this->entity->save();
+    $this->postSave($this->entity, $this->operation);
     $this->submitTraitForm($form, $form_state);
 
     $this->messenger()->addMessage($this->t('Saved the %label store type.', [

@@ -2,11 +2,10 @@
 
 namespace Drupal\commerce_order\Form;
 
-use Drupal\Component\Utility\Html;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\ContentEntityForm;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -26,8 +25,8 @@ class OrderForm extends ContentEntityForm {
   /**
    * Constructs a new OrderForm object.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
    *   The entity type bundle info.
    * @param \Drupal\Component\Datetime\TimeInterface $time
@@ -35,8 +34,8 @@ class OrderForm extends ContentEntityForm {
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *   The date formatter.
    */
-  public function __construct(EntityManagerInterface $entity_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, TimeInterface $time, DateFormatterInterface $date_formatter) {
-    parent::__construct($entity_manager, $entity_type_bundle_info, $time);
+  public function __construct(EntityRepositoryInterface $entity_repository, EntityTypeBundleInfoInterface $entity_type_bundle_info, TimeInterface $time, DateFormatterInterface $date_formatter) {
+    parent::__construct($entity_repository, $entity_type_bundle_info, $time);
 
     $this->dateFormatter = $date_formatter;
   }
@@ -46,7 +45,7 @@ class OrderForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager'),
+      $container->get('entity.repository'),
       $container->get('entity_type.bundle.info'),
       $container->get('datetime.time'),
       $container->get('date.formatter')
@@ -110,17 +109,18 @@ class OrderForm extends ContentEntityForm {
       $form['meta']['date'] = $this->fieldAsReadOnly($this->t('Placed'), $date);
     }
     // Show the order's store only if there are multiple available.
-    $store_query = $this->entityManager->getStorage('commerce_store')->getQuery();
+    $store_query = $this->entityTypeManager->getStorage('commerce_store')->getQuery();
     $store_count = $store_query->count()->execute();
     if ($store_count > 1) {
       $store_link = $order->getStore()->toLink()->toString();
       $form['meta']['store'] = $this->fieldAsReadOnly($this->t('Store'), $store_link);
     }
     // Move uid/mail widgets to the sidebar, or provide read-only alternatives.
+    $customer = $order->getCustomer();
     if (isset($form['uid'])) {
       $form['uid']['#group'] = 'customer';
     }
-    elseif ($customer = $order->getCustomer()) {
+    elseif ($customer->isAuthenticated()) {
       $customer_link = $customer->toLink()->toString();
       $form['customer']['uid'] = $this->fieldAsReadOnly($this->t('Customer'), $customer_link);
     }
@@ -151,9 +151,10 @@ class OrderForm extends ContentEntityForm {
     return [
       '#type' => 'item',
       '#wrapper_attributes' => [
-        'class' => [Html::cleanCssIdentifier(strtolower($label)), 'container-inline'],
+        'class' => ['container-inline'],
       ],
-      '#markup' => '<h4 class="label inline">' . $label . '</h4> ' . $value,
+      '#title' => $label,
+      '#markup' => $value,
     ];
   }
 

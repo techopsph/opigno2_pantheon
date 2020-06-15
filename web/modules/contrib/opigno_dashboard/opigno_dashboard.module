@@ -6,7 +6,9 @@
  */
 
 use Drupal\block\Entity\Block;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
 use Drupal\opigno_dashboard\BlockService;
@@ -84,13 +86,30 @@ function opigno_dashboard_preprocess_region(&$variables) {
 
     /** @var \Drupal\Core\Menu\LocalTaskManagerInterface $manager */
     $manager = \Drupal::service('plugin.manager.menu.local_task');
-    $primary = $manager->getLocalTasks(\Drupal::routeMatch()->getRouteName(), 0);
-    $secondary = $manager->getLocalTasks(\Drupal::routeMatch()->getRouteName(), 1);
-    $variables['tabs'] = [
+
+    /** @var \Drupal\Core\Cache\CacheableMetadata $cacheability */
+    $cacheability = new CacheableMetadata();
+    $cacheability->addCacheableDependency($manager);
+
+    $tabs = [
       '#theme' => 'menu_local_tasks',
-      '#primary' => $primary ?: [],
-      '#secondary' => $secondary ?: [],
     ];
+
+    $primary = $manager->getLocalTasks(\Drupal::routeMatch()
+      ->getRouteName(), 0);
+    $cacheability = $cacheability->merge($primary['cacheability']);
+    $tabs += [
+      '#primary' => count(Element::getVisibleChildren($primary['tabs'])) > 1 ? $primary['tabs'] : [],
+    ];
+
+    $secondary = $manager->getLocalTasks(\Drupal::routeMatch()
+      ->getRouteName(), 1);
+    $cacheability = $cacheability->merge($secondary['cacheability']);
+    $tabs += [
+      '#secondary' => count(Element::getVisibleChildren($secondary['tabs'])) > 1 ? $secondary['tabs'] : [],
+    ];
+
+    $variables['tabs'] = $tabs;
   }
 }
 
@@ -119,6 +138,9 @@ function opigno_dashboard_page_attachments(array &$page) {
   $route_name = \Drupal::routeMatch()->getRouteName();
   if ($route_name == 'view.frontpage.page_1' || $route_name == 'opigno_dashboard.dashboard_admin_default_settings') {
     $page['#attached']['library'][] = 'opigno_dashboard/ng_app';
+
+    $manage_dashboard_access = Drupal::currentUser()->hasPermission('opigno dashboard layout access');
+    $page['#attached']['drupalSettings']['manageDashboardAccess'] = $manage_dashboard_access;
   }
 }
 
@@ -223,4 +245,13 @@ function opigno_dashboard_blocks_update() {
   }
 
   drupal_flush_all_caches();
+}
+
+/**
+ * Implements hook_preprocess_page_title().
+ */
+function opigno_dashboard_preprocess_page_title(&$variables) {
+  if (\Drupal::routeMatch()->getRouteName() == 'view.frontpage.page_1') {
+    $variables['title']['#markup'] = '';
+  }
 }

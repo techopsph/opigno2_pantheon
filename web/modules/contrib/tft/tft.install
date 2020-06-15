@@ -56,3 +56,15 @@ function tft_update_8003() {
   $data = $storage->read('field.storage.media.tft_file');
   $config_storage->write('field.storage.media.tft_file', $data);
 }
+
+/**
+ * Update tft_file field settings. Hide field label.
+ */
+function tft_update_8004() {
+  $config_path = drupal_get_path('module', 'tft') . '/config/optional';
+  $storage = new FileStorage($config_path);
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('core.entity_view_display.media.tft_file.default');
+  $config_storage->write('core.entity_view_display.media.tft_file.default', $data);
+}

@@ -74,3 +74,26 @@ function opigno_class_update_8005() {
   $config_storage = \Drupal::service('config.storage');
   $config_storage->write('views.view.opigno_classes', $source->read('views.view.opigno_classes'));
 }
+
+/**
+ * Update permissions for users with role 'User manager'.
+ */
+function opigno_class_update_8006() {
+  $config_path = drupal_get_path('module', 'opigno_class') . '/config/install';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $config_storage->write('user.role.user_manager', $source->read('user.role.user_manager'));
+  $config_storage->write('userprotect.rule.protection_of_administrators', $source->read('userprotect.rule.protection_of_administrators'));
+}
+
+/**
+ * Update permissions for users with role 'User manager'.
+ */
+function opigno_class_update_8007() {
+  $config_path = drupal_get_path('module', 'opigno_class') . '/config/rewrite';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $config_storage->write('user.role.authenticated', $source->read('user.role.authenticated'));
+}

@@ -3,9 +3,7 @@
 namespace Drupal\migrate_tools\Form;
 
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormStateInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class MigrationGroupFormBase.
@@ -15,35 +13,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @ingroup migrate_tools
  */
 class MigrationGroupFormBase extends EntityForm {
-
-  /**
-   * The query factory service.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $entityQueryFactory;
-
-  /**
-   * Construct the MigrationGroupFormBase.
-   *
-   * For simple entity forms, there's no need for a constructor. Our migration
-   * group form base, however, requires an entity query factory to be injected
-   * into it from the container. We later use this query factory to build an
-   * entity query for the exists() method.
-   *
-   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
-   *   An entity query factory for the migration group entity type.
-   */
-  public function __construct(QueryFactory $query_factory) {
-    $this->entityQueryFactory = $query_factory;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static($container->get('entity.query'));
-  }
 
   /**
    * Overrides Drupal\Core\Entity\EntityFormController::form().
@@ -116,8 +85,7 @@ class MigrationGroupFormBase extends EntityForm {
    *   TRUE if this format already exists, FALSE otherwise.
    */
   public function exists($entity_id, array $element, FormStateInterface $form_state) {
-    // Use the query factory to build a new migration group entity query.
-    $query = $this->entityQueryFactory->get('migration_group');
+    $query = $this->entityTypeManager->getStorage('migration_group')->getQuery();
 
     // Query the entity ID to see if its in use.
     $result = $query->condition('id', $element['#field_prefix'] . $entity_id)
@@ -158,11 +126,11 @@ class MigrationGroupFormBase extends EntityForm {
 
     if ($status == SAVED_UPDATED) {
       // If we edited an existing entity...
-      drupal_set_message($this->t('Migration group %label has been updated.', ['%label' => $migration_group->label()]));
+      $this->messenger()->addStatus($this->t('Migration group %label has been updated.', ['%label' => $migration_group->label()]));
     }
     else {
       // If we created a new entity...
-      drupal_set_message($this->t('Migration group %label has been added.', ['%label' => $migration_group->label()]));
+      $this->messenger()->addStatus($this->t('Migration group %label has been added.', ['%label' => $migration_group->label()]));
     }
 
     // Redirect the user back to the listing route after the save operation.

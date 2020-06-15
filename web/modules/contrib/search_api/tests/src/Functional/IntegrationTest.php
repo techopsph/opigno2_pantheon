@@ -11,6 +11,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 use Drupal\search_api\Entity\Index;
 use Drupal\search_api\Entity\Server;
+use Drupal\search_api\IndexInterface;
 use Drupal\search_api\Plugin\search_api\tracker\Basic;
 use Drupal\search_api\SearchApiException;
 use Drupal\search_api\Utility\Utility;
@@ -286,6 +287,11 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     $this->assertSession()->pageTextNotContains('No UI datasource');
     $this->assertSession()->pageTextNotContains('No UI tracker');
 
+    // Make sure plugin labels are only escaped when necessary.
+    $this->assertHtmlEscaped('"Test" tracker');
+    $this->assertHtmlEscaped('&quot;String label&quot; test tracker');
+    $this->assertHtmlEscaped('"Test" datasource');
+
     // Make sure datasource and tracker plugin descriptions are displayed.
     $dummy_index = Index::create();
     foreach (['createDatasourcePlugins', 'createTrackerPlugins'] as $method) {
@@ -294,9 +300,11 @@ class IntegrationTest extends SearchApiBrowserTestBase {
         ->get('search_api.plugin_helper')
         ->$method($dummy_index);
       foreach ($plugins as $plugin) {
-        $description = strip_tags($plugin->getDescription());
-        $description = Html::decodeEntities($description);
-        $this->assertSession()->pageTextContains($description);
+        if ($plugin->isHidden()) {
+          continue;
+        }
+        $description = Utility::escapeHtml($plugin->getDescription());
+        $this->assertSession()->responseContains($description);
       }
     }
 
@@ -308,7 +316,7 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     $this->submitForm($edit, 'Save');
     $this->assertSession()->pageTextContains('Index name field is required.');
     $this->assertSession()->pageTextContains('Machine-readable name field is required.');
-    $this->assertSession()->pageTextContains('Data sources field is required.');
+    $this->assertSession()->pageTextContains('Datasources field is required.');
 
     $edit = [
       'name' => $index_name,
@@ -334,7 +342,7 @@ class IntegrationTest extends SearchApiBrowserTestBase {
 
     $index = $this->getIndex(TRUE);
 
-    $this->assertTrue($index, 'Index was correctly created.');
+    $this->assertInstanceOf(IndexInterface::class, $index, 'Index was correctly created.');
     $this->assertEquals($edit['name'], $index->label(), 'Name correctly inserted.');
     $this->assertEquals($edit['id'], $index->id(), 'Index ID correctly inserted.');
     $this->assertTrue($index->status(), 'Index status correctly inserted.');
@@ -449,8 +457,8 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     // Verify that everything was changed correctly.
     $index = $this->getIndex(TRUE);
     $tracker = $index->getTrackerInstance();
-    $this->assertTrue($tracker instanceof TestTracker, get_class($tracker));
-    $this->assertTrue($tracker instanceof TestTracker, 'Tracker was successfully switched.');
+    $this->assertInstanceOf(TestTracker::class, $tracker, get_class($tracker));
+    $this->assertInstanceOf(TestTracker::class, $tracker, 'Tracker was successfully switched.');
     $configuration = [
       'foo' => 'foobar',
       'dependencies' => [],
@@ -469,11 +477,11 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     $this->assertSession()->pageTextContains('The index was successfully saved.');
     $index = $this->getIndex(TRUE);
     $tracker = $index->getTrackerInstance();
-    $this->assertTrue($tracker instanceof Basic, 'Tracker was successfully switched.');
+    $this->assertInstanceOf(Basic::class, $tracker, 'Tracker was successfully switched.');
   }
 
   /**
-   * Tests that an entity without bundles can be used as a data source.
+   * Tests that an entity without bundles can be used as a datasource.
    */
   protected function checkUserIndexCreation() {
     $edit = [
@@ -773,6 +781,9 @@ class IntegrationTest extends SearchApiBrowserTestBase {
 
     $this->drupalGet($this->getIndexPath('fields'));
     $this->assertHtmlEscaped($field_name);
+    // Also check data type labels/descriptions.
+    $this->assertHtmlEscaped('"Test" data type');
+    $this->assertSession()->responseContains('Dummy <em>data type</em> implementation');
 
     $edit = [
       'datasource_configs[entity:node][bundles][default]' => 1,
@@ -818,7 +829,7 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     $index = $this->getIndex(TRUE);
     $fields = $index->getFields();
 
-    $this->assertTrue(empty($fields['nid']), 'Field changes have not been persisted.');
+    $this->assertArrayNotHasKey('nid', $fields, 'Field changes have not been persisted.');
     $this->drupalGet($this->getIndexPath('fields'));
     $this->submitForm([], 'Save changes');
     $this->assertSession()->pageTextContains('The changes were successfully saved.');
@@ -1073,18 +1084,16 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     $this->drupalGet($this->getIndexPath('fields/add/nojs'));
     $this->assertSession()->responseContains($message_parts[0]);
     $this->assertSession()->responseContains($message_parts[1]);
-    $this->assertFalse($this->xpath('//input[not(@disabled)]'));
+    $this->assertSession()->elementNotExists('xpath', '//input[not(@disabled)]');
     $this->drupalGet($this->getIndexPath('fields/edit/rendered_item'));
     $this->assertSession()->responseContains($message_parts[0]);
     $this->assertSession()->responseContains($message_parts[1]);
-    $this->assertFalse($this->xpath('//input[not(@disabled)]'));
+    $this->assertSession()->elementNotExists('xpath', '//input[not(@disabled)]');
     $this->drupalGet($this->getIndexPath('fields'));
     $this->assertSession()->responseContains($message_parts[0]);
     $this->assertSession()->responseContains($message_parts[1]);
-    $this->assertFalse($this->xpath('//input[not(@disabled)]'));
-    $match_result = preg_match('#fields/break-lock">([^<>]*?)</a>#', $message, $m);
-    $this->assertTrue($match_result);
-    $this->clickLink($m[1]);
+    $this->assertSession()->elementNotExists('xpath', '//input[not(@disabled)]');
+    $this->clickLink('break this lock');
 
     $this->assertSession()->responseContains(new FormattableMarkup('By breaking this lock, any unsaved changes made by @user will be lost.', $args));
     $this->submitForm([], 'Break lock');
@@ -1496,7 +1505,7 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     $this->assertEquals($manipulated_items_count + 1, $this->countItemsOnServer());
 
     $this->drupalPostForm($this->getIndexPath('reindex'), [], 'Confirm');
-    $assert_session->pageTextContains("The search index $label was successfully reindexed.");
+    $assert_session->pageTextContains("The search index $label was successfully queued for reindexing.");
     $this->assertEquals(0, $tracker->getIndexedItemsCount());
     $this->assertEquals($manipulated_items_count, $tracker->getTotalItemsCount());
     $this->assertEquals($manipulated_items_count + 1, $this->countItemsOnServer());
@@ -1532,14 +1541,14 @@ class IntegrationTest extends SearchApiBrowserTestBase {
     // Confirm deletion.
     $this->submitForm([], 'Delete');
     $this->assertSession()->responseContains(new FormattableMarkup('The search server %name has been deleted.', ['%name' => $server->label()]));
-    $this->assertFalse(Server::load($this->serverId), 'Server could not be found anymore.');
+    $this->assertNull(Server::load($this->serverId), 'Server could not be found anymore.');
     $this->assertSession()->addressEquals('admin/config/search/search-api');
 
     // Confirm that the index hasn't been deleted.
     $this->indexStorage->resetCache([$this->indexId]);
     /** @var \Drupal\search_api\IndexInterface $index */
     $index = $this->indexStorage->load($this->indexId);
-    $this->assertTrue($index, 'The index associated with the server was not deleted.');
+    $this->assertInstanceOf(IndexInterface::class, $index, 'The index associated with the server was not deleted.');
     $this->assertFalse($index->status(), 'The index associated with the server was disabled.');
     $this->assertNull($index->getServerId(), 'The index was removed from the server.');
   }

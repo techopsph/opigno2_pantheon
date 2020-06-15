@@ -215,7 +215,7 @@ class LPResult extends ContentEntityBase {
       ->setSetting('target_type', 'group')
       ->setSetting('handler_settings',
         [
-          'target_bundles' => ['opigno_learning_path' => 'opigno_learning_path'],
+          'target_bundles' => ['learning_path' => 'learning_path'],
         ]);
 
     $fields['user_id'] = BaseFieldDefinition::create('entity_reference')

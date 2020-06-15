@@ -18,15 +18,19 @@ use Drupal\commerce\Entity\CommerceBundleEntityBase;
  *     plural = "@count product variation types",
  *   ),
  *   handlers = {
- *     "access" = "Drupal\commerce\CommerceBundleAccessControlHandler",
+ *     "access" = "Drupal\commerce_product\ProductVariationTypeAccessControlHandler",
  *     "list_builder" = "Drupal\commerce_product\ProductVariationTypeListBuilder",
  *     "form" = {
  *       "add" = "Drupal\commerce_product\Form\ProductVariationTypeForm",
  *       "edit" = "Drupal\commerce_product\Form\ProductVariationTypeForm",
+ *       "duplicate" = "Drupal\commerce_product\Form\ProductVariationTypeForm",
  *       "delete" = "Drupal\commerce\Form\CommerceBundleEntityDeleteFormBase"
  *     },
+ *     "local_task_provider" = {
+ *       "default" = "Drupal\entity\Menu\DefaultEntityLocalTaskProvider",
+ *     },
  *     "route_provider" = {
- *       "default" = "Drupal\Core\Entity\Routing\DefaultHtmlRouteProvider",
+ *       "default" = "Drupal\entity\Routing\DefaultHtmlRouteProvider",
  *     },
  *   },
  *   config_prefix = "commerce_product_variation_type",
@@ -48,6 +52,7 @@ use Drupal\commerce\Entity\CommerceBundleEntityBase;
  *   links = {
  *     "add-form" = "/admin/commerce/config/product-variation-types/add",
  *     "edit-form" = "/admin/commerce/config/product-variation-types/{commerce_product_variation_type}/edit",
+ *     "duplicate-form" = "/admin/commerce/config/product-variation-types/{commerce_product_variation_type}/duplicate",
  *     "delete-form" = "/admin/commerce/config/product-variation-types/{commerce_product_variation_type}/delete",
  *     "collection" =  "/admin/commerce/config/product-variation-types"
  *   }
@@ -96,6 +101,7 @@ class ProductVariationType extends CommerceBundleEntityBase implements ProductVa
    */
   public function setGenerateTitle($generate_title) {
     $this->generateTitle = $generate_title;
+    return $this;
   }
 
 }

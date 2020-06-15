@@ -291,10 +291,18 @@ body.admin-learning-path {
     background-color: $medium-gray;
   }
 
-  .group-content-learning-path-group-membership-add-form #edit-submit {
-    margin-left: -3.75rem;
-    margin-right: -3.75rem;
-    width: calc(100% + 3.75rem * 2);
+  .group-content-learning-path-group-membership-add-form {
+    & > .form-group {
+      & > .multiselect-wrapper {
+        margin-left: 0;
+      }
+    }
+
+    #edit-submit {
+      margin-left: -3.75rem;
+      margin-right: -3.75rem;
+      width: calc(100% + 3.75rem * 2);
+    }
   }
 }
 

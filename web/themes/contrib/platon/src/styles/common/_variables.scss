@@ -7,12 +7,60 @@ $darken-gray: #3c3c3b;
 $light-blue: #88c1e6;
 $dark-blue: #009ee0;
 $deep-blue: #0a71b4;
+$deeper-blue: #1f3b71;
 $leaf-green: #5aa449;
 $blood-red: #ea645b;
 $blue: #5bb4d8;
 $light-blue: #95d5f4;
 $green: #c2e76b;
 $red: #ef7971;
+
+/** Icons */
+$icons: (
+  achievements-2: "\e909",
+  calendar-2: "\e90a",
+  catalog-2: "\e90b",
+  help: "\e90c",
+  home-2: "\e90d",
+  logout: "\e90e",
+  search: "\e915",
+  settings: "\e916",
+  user: "\e917",
+  achievements: "\e900",
+  blocks: "\e901",
+  calendar: "\e902",
+  catalog: "\e903",
+  chevron-right: "\e904",
+  home: "\e905",
+  lines: "\e906",
+  messages: "\e907",
+  statistics: "\e908",
+  arrow-down: "\e90f",
+  arrow-left: "\e910",
+  arrow-right: "\e911",
+  arrow-up: "\e912",
+  odp-file: "\e913",
+  ods-file: "\e914",
+  odt-file: "\e918",
+  pps-file: "\e919",
+  pptx-file: "\e91a",
+  ppt-file: "\e91b",
+  pdf-file: "\e91c",
+  xlsx-file: "\e91d",
+  xls-file: "\e91e",
+  docx-file: "\e91f",
+  doc-file: "\e920",
+  txt-file: "\e921",
+);
+
+/** Grid */
+$grid-breakpoints: (
+  xs: 0,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px,
+);
 
 /** Header */
 $header-background-color: $darken-gray;
@@ -30,13 +78,13 @@ $header-margin-bottom: 1.75rem;
 /** Navigation */
 $menu-margin-bottom: 3rem;
 $menu-pictos: (
-  '<front>': 'picto-home',
-  'catalog': 'picto-catalogue',
-  'catalogue': 'picto-catalogue',
-  'private_messages': 'picto-messages',
-  'opigno/calendar': 'picto-calendar',
-  'achievements': 'picto-achievements',
-  'statistics/dashboard': 'picto-statistics'
+  '<front>': '\e905',
+  'catalog': '\e903',
+  'catalogue': '\e903',
+  'private-messages': '\e907',
+  'opigno/calendar': '\e902',
+  'achievements': '\e900',
+  'statistics/dashboard': '\e908'
 );
 
 /** Footer */

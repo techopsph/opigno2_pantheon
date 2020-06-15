@@ -10,3 +10,11 @@ opigno-scorm-player:
     js/opigno_scorm.player.js: {}
   dependencies:
     - core/drupal.ajax
+
+opigno-scorm-ios-13:
+  version: 1.x
+  js:
+    js/opigno_scorm_ios_13.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery

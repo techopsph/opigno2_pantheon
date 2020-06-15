@@ -1,55 +1,55 @@
 <mat-card class="entity drag-and-drop-item"
-         (click)="clickEntity(entity)"
-         (mouseenter)="mouseenterEntity(entity)"
-         (mouseleave)="mouseleaveEntity(entity)"
-         [class.selected]="entity === selectedEntity"
-         [class.activated-link]="entity === selectedEntity1 || entity === selectedEntity2">
+          (click)="clickEntity(entity)"
+          (mouseenter)="mouseenterEntity(entity)"
+          (mouseleave)="mouseleaveEntity(entity)"
+          [class.selected]="entity === selectedEntity"
+          [class.activated-link]="entity === selectedEntity1 || entity === selectedEntity2">
   <div class="info-card-wrapper" *ngIf="infoCard && userHasInfoCard && row==1">
     <div class="text-right">
-      <button class="close-info-card" (click)="removeHideInfoCardPermanently()" i18n>close</button>
+      <button class="close-info-card" (click)="removeHideInfoCardPermanently()">{{ text_close }}</button>
     </div>
-    <div class="info-icon" i18n>Click here to add a new item</div>
+    <div class="info-icon">{{ text_add_a_new_item }}</div>
     <div class="text-right">
-      <a href="#" (click)="removeHideInfoCardPermanently();$event.preventDefault()" i18n>Do not show this message again</a>
+      <a href="#" (click)="removeHideInfoCardPermanently();$event.preventDefault()">{{ text_do_not_show_this_message_again }}</a>
     </div>
   </div>
   <div class="image" [ngStyle]="{'background-image': 'url(' + entity.imageUrl + ')'}">
-    <div class="my-5">
+    <div class="mt-5">
       <div class="bundle">
-        <span *ngIf="entity.contentType=='ContentTypeCourse'" i18n>Course</span>
-        <span *ngIf="entity.contentType=='ContentTypeModule'" i18n>Opigno module</span>
-        <span *ngIf="entity.contentType=='ContentTypeMeeting'" i18n>Live meeting</span>
-        <span *ngIf="entity.contentType=='ContentTypeILT'" i18n>Instructor-Led Training</span>
+        <span *ngIf="entity.contentType=='ContentTypeCourse'">{{ text_course }}</span>
+        <span *ngIf="entity.contentType=='ContentTypeModule'">{{ text_opigno_module }}</span>
+        <span *ngIf="entity.contentType=='ContentTypeMeeting'">{{ text_live_meeting }}</span>
+        <span *ngIf="entity.contentType=='ContentTypeILT'">{{ text_instructor_led_training }}</span>
       </div>
       <div class="nb-modules" *ngIf="entity.modules_count||entity.modules_count===0">
         {{entity.modules_count}}
-        <span *ngIf="entity.modules_count>1" i18n>modules</span>
-        <span *ngIf="entity.modules_count<=1" i18n>module</span>
+        <span *ngIf="entity.modules_count>1">{{ text_modules }}</span>
+        <span *ngIf="entity.modules_count<=1">{{ text_module }}</span>
       </div>
     </div>
   </div>
   <button mat-icon-button [matMenuTriggerFor]="menu" class="action-button">
     <mat-icon>more_vert</mat-icon>
   </button>
-    <mat-menu #menu="matMenu" xPosition="before">
+  <mat-menu #menu="matMenu" xPosition="before">
     <button mat-menu-item (click)="openAddPanel_(entity)" class="add-link">
-      <span i18n>add</span>
+      <span>{{ text_add }}</span>
     </button>
     <button mat-menu-item (click)="openUpdatePanel_(entity)" class="update-link">
-      <span i18n>update</span>
+      <span>{{ text_update }}</span>
     </button>
     <button *ngIf="entity.contentType=='ContentTypeILT' || entity.contentType=='ContentTypeMeeting'" mat-menu-item (click)="openMeetingsPanel_(entity)" class="manage-link">
-      <span i18n>score</span>
+      <span>{{ text_score }}</span>
     </button>
     <button mat-menu-item (click)="openDeletePanel_(entity)" class="delete-link">
-      <span i18n>delete</span>
+      <span>{{ text_delete }}</span>
     </button>
   </mat-menu>
   <mat-card-header [innerHtml]="entity.title"></mat-card-header>
   <mat-card-content class="mt-2">
-    <mat-checkbox *ngIf="this.entity.in_skills_system == 0" [(ngModel)]="isMandatory" (change)="changeMandatory()" i18n>Mandatory</mat-checkbox>
+    <mat-checkbox *ngIf="this.entity.in_skills_system == 0" [(ngModel)]="isMandatory" (change)="changeMandatory()">{{ text_mandatory }}</mat-checkbox>
     <mat-form-field class="w-100 mt-2" [hintLabel]="this.entity.successScoreMinMessage">
-      <input matInput placeholder="Minimum score to validate step" [(ngModel)]="successScoreMin" (keyup)="changeScoreMini($event)" i18n-placeholder>
+      <input matInput placeholder="{{ text_minimum_score_to_validate_step }}" [(ngModel)]="successScoreMin" (keyup)="changeScoreMini($event)">
     </mat-form-field>
   </mat-card-content>
 </mat-card>

@@ -85,8 +85,6 @@ class OpignoTincanLiveMeeting implements EventSubscriberInterface {
     // Check if Tincan PHP library is installed.
     $has_library = opigno_tincan_api_tincanphp_is_installed();
     if (!$has_library) {
-      \Drupal::logger('opigno_tincan')
-        ->notice('Tincan statements can not be send. Tincan PHP library is not installed.');
       return;
     };
 

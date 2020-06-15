@@ -17,7 +17,15 @@ regions:
   content: 'Content'
   footer: 'Footer'
 
-# Information added by Drupal.org packaging script on 2020-01-30
-version: '8.x-1.6'
+# Use libraries-override to prevent rewrite unnecessary code.
+libraries-override:
+  multiselect/drupal.multiselect:
+    css:
+      theme:
+        # Moved to styles/components/form/_multiselect.scss
+        css/multiselect.css: false
+
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.7'
 project: 'platon'
-datestamp: 1580377429
+datestamp: 1591090987

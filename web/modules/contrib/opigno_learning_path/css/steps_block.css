@@ -95,7 +95,7 @@
 }
 
 .lp_steps_block_score::after {
-  color: #b2b1b1;
+  color: #f9a295;
   content: '%';
 }
 

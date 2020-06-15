@@ -8,6 +8,21 @@
 use Drupal\search_api\Entity\Index;
 
 /**
+ * Implements hook_install().
+ *
+ * Rebuild Index search after install module.
+ */
+function opigno_search_install() {
+  $index = Index::load('default_index');
+  $index->disable();
+  $index->save();
+  $index->enable();
+  $index->rebuildTracker();
+  $index->reindex();
+  $index->save();
+}
+
+/**
  * Implements hook_update_N().
  *
  * Uninstall core module 'Search'.
@@ -18,4 +33,18 @@ function opigno_search_update_8001() {
   if ($moduleHandler->moduleExists('search')) {
     \Drupal::service('module_installer')->uninstall(['search']);
   }
+}
+
+/**
+ * Rebuild Index search after.
+ */
+function opigno_search_update_8002() {
+  // Necessary since ver.2.9 to 2.11.
+  $index = Index::load('default_index');
+  $index->disable();
+  $index->save();
+  $index->enable();
+  $index->rebuildTracker();
+  $index->reindex();
+  $index->save();
 }

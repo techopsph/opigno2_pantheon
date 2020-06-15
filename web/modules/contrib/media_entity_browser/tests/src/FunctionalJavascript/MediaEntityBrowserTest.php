@@ -2,18 +2,18 @@
 
 namespace Drupal\Tests\media_entity_browser\FunctionalJavascript;
 
-use Drupal\FunctionalJavascriptTests\JavascriptTestBase;
+use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 use Drupal\media\Entity\Media;
-use Drupal\Tests\media\Functional\MediaFunctionalTestCreateMediaTypeTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 /**
  * A test for the media entity browser.
  *
  * @group media_entity_browser
  */
-class MediaEntityBrowserTest extends JavascriptTestBase {
+class MediaEntityBrowserTest extends WebDriverTestBase {
 
-  use MediaFunctionalTestCreateMediaTypeTrait;
+  use MediaTypeCreationTrait;
   /**
    * Modules to install.
    *
@@ -35,10 +35,10 @@ class MediaEntityBrowserTest extends JavascriptTestBase {
   public function setUp() {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(array_keys($this->container->get('user.permissions')->getPermissions())));
-    $this->createMediaType([
+    $this->createMediaType('video_embed_field', [
       'label' => 'Video',
       'bundle' => 'video',
-    ], 'video_embed_field');
+    ]);
 
     Media::create([
       'bundle' => 'video',
@@ -52,6 +52,7 @@ class MediaEntityBrowserTest extends JavascriptTestBase {
   public function testMediaBrowser() {
     $this->drupalGet('entity-browser/iframe/media_entity_browser');
     $this->clickLink('Choose existing media');
+    $this->assertSession()->assertWaitOnAjaxRequest();
 
     $this->assertSession()->elementExists('css', '.view-media-entity-browser-view');
     $this->assertSession()->elementExists('css', '.image-style-media-entity-browser-thumbnail');

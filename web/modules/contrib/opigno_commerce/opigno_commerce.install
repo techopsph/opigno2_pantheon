@@ -28,7 +28,7 @@ function opigno_commerce_install() {
       'uid' => 1,
       'name' => $site_name,
       'mail' => $site_mail,
-      'address' => [''],
+      'address' => ['country_code' => 'CH'],
       'default_currency' => $currency,
       'billing_countries' => [''],
     ]);

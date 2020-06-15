@@ -8,17 +8,13 @@ use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_product\Entity\ProductVariationType;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\language\Entity\ConfigurableLanguage;
-use Drupal\Tests\commerce\FunctionalJavascript\JavascriptTestTrait;
-use Drupal\Tests\commerce_cart\Functional\CartBrowserTestBase;
 
 /**
  * Tests the add to cart form for multilingual.
  *
  * @group commerce
  */
-class AddToCartMultilingualTest extends CartBrowserTestBase {
-
-  use JavascriptTestTrait;
+class AddToCartMultilingualTest extends CartWebDriverTestBase {
 
   /**
    * The variations to test with.
@@ -156,9 +152,8 @@ class AddToCartMultilingualTest extends CartBrowserTestBase {
     // Enable translation for the product and ensure the change is picked up.
     $this->container->get('content_translation.manager')->setEnabled('commerce_product', $this->variation->bundle(), TRUE);
     $this->container->get('content_translation.manager')->setEnabled('commerce_product_variation', $this->variation->bundle(), TRUE);
-    $this->container->get('entity.manager')->clearCachedDefinitions();
+    $this->container->get('entity_type.manager')->clearCachedDefinitions();
     $this->container->get('router.builder')->rebuild();
-    $this->container->get('entity.definition_update_manager')->applyUpdates();
 
     // Rebuild the container so that the new languages are picked up by services
     // that hold a list of languages.
@@ -184,7 +179,7 @@ class AddToCartMultilingualTest extends CartBrowserTestBase {
     $this->drupalGet($this->product->getTranslation('fr')->toUrl());
     // Use AJAX to change the size to Medium, keeping the color on Red.
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][attributes][attribute_size]', 'FR Medium');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_color]', 'FR Red');
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_size]', 'FR Medium');
     $this->assertAttributeExists('purchased_entity[0][attributes][attribute_color]', $this->colorAttributes['blue']->id());
@@ -193,7 +188,7 @@ class AddToCartMultilingualTest extends CartBrowserTestBase {
 
     // Use AJAX to change the color to Blue, keeping the size on Medium.
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][attributes][attribute_color]', 'FR Blue');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_color]', 'FR Blue');
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_size]', 'FR Medium');
     $this->assertAttributeExists('purchased_entity[0][attributes][attribute_color]', $this->colorAttributes['red']->id());
@@ -251,12 +246,12 @@ class AddToCartMultilingualTest extends CartBrowserTestBase {
     // Use AJAX to change the size to Medium, keeping the color on Red.
     $this->assertAttributeSelected('purchased_entity[0][variation]', 'Mon super produit - FR Red, FR Small');
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][variation]', 'Mon super produit - FR Red, FR Medium');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertAttributeSelected('purchased_entity[0][variation]', 'Mon super produit - FR Red, FR Medium');
     $this->assertSession()->pageTextContains('Mon super produit - FR Red, FR Medium');
     // Use AJAX to change the color to Blue, keeping the size on Medium.
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][variation]', 'Mon super produit - FR Blue, FR Medium');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertAttributeSelected('purchased_entity[0][variation]', 'Mon super produit - FR Blue, FR Medium');
     $this->assertSession()->pageTextContains('Mon super produit - FR Blue, FR Medium');
     $this->getSession()->getPage()->pressButton('Add to cart');

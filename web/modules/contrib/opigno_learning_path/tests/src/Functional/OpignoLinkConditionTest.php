@@ -85,58 +85,40 @@ class OpignoLinkConditionTest extends LearningPathBrowserTestBase {
 
     $this->drupalGet('/group/' . $training->id() . '/learning-path/start');
     $this->assertSession()->titleEquals($parent_module->getName() . ' | Drupal');
-    // Finish latest attempt for parent module with score 0%.
-    $attempts = $parent_module->getModuleAttempts($this->groupCreator);
-    /* @var \Drupal\opigno_module\Entity\UserModuleStatus $last_attempt */
-    $last_attempt = end($attempts);
-    $last_attempt->setScore(0);
-    $last_attempt->setMaxScore(10);
-    $last_attempt->setEvaluated(1);
-    $last_attempt->setFinished(time());
-    $last_attempt->save();
-
+    $this->finishCurrentModuleAttempt($this, $training, $parent_module, $this->groupCreator, 0);
     $this->drupalGet('/group/' . $training->id() . '/learning-path/nextstep/' . $content_parrent_module->id());
     // User should be redirected to module with required score 0.
     $this->assertSession()->titleEquals($child_module_2->getName() . ' | Drupal');
-    $this->finishCurrentModuleAttempt($child_module_2, $this->groupCreator);
-
-    $this->drupalGet('/group/' . $training->id() . '/learning-path/start');
-    $this->assertSession()->titleEquals($parent_module->getName() . ' | Drupal');
+    // Finish latest attempt for parent module with score 0%.
+    $this->finishCurrentModuleAttempt($this, $training, $child_module_2, $this->groupCreator, 0);
     // Finish latest attempt for parent module with score 60%.
-    $attempts = $parent_module->getModuleAttempts($this->groupCreator);
-    $last_attempt = end($attempts);
-    $last_attempt->setScore(60);
-    $last_attempt->setMaxScore(10);
-    $last_attempt->setEvaluated(1);
-    $last_attempt->setFinished(time());
-    $last_attempt->save();
-
+    $this->finishCurrentModuleAttempt($this, $training, $parent_module, $this->groupCreator, 60);
     $this->drupalGet('/group/' . $training->id() . '/learning-path/nextstep/' . $content_parrent_module->id());
     // User should be redirected to module with required score 50.
     $this->assertSession()->titleEquals($child_module_1->getName() . ' | Drupal');
-    $this->finishCurrentModuleAttempt($child_module_1, $this->groupCreator);
+    $this->finishCurrentModuleAttempt($this, $training, $child_module_1, $this->groupCreator, 100);
   }
 
   /**
    * Force finish module current attempt.
-   *
-   * @param \Drupal\opigno_module\Entity\OpignoModule $module
-   *   Module entity.
-   * @param \Drupal\user\UserInterface $user
-   *   User entity.
-   *
-   * @return \Drupal\opigno_module\Entity\UserModuleStatus
-   *   Current attempt.
-   *
-   * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  private function finishCurrentModuleAttempt(OpignoModule $module, UserInterface $user) {
+  private function finishCurrentModuleAttempt($stack, $training, OpignoModule $module, UserInterface $user, $score) {
     /* @var \Drupal\opigno_module\Entity\UserModuleStatus $current_attempt */
     $current_attempt = $module->getModuleActiveAttempt($user);
+    $current_attempt->setModule($module);
+    $current_attempt->setScore($score);
+    $current_attempt->setMaxScore(70);
     $current_attempt->setEvaluated(1);
     $current_attempt->setFinished(time());
     $current_attempt->save();
-    return $current_attempt;
+    
+    // Reset all static variables.
+    $stack->resetAll();
+    // Save all achievements.
+    $step = opigno_learning_path_get_module_step($training->id(), $user->id(), $module);
+    $step['best score'] = $step['current attempt score'] = $score;
+    opigno_learning_path_save_step_achievements($training->id(), $user->id(), $step);
+    opigno_learning_path_save_achievements($training->id(), $user->id());
   }
 
 }

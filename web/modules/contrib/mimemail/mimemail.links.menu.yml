@@ -1,6 +1,6 @@
 mimemail.config:
-  title: Mime Mail
+  title: 'Mime Mail'
+  description: 'Global Mime Mail configuration.'
   route_name: mimemail.settings
   parent: system.admin_config_system
-  description: 'Global Mime Mail configuration.'
   weight: -20

@@ -28,6 +28,7 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
     return [
       'label_display' => TRUE,
       'label_text' => 'Please select',
+      'hide_single' => TRUE,
     ] + parent::defaultSettings();
   }
 
@@ -48,6 +49,11 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
       '#description' => $this->t('The label will be available to screen readers even if it is not displayed.'),
       '#required' => TRUE,
     ];
+    $element['hide_single'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t("Hide if there's only one product variation"),
+      '#default_value' => $this->getSetting('hide_single'),
+    ];
 
     return $element;
   }
@@ -61,6 +67,9 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
       '@text' => $this->getSetting('label_text'),
       '@visible' => $this->getSetting('label_display') ? $this->t('visible') : $this->t('hidden'),
     ]);
+    if ($this->getSetting('hide_single')) {
+      $summary[] = $this->t("Hidden if there's only one product variation.");
+    }
 
     return $summary;
   }
@@ -81,7 +90,7 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
       ];
       return $element;
     }
-    elseif (count($variations) === 1) {
+    elseif (count($variations) === 1 && $this->getSetting('hide_single')) {
       /** @var \Drupal\commerce_product\Entity\ProductVariationInterface $selected_variation */
       $selected_variation = reset($variations);
       $element['variation'] = [
@@ -116,7 +125,8 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
     }
     $element['variation'] = [
       '#type' => 'select',
-      '#title' => $this->getSetting('label_text'),
+      // Widget settings can't be translated in D8 yet, t() is a workaround.
+      '#title' => $this->t($this->getSetting('label_text')),
       '#options' => $variation_options,
       '#required' => TRUE,
       '#default_value' => $selected_variation->id(),
@@ -135,16 +145,13 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
   /**
    * Selects a product variation from user input.
    *
-   * If there's no user input (form viewed for the first time), the default
-   * variation is returned.
-   *
    * @param \Drupal\commerce_product\Entity\ProductVariationInterface[] $variations
    *   An array of product variations.
    * @param array $user_input
    *   The user input.
    *
-   * @return \Drupal\commerce_product\Entity\ProductVariationInterface
-   *   The selected variation.
+   * @return \Drupal\commerce_product\Entity\ProductVariationInterface|null
+   *   The selected variation or NULL if there's no user input (form viewed for the first time).
    */
   protected function selectVariationFromUserInput(array $variations, array $user_input) {
     $current_variation = NULL;

@@ -2,8 +2,8 @@
 
 namespace Drupal\Tests\commerce_product\Functional;
 
-use Drupal\field\Tests\EntityReference\EntityReferenceTestTrait;
 use Drupal\Tests\commerce\Functional\CommerceBrowserTestBase;
+use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 
 /**
  * Defines base class for shortcut test cases.
@@ -62,6 +62,11 @@ abstract class ProductBrowserTestBase extends CommerceBrowserTestBase {
     $this->stores = [$this->store];
     for ($i = 0; $i < 2; $i++) {
       $this->stores[] = $this->createStore();
+    }
+    // The stores must be reloaded all at once because createStore() sets
+    // the last store as the default, removing the flag from the previous one.
+    foreach ($this->stores as $index => $store) {
+      $this->stores[$index] = $this->reloadEntity($store);
     }
   }
 

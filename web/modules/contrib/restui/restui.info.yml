@@ -1,15 +1,13 @@
 name: REST UI
 type: module
-description: "Provides a user interface to manage REST resources"
+description: "Provides a user interface to manage REST resources."
 package: Web services
-# core: 8.x
+core_version_requirement: ^8.7.7 || ^9
 configure: restui.list
 dependencies:
   - drupal:rest
-  - drupal:system (>=8.2.0)
 
-# Information added by Drupal.org packaging script on 2018-11-04
-version: '8.x-1.16'
-core: '8.x'
+# Information added by Drupal.org packaging script on 2020-04-06
+version: '8.x-1.18'
 project: 'restui'
-datestamp: 1541330286
+datestamp: 1586170647

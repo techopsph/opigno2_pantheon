@@ -46,6 +46,21 @@ export class EntityComponent implements OnInit {
   successScoreMin: number;
   userHasInfoCard: boolean;
   hideInfocardUrl: string;
+  text_opigno_module: string;
+  text_course: string;
+  text_live_meeting: string;
+  text_instructor_led_training: string;
+  text_close: string;
+  text_add_a_new_item: string;
+  text_do_not_show_this_message_again: string;
+  text_modules: string;
+  text_module: string;
+  text_add: string;
+  text_update: string;
+  text_score: string;
+  text_delete: string;
+  text_mandatory: string;
+  text_minimum_score_to_validate_step: string;
 
   constructor(
     private route: ActivatedRoute,
@@ -57,6 +72,21 @@ export class EntityComponent implements OnInit {
     this.updateEntityMinScoreUrl = window['appConfig'].updateEntityMinScoreUrl;
     this.userHasInfoCard = window['appConfig'].userHasInfoCard;
     this.hideInfocardUrl = window['appConfig'].hideInfocardUrl;
+    this.text_opigno_module = window['appConfig'].text_opigno_module;
+    this.text_course = window['appConfig'].text_course;
+    this.text_live_meeting = window['appConfig'].text_live_meeting;
+    this.text_instructor_led_training = window['appConfig'].text_instructor_led_training;
+    this.text_close = window['appConfig'].text_close;
+    this.text_add_a_new_item = window['appConfig'].text_add_a_new_item;
+    this.text_do_not_show_this_message_again = window['appConfig'].text_do_not_show_this_message_again;
+    this.text_modules = window['appConfig'].text_modules;
+    this.text_module = window['appConfig'].text_module;
+    this.text_add = window['appConfig'].text_add;
+    this.text_update = window['appConfig'].text_update;
+    this.text_score = window['appConfig'].text_score;
+    this.text_delete = window['appConfig'].text_delete;
+    this.text_mandatory = window['appConfig'].text_mandatory;
+    this.text_minimum_score_to_validate_step = window['appConfig'].text_minimum_score_to_validate_step;
   }
 
   /**
@@ -153,7 +183,6 @@ export class EntityComponent implements OnInit {
   }
 
   mouseleaveEntity(entity: Entity): void {
-    let that = this;
     this.links.forEach((link) => {
       if (link.child == entity.cid || link.parent == entity.cid) {
         link.strokeColor = globals.strokeColor;

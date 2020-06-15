@@ -24,6 +24,13 @@ class OpignoDateRangeWidget extends WidgetBase {
   /**
    * {@inheritdoc}
    */
+  public function getDatePattern() {
+    return \Drupal::config('core.date_format.datepicker')->get('pattern');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function formElement(
     FieldItemListInterface $items,
     $delta,
@@ -86,7 +93,10 @@ class OpignoDateRangeWidget extends WidgetBase {
       '#wrapper_attributes' => [
         'class' => ['daterange-date'],
       ],
-      '#size' => 10,
+      '#attributes' => [
+        'data-pattern' => $this->getDatePattern(),
+      ],
+      '#size' => 11,
       '#title' => 'Start date',
       '#default_value' => $value_date,
       '#required' => $element['#required'],
@@ -161,14 +171,16 @@ class OpignoDateRangeWidget extends WidgetBase {
    *
    * @param array $wrapper
    *   Datetime field wrapper.
+   * @param string $pattern
+   *   Date pattern.
    *
    * @return \Drupal\Core\Datetime\DrupalDateTime
    *   Datetime object.
    *
    * @throws \Exception
    */
-  public static function createDateTimeFromWrapper(array $wrapper) {
-    $display_format = 'm/d/Y H:i:s';
+  public static function createDateTimeFromWrapper(array $wrapper, $pattern = NULL) {
+    $display_format = !empty($pattern) ? "${pattern} H:i:s" : 'm/d/Y H:i:s';
 
     $raw_date = $wrapper['date'];
     $raw_hours = $wrapper['hours'];
@@ -193,18 +205,19 @@ class OpignoDateRangeWidget extends WidgetBase {
 
     $storage_timezone = new \DateTimeZone('UTC');
     $storage_format = 'Y-m-d\TH:i:s';
+    $pattern = $this->getDatePattern();
 
     foreach ($values as &$item) {
-      if (!empty($item['value_wrapper'])) {
-        $date = static::createDateTimeFromWrapper($item['value_wrapper']);
+      if (!empty($item['value_wrapper']['date'])) {
+        $date = static::createDateTimeFromWrapper($item['value_wrapper'], $pattern);
         $item['value'] = $date
           ->setTimezone($storage_timezone)
           ->format($storage_format);
         unset($item['value_wrapper']);
       }
 
-      if (!empty($item['end_value_wrapper'])) {
-        $end_date = static::createDateTimeFromWrapper($item['end_value_wrapper']);
+      if (!empty($item['end_value_wrapper']['date'])) {
+        $end_date = static::createDateTimeFromWrapper($item['end_value_wrapper'], $pattern);
         $item['end_value'] = $end_date
           ->setTimezone($storage_timezone)
           ->format($storage_format);

@@ -21,6 +21,7 @@ abstract class PdfEngineBase extends PrintEngineBase {
       '#options' => $this->getPaperSizes(),
       '#default_value' => $this->configuration['default_paper_size'],
       '#description' => $this->t('The page size to print the PDF to.'),
+      '#weight' => -10,
     ];
     $form['orientation'] = [
       '#type' => 'select',
@@ -31,11 +32,13 @@ abstract class PdfEngineBase extends PrintEngineBase {
       ],
       '#description' => $this->t('The paper orientation one of Landscape or Portrait'),
       '#default_value' => $this->configuration['orientation'],
+      '#weight' => -9,
     ];
     $form['credentials'] = [
       '#type' => 'details',
       '#title' => $this->t('HTTP Authentication'),
       '#open' => !empty($this->configuration['username']) || !empty($this->configuration['password']),
+      '#weight' => 10,
     ];
     $form['credentials']['username'] = [
       '#type' => 'textfield',

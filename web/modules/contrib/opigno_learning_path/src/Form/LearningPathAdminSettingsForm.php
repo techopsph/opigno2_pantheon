@@ -31,14 +31,23 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $tokens_description = [
-      '#markup' => t('Group tokens:') . '
-        <ul>
-        <li>[group] - group name</li>
-        <li>[link] - link to group</li>
-        <li>[user] - user account name</li>
-        <li>[user-role] - user role in group</li>
-        <li>[user-status] - user current status</li>
-        </ul>',
+      '#type' => 'container',
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#value' => t('Group tokens:'),
+      ],
+      [
+        '#theme' => 'item_list',
+        '#list_type' => 'ul',
+        '#items' => [
+          '[group] - ' . $this->t('group name'),
+          '[link] - ' . $this->t('link to group'),
+          '[user] - ' . $this->t('user account name'),
+          '[user-role] - ' . $this->t('user role in group'),
+          '[user-status] - ' . $this->t('user current status'),
+        ],
+      ],
     ];
 
     $config = $this->config('opigno_learning_path.learning_path_settings');
@@ -109,6 +118,35 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
         '#show_restricted' => TRUE,
       ];
     }
+    $form['opigno_learning_path_mail']['opigno_learning_path_notify_user_user_certificate_expired'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Message to user when a training certificate has expired'),
+      '#default_value' => $config->get('opigno_learning_path_notify_user_user_certificate_expired'),
+    ];
+    $form['opigno_learning_path_mail']['opigno_learning_path_notify_group_tokens_3'] = [
+      '#type' => 'container',
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#value' => t('Group tokens:'),
+      ],
+      [
+        '#theme' => 'item_list',
+        '#list_type' => 'ul',
+        '#items' => [
+          '[group:title] - ' . $this->t('group name'),
+          '[group:url] - ' . $this->t('link to group'),
+          '[group:expiration_date] - ' . $this->t('certificate expiration date'),
+        ],
+      ],
+    ];
+    if (\Drupal::moduleHandler()->moduleExists('token')) {
+      $form['opigno_learning_path_mail']['token_tree_3'] = [
+        '#theme' => 'token_tree_link',
+        '#token_types' => ['group'],
+        '#show_restricted' => TRUE,
+      ];
+    }
 
     return parent::buildForm($form, $form_state);
   }
@@ -136,6 +174,7 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       ->set('opigno_learning_path_notify_user_user_subscribed', $form_state->getValue('opigno_learning_path_notify_user_user_subscribed'))
       ->set('opigno_learning_path_notify_user_user_approval', $form_state->getValue('opigno_learning_path_notify_user_user_approval'))
       ->set('opigno_learning_path_notify_user_user_blocked', $form_state->getValue('opigno_learning_path_notify_user_user_blocked'))
+      ->set('opigno_learning_path_notify_user_user_certificate_expired', $form_state->getValue('opigno_learning_path_notify_user_user_certificate_expired'))
       ->save();
   }
 

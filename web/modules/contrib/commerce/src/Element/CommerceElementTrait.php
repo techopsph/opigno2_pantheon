@@ -2,18 +2,22 @@
 
 namespace Drupal\commerce\Element;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 
 /**
- * Provides a trait for Commerce form elements.
+ * Allows form elements to use #commerce_element_submit.
  *
- * Allows form elements to use #commerce_element_submit, a substitute
- * for the #element_submit that's missing from Drupal core.
+ * This is a substitute for the #element_submit that's missing from Drupal core.
  *
  * Each form element using this trait should add the attachElementSubmit and
  * validateElementSubmit callbacks to their getInfo() methods.
+ *
+ * If the parent form has multiple submit buttons, the element submit
+ * callbacks will only be invoked when the form is submitted through a
+ * submit button with a #button_type of 'primary' or 'secondary'.
+ * This prevents irreversible changes from being applied for submit buttons
+ * which only rebuild the form (e.g. "Upload file" or "Add another item").
  */
 trait CommerceElementTrait {
 
@@ -58,8 +62,8 @@ trait CommerceElementTrait {
   public static function validateElementSubmit(array &$element, FormStateInterface $form_state) {
     // Button-level #validate handlers replace the form-level ones, which means
     // that executeElementSubmitHandlers() won't be triggered.
-    if ($handlers = $form_state->getValidateHandlers()) {
-      throw new \Exception('The current form must not have button-level #validate handlers');
+    if (self::shouldExecuteElementSubmit($form_state) && $form_state->getValidateHandlers()) {
+      throw new \Exception('The triggering element must not have #validate handlers');
     }
   }
 
@@ -78,34 +82,41 @@ trait CommerceElementTrait {
    *   The form state.
    */
   public static function executeElementSubmitHandlers(array &$form, FormStateInterface $form_state) {
-    if (!$form_state->isSubmitted() || $form_state->hasAnyErrors()) {
-      // The form wasn't submitted (#ajax in progress) or failed validation.
-      return;
-    }
-    // A submit button might need to process only a part of the form.
-    // For example, the "Apply coupon" button at checkout should apply coupons,
-    // but not save the payment information. Use #limit_validation_errors
-    // as a guideline for which parts of the form to submit.
-    $triggering_element = $form_state->getTriggeringElement();
-    if (isset($triggering_element['#limit_validation_errors']) && $triggering_element['#limit_validation_errors'] !== FALSE) {
-      // #limit_validation_errors => [], the button cares about nothing.
-      if (empty($triggering_element['#limit_validation_errors'])) {
-        return;
-      }
-
-      foreach ($triggering_element['#limit_validation_errors'] as $limit_validation_errors) {
-        $element = NestedArray::getValue($form, $limit_validation_errors);
-        if (!$element) {
-          // The element will be empty if #parents don't match #array_parents,
-          // the case for IEF widgets. In that case just submit everything.
-          $element = &$form;
-        }
-        self::doExecuteSubmitHandlers($element, $form_state);
-      }
-    }
-    else {
+    if (self::shouldExecuteElementSubmit($form_state)) {
       self::doExecuteSubmitHandlers($form, $form_state);
     }
+  }
+
+  /**
+   * Checks whether #commerce_element_submit callbacks should be executed.
+   *
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return bool
+   *   TRUE if the callbacks can be executed, FALSE otherwise.
+   */
+  protected static function shouldExecuteElementSubmit(FormStateInterface $form_state) {
+    if (!$form_state->isSubmitted() || $form_state->hasAnyErrors()) {
+      // The form wasn't submitted (#ajax in progress) or failed validation.
+      return FALSE;
+    }
+    if (count($form_state->getButtons()) === 1) {
+      // The form has only one button, no need to guess if it was clicked.
+      return TRUE;
+    }
+    $triggering_element = $form_state->getTriggeringElement();
+    $button_type = isset($triggering_element['#button_type']) ? $triggering_element['#button_type'] : '';
+    if (in_array($button_type, ['primary', 'secondary'])) {
+      // Invoke callbacks only for submit buttons with a known #button_type.
+      // Buttons without a #button_type usually rebuild the form.
+      // The 'secondary' #button_type was invented by Commerce for buttons
+      // which behave like a primary button (e.g. saving the entity), but
+      // shouldn't have the styling of a primary button.
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
   /**
@@ -116,7 +127,7 @@ trait CommerceElementTrait {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The form state.
    */
-  public static function doExecuteSubmitHandlers(array &$element, FormStateInterface $form_state) {
+  protected static function doExecuteSubmitHandlers(array &$element, FormStateInterface $form_state) {
     // Recurse through all children.
     foreach (Element::children($element) as $key) {
       if (!empty($element[$key])) {

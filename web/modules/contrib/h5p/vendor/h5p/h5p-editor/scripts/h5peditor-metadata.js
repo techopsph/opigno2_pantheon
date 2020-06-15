@@ -13,6 +13,8 @@ H5PEditor.MetadataForm = (function (EventDispatcher, $, metadataSemantics) {
   function MetadataForm(parent, params, $container, hasExtraTitleField, populateTitleField) {
     var self = this;
 
+    hasExtraTitleField = false;
+
     // Initialize event inheritance
     EventDispatcher.call(self);
 

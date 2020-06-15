@@ -1,9 +1,18 @@
 import { Injectable } from '@angular/core';
 
 import * as globals from './app.globals';
+import {Subject} from "rxjs";
 
 @Injectable()
 export class AppService {
+
+  linksStatus = true;
+
+  // Observable sources
+  private needUpdateSources = new Subject<boolean>();
+  // Observable streams
+  needUpdate$ = this.needUpdateSources.asObservable();
+
 
   /** Workaround used for 1..n loops */
   range(value) {
@@ -14,6 +23,11 @@ export class AppService {
     }
 
     return a;
+  }
+
+  updateLinks(update: boolean) {
+    this.needUpdateSources.next(update);
+    this.linksStatus = update;
   }
 
   /** replace parameters in constants url */

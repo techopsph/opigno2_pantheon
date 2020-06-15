@@ -4,18 +4,17 @@ namespace Drupal\Tests\commerce_tax\Kernel;
 
 use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderItem;
-use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_tax\Entity\TaxType;
 use Drupal\profile\Entity\Profile;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\Tests\commerce_order\Kernel\OrderKernelTestBase;
 
 /**
  * Tests integration with orders.
  *
  * @group commerce
  */
-class OrderIntegrationTest extends CommerceKernelTestBase {
+class OrderIntegrationTest extends OrderKernelTestBase {
 
   /**
    * A sample order.
@@ -30,12 +29,8 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'entity_reference_revisions',
-    'path',
-    'profile',
-    'state_machine',
-    'commerce_order',
     'commerce_tax',
+    'commerce_tax_test',
   ];
 
   /**
@@ -44,10 +39,7 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
-    $this->installConfig(['commerce_order']);
+    $this->installConfig(['commerce_tax']);
     $user = $this->createUser(['mail' => $this->randomString() . '@example.com']);
 
     $this->store->set('prices_include_tax', TRUE);
@@ -73,11 +65,7 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
         ],
       ],
     ])->save();
-    OrderItemType::create([
-      'id' => 'test',
-      'label' => 'Test',
-      'orderType' => 'default',
-    ])->save();
+
     $order = Order::create([
       'type' => 'default',
       'store_id' => $this->store->id(),
@@ -92,9 +80,9 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
   }
 
   /**
-   * Tests that the store address is used as a default for new orders.
+   * Tests the handling of orders without a billing profile.
    */
-  public function testDefaultProfile() {
+  public function testNoProfile() {
     $order_item = OrderItem::create([
       'type' => 'test',
       'quantity' => '1',
@@ -103,6 +91,8 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
     $order_item->save();
     $this->order->addItem($order_item);
     $this->order->save();
+
+    // Confirm that the store address was used.
     $adjustments = $this->order->collectAdjustments();
     $adjustment = reset($adjustments);
     $this->assertCount(1, $adjustments);
@@ -111,9 +101,36 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
   }
 
   /**
-   * Tests the usage of default billing profile.
+   * Tests the handling of orders with a broken billing profile.
    */
-  public function testBillingProfile() {
+  public function testBrokenProfile() {
+    $profile = Profile::create([
+      'type' => 'customer',
+      'address' => [],
+    ]);
+    $profile->save();
+    $order_item = OrderItem::create([
+      'type' => 'test',
+      'quantity' => '1',
+      'unit_price' => new Price('12.00', 'USD'),
+    ]);
+    $order_item->save();
+    $this->order->addItem($order_item);
+    $this->order->setBillingProfile($profile);
+    $this->order->save();
+
+    // Confirm that the store address was used.
+    $adjustments = $this->order->collectAdjustments();
+    $adjustment = reset($adjustments);
+    $this->assertCount(1, $adjustments);
+    $this->assertEquals(new Price('2.00', 'USD'), $adjustment->getAmount());
+    $this->assertEquals('us_vat|default|standard', $adjustment->getSourceId());
+  }
+
+  /**
+   * Tests the handling of orders with a valid billing profile.
+   */
+  public function testValidProfile() {
     $profile = Profile::create([
       'type' => 'customer',
       'address' => [
@@ -131,6 +148,7 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
     $this->order->addItem($order_item);
     $this->order->setBillingProfile($profile);
     $this->order->save();
+
     $adjustments = $this->order->collectAdjustments();
     $adjustment = reset($adjustments);
     $this->assertCount(1, $adjustments);
@@ -153,6 +171,7 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
       'type' => 'test',
       'quantity' => '1',
       'unit_price' => new Price('12.00', 'USD'),
+      'overridden_unit_price' => TRUE,
     ]);
     $order_item->save();
     $this->order->addItem($order_item);
@@ -163,6 +182,8 @@ class OrderIntegrationTest extends CommerceKernelTestBase {
     $order_items = $this->order->getItems();
     $order_item = reset($order_items);
     $this->assertEquals(new Price('10.00', 'USD'), $order_item->getUnitPrice());
+    // Confirm that the overridden_unit_price flag is preserved.
+    $this->assertTrue($order_item->isUnitPriceOverridden());
   }
 
 }

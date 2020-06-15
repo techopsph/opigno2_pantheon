@@ -30,7 +30,7 @@ function opigno_calendar_theme($existing, $type, $theme, $path) {
 function opigno_calendar_page_attachments(array &$page) {
   $route = \Drupal::routeMatch()->getRouteName();
   // Attach library to front page.
-  if ($route == 'view.frontpage.page_1') {
+  if (in_array($route, ['opigno_dashboard.dashboard_admin_default_settings', 'view.frontpage.page_1'])) {
     $page['#attached']['library'][] = 'opigno_calendar/month_block';
   };
 }
@@ -170,6 +170,21 @@ function opigno_calendar_form_alter(&$form, FormStateInterface $form_state, $for
     }
 
     $current_user = \Drupal::currentUser();
+    $uid = $current_user->id();
+    $user_roles = $current_user->getRoles();
+    $show_all = FALSE;
+    foreach (['administrator', 'user_manager', 'content_manager'] as $role) {
+      if (in_array($role, $user_roles)) {
+        $show_all = TRUE;
+        break;
+      }
+    }
+
+    // Save in storage current user id.
+    $storage = $form_state->getStorage();
+    $storage['current_user_id'] = $uid;
+    $form_state->setStorage($storage);
+
     // Add redirect handler to form.
     $form['actions']['submit']['#submit'][] = 'opigno_calendar_event_form_submit_handler';
 
@@ -191,7 +206,7 @@ function opigno_calendar_form_alter(&$form, FormStateInterface $form_state, $for
 
     $options = [];
     foreach ($classes as $class) {
-      if ($class->getMember($current_user) !== FALSE) {
+      if ($show_all || $class->getMember($current_user) !== FALSE) {
         $options[$class->id()] = $class->label();
       }
     }
@@ -224,7 +239,7 @@ function opigno_calendar_form_alter(&$form, FormStateInterface $form_state, $for
 
     $options = [];
     foreach ($trainings as $training) {
-      if ($training->getMember($current_user) !== FALSE) {
+      if ($show_all || $training->getMember($current_user) !== FALSE) {
         $options[$training->id()] = $training->label();
       }
     }
@@ -258,7 +273,22 @@ function opigno_calendar_form_alter(&$form, FormStateInterface $form_state, $for
     $members['#suffix'] = '</div>';
     unset($members['widget']['#title']);
 
+    if (!empty($members["widget"]["#options"]) && array_key_exists($uid, $members["widget"]["#options"])) {
+      // Remove current user from options.
+      unset($members["widget"]["#options"][$uid]);
+    }
+
     $form['#attached']['library'][] = 'opigno_calendar/form';
+
+    $roles = $current_user->getRoles();
+
+    if (count($roles) == 1 && in_array('authenticated', $roles)) {
+      $form['members']['field_calendar_event_members']['widget']['#default_value'][] = $current_user->id();
+      $form['members']['#access'] = FALSE;
+    }
+
+    // This added for not to have error with ajax of classes/training fields.
+    $form['#validate'] = ['opigno_calendar_event_opigno_calendar_event_form_validate'];
   }
 }
 
@@ -270,6 +300,39 @@ function opigno_calendar_form_alter(&$form, FormStateInterface $form_state, $for
 function opigno_calendar_event_form_submit_handler(&$form, FormStateInterface $form_state) {
   // Set redirect to calendar page.
   $form_state->setRedirect('view.opigno_calendar.page_month');
+}
+
+/**
+ * Custom validation.
+ */
+function opigno_calendar_event_opigno_calendar_event_form_validate(&$form, FormStateInterface $form_state) {
+  if (!isset($_GET["ajax_form"])) {
+    $no_errors = TRUE;
+    $title = $form_state->getValue('title');
+    if (empty($title[0]['value'])) {
+      $form_state->setErrorByName('title', t("Please enter a title!"));
+      $no_errors = FALSE;
+    }
+    $date = $form_state->getValue('date_daterange');
+    if (empty($date[0]["value_wrapper"]["date"])) {
+      $form_state->setErrorByName('date_daterange', t("Please select start date!"));
+      $no_errors = FALSE;
+    }
+    if (empty($date[0]["end_value_wrapper"]["date"])) {
+      $form_state->setErrorByName('date_daterange', t("Please select end date!"));
+      $no_errors = FALSE;
+    }
+
+    if ($no_errors) {
+      $storage = $form_state->getStorage();
+      if (!empty($storage["current_user_id"])) {
+        // Add current user if he admin, user manager or content manager.
+        $members = $form_state->getValue('field_calendar_event_members');
+        $members[] = ['target_id' => $storage["current_user_id"]];
+        $form_state->setValue('field_calendar_event_members', $members);
+      }
+    }
+  }
 }
 
 /**
@@ -330,6 +393,12 @@ function _opigno_calendar_update_members(array $form, FormStateInterface $form_s
   foreach ($users as $user) {
     /** @var \Drupal\user\UserInterface $user */
     $members['#options'][$user->id()] = $user->getDisplayName();
+  }
+
+  $current_user = \Drupal::currentUser();
+  $uid = $current_user->id();
+  if (!empty($members["#options"]) && array_key_exists($uid, $members["#options"])) {
+    unset($members["#options"][$uid]);
   }
 
   uasort($members['#options'], 'strcasecmp');

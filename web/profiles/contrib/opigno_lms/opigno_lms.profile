@@ -13,7 +13,7 @@ use Drupal\Core\Render\Markup;
  * Implements hook_preprocess_template().
  */
 function opigno_lms_preprocess_install_page(&$variables) {
-  $variables['site_version'] = '2.11';
+  $variables['site_version'] = '2.12';
 }
 
 /**
@@ -39,8 +39,9 @@ function opigno_lms_install_tasks(&$install_state) {
 function opigno_lms_form_install_configure_form_alter(&$form, FormStateInterface $form_state) {
   $messenger = \Drupal::messenger();
 
+
   // Check if Tincan PHP library is installed.
-  $has_library = opigno_lms_tincanphp_is_installed();
+  $has_library = class_exists('TinCan\Statement');
   if (!$has_library) {
     $messenger->addWarning(Markup::create("Please install the TinCanPHP library using Composer, with the command: <em>composer require rusticisoftware/tincan:@stable</em>"));
   }
@@ -107,7 +108,7 @@ function opigno_lms_get_current_opigno_lms_release() {
   if ($profile != 'opigno_lms') {
     return FALSE;
   };
-  $info = system_get_info('module', $profile);
+  $info = \Drupal::service('extension.list.module')->getExtensionInfo($profile);
   if (!empty($info) && isset($info['version'])) {
     if (!isset($info['version'])) {
       \Drupal::logger('opigno_learning_path')
@@ -121,9 +122,3 @@ function opigno_lms_get_current_opigno_lms_release() {
   return FALSE;
 }
 
-/**
- * Check if the library TinCanPHP is installed.
- */
-function opigno_lms_tincanphp_is_installed() {
-  return class_exists('TinCan\Statement');
-}

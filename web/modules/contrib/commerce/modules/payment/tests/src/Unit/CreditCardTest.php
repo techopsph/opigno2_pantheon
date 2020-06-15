@@ -28,7 +28,8 @@ class CreditCardTest extends UnitTestCase {
    * @covers ::getType
    */
   public function testGetInvalidType() {
-    $this->setExpectedException(\InvalidArgumentException::class, 'Invalid credit card type "monkey"');
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('Invalid credit card type "monkey"');
     CreditCard::getType("monkey");
   }
 
@@ -75,7 +76,7 @@ class CreditCardTest extends UnitTestCase {
   public function testCalculateExpirationTimestamp() {
     $timestamp = CreditCard::calculateExpirationTimestamp(12, 2012);
     $date = date('Y-m-d H:i:s', $timestamp);
-    $expected_date = date('2012-12-31 00:00:00');
+    $expected_date = date('2012-12-31 23:59:59');
     $this->assertEquals($expected_date, $date);
   }
 

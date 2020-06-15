@@ -15,6 +15,7 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\group\Entity\Group;
 use Drupal\h5p\H5PDrupal\H5PDrupal;
 use Drupal\opigno_group_manager\OpignoGroupContext;
+use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views\ViewExecutable;
@@ -530,9 +531,19 @@ function opigno_module_form_alter(&$form, FormStateInterface &$form_state, $form
     }
 
     $form['#submit'][] = 'opigno_module_activities_bank_lp_form_submit';
+    $form["#validate"] = ['opigno_module_activities_bank_lp_form_validate'];
   }
 }
 
+/**
+ * Custom submit for view activities bank lp form.
+ *
+ * @param mixed $form
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ */
+function opigno_module_activities_bank_lp_form_validate(&$form, FormStateInterface $form_state) {
+  $form_state->setValidationComplete();
+}
 
 /**
  * Ajaxify activity bank form.
@@ -728,7 +739,8 @@ function opigno_module_preprocess_page(&$variables) {
     }
 
     if ($user && isset($group)) {
-      $variables['progress'] = round(opigno_learning_path_progress($group->id(), $user->id()) * 100);
+      $latest_cert_date = LPStatus::getTrainingStartDate($group, $user->id());
+      $variables['progress'] = round(opigno_learning_path_progress($group->id(), $user->id(), $latest_cert_date) * 100);
     }
     $variables['attributes']['class'][] = 'section-module';
   }
@@ -790,17 +802,19 @@ function opigno_module_page_top(array &$page_top) {
     \Drupal::service('file_system')->prepareDirectory($temporary_file_path, FileSystemInterface::MODIFY_PERMISSIONS | FileSystemInterface::CREATE_DIRECTORY);
     // Load libraries.h5p.
     $file_content = file_get_contents(drupal_get_path("profile", "opigno_lms") . "/h5plib/libraries.h5p");
-    $file = file_save_data($file_content, $temporary_file_path . '.h5p', FILE_EXISTS_REPLACE);
-    $uri = $file->getFileUri();
-    $interface->getUploadedH5pPath(\Drupal::service('file_system')->realpath($uri));
-    $interface->getUploadedH5pFolderPath(\Drupal::service('file_system')->realpath($temporary_file_path));
-    // Validate libraries.
-    $upgradeOnly = FALSE;
-    $validator = H5PDrupal::getInstance('validator');
-    $validator->isValidPackage(TRUE, $upgradeOnly);
-    // Save libraries.
-    $storage = H5PDrupal::getInstance('storage');
-    $storage->savePackage(NULL, NULL, TRUE);
+    $file = file_save_data($file_content, $temporary_file_path . '.h5p', FileSystemInterface::EXISTS_REPLACE);
+    if ($file) {
+      $uri = $file->getFileUri();
+      $interface->getUploadedH5pPath(\Drupal::service('file_system')->realpath($uri));
+      $interface->getUploadedH5pFolderPath(\Drupal::service('file_system')->realpath($temporary_file_path));
+      // Validate libraries.
+      $upgradeOnly = FALSE;
+      $validator = H5PDrupal::getInstance('validator');
+      $validator->isValidPackage(TRUE, $upgradeOnly);
+      // Save libraries.
+      $storage = H5PDrupal::getInstance('storage');
+      $storage->savePackage(NULL, NULL, TRUE);
+    }
   };
 }
 
@@ -993,7 +1007,9 @@ function opigno_module_form_system_file_system_settings_alter(&$form, FormStateI
   $form['file_libreoffice_configs_path'] = [
     '#type' => 'textfield',
     '#title' => t('Libreoffice configs path'),
-    '#description' => t('Libreoffice package used for converting media-files. Depending to hosting sometimes necessary to change the location of Libreoffice configs directory.<br />Can be used environment variables, for example - $HOME, $USER.'),
+    '#description' => t('Libreoffice package used for converting media-files and require conversion configs directory.<br />
+Depending to hosting necessary to create and set the location of Libreoffice conversion configs directory.<br />
+Path starting with a slash located outside Drupal root directory.'),
     '#default_value' => ExternalPackageController::getLibreofficeConfigsDir(),
   ];
   $form['#submit'][] = 'opigno_module_form_system_file_system_settings_submit';
@@ -1021,9 +1037,9 @@ function opigno_module_form_system_file_system_settings_submit($form, FormStateI
  * @return int
  *   Score in percents depends of OpignoModule keep_results option.
  */
-function opigno_module_get_user_module_score(OpignoModule $opigno_module, AccountInterface $account) {
+function opigno_module_get_user_module_score(OpignoModule $opigno_module, AccountInterface $account, $latest_cert_date = NULL) {
   $which_score_keep = $opigno_module->getKeepResultsOption();
-  $attempts = $opigno_module->getModuleAttempts($account, 'last');
+  $attempts = $opigno_module->getModuleAttempts($account, 'last', $latest_cert_date);
 
   if (!$attempts) {
     return 0;
@@ -1040,7 +1056,7 @@ function opigno_module_get_user_module_score(OpignoModule $opigno_module, Accoun
     // For these options get best score.
     case 'best':
     case 'all':
-      $score = (int) $last_attempt->calculateBestScore();
+      $score = (int) $last_attempt->calculateBestScore($latest_cert_date);
       break;
   }
   // Clamp score.
@@ -1067,6 +1083,16 @@ function opigno_module_preprocess_views_view_field(&$variables) {
   if ($variables['view']->id() == 'media_browser_file_pdf' && $variables['field']->options['id'] == 'name') {
     $variables['bundle'] = $variables['view']->field['bundle']->original_value->jsonSerialize();
   }
+
+  if ($variables['view']->id() == 'module_list' && $variables['field']->options['id'] == 'name') {
+    $output = $variables['output']->jsonSerialize();
+    if (strpos($output, $_SERVER["HTTP_HOST"] . '//') !== FALSE) {
+      $output = str_replace($_SERVER["HTTP_HOST"] . '//', $_SERVER["HTTP_HOST"] . '/', $output);
+      $variables['output'] = [
+        '#markup' => $output,
+      ];
+    }
+  }
 }
 
 /**
@@ -1084,6 +1110,12 @@ function opigno_module_entity_operation(\Drupal\Core\Entity\EntityInterface $ent
 
   switch ($entityTypeId) {
     case 'opigno_module':
+      $operations['module_results'] = array(
+        'title' => t('See Results'),
+        'weight' => 14,
+        'url' => Url::fromRoute('view.opigno_module_results.opigno_module_results', ['arg_0' => $entity->id()]),
+      );
+
       $operations['duplicate_module'] = array(
         'title' => t('Duplicate'),
         'weight' => 15,
@@ -1158,5 +1190,17 @@ function opigno_module_entity_delete(EntityInterface $entity) {
         \Drupal::messenger()->addMessage($e->getMessage(), 'error');
       }
     }
+  }
+}
+
+
+/**
+ * Implements hook_views_pre_render().
+ *
+ * @param \Drupal\views\ViewExecutable $view
+ */
+function opigno_module_views_pre_render(ViewExecutable $view) {
+  if (isset($view) && ($view->id() == 'opigno_module_results')) {
+    $view->element['#attached']['library'][] = 'opigno_module/opigno_module_results_view';
   }
 }

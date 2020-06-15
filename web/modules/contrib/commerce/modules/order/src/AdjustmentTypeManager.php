@@ -4,7 +4,6 @@ namespace Drupal\commerce_order;
 
 use Drupal\commerce_order\Plugin\Commerce\AdjustmentType\AdjustmentType;
 use Drupal\Component\Plugin\Exception\PluginException;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
@@ -45,6 +44,7 @@ class AdjustmentTypeManager extends DefaultPluginManager {
   public function __construct(ModuleHandlerInterface $module_handler, CacheBackendInterface $cache_backend) {
     $this->moduleHandler = $module_handler;
     $this->setCacheBackend($cache_backend, 'commerce_adjustment_type', ['commerce_adjustment_type']);
+    $this->alterInfo('commerce_adjustment_type_info');
   }
 
   /**
@@ -73,11 +73,11 @@ class AdjustmentTypeManager extends DefaultPluginManager {
     }
     // Provide fallback labels for contrib adjustment types defined before 2.4.
     if (empty($definition['singular_label'])) {
-      $label = Unicode::strtolower($definition['label']);
+      $label = mb_strtolower($definition['label']);
       $definition['singular_label'] = t('@label adjustment', ['@label' => $label]);
     }
     if (empty($definition['plural_label'])) {
-      $label = Unicode::strtolower($definition['label']);
+      $label = mb_strtolower($definition['label']);
       $definition['plural_label'] = t('@label adjustments', ['@label' => $label]);
     }
   }

@@ -25,6 +25,7 @@ export class UpdateComponent implements OnInit {
   entityForm: any;
   mainId: any;
   getEntityFormUrl: string;
+  text_property_of: string;
 
   constructor(
     private http: HttpClient,
@@ -33,7 +34,7 @@ export class UpdateComponent implements OnInit {
     private route: ActivatedRoute
   ) {
     this.getEntityFormUrl = window['appConfig'].getEntityFormUrl;
-
+    this.text_property_of = window['appConfig'].text_property_of;
   }
 
   ngOnInit(): void {

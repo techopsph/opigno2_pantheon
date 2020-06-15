@@ -7,8 +7,8 @@ use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityForm;
-use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -93,12 +93,12 @@ class PrivateMessageForm extends ContentEntityForm {
   /**
    * Constructs a PrivateMessageForm object.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entityManager
-   *   The entity manager service.
-   * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
-   *   The current user.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entityRepository
+   *   The entity repository service.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager service.
+   * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
+   *   The current user.
    * @param \Drupal\Core\TypedData\TypedDataManagerInterface $typedDataManager
    *   The typed data manager service.
    * @param \Drupal\user\UserDataInterface $userData
@@ -111,25 +111,24 @@ class PrivateMessageForm extends ContentEntityForm {
    *   The private message thread manager service.
    */
   public function __construct(
-    EntityManagerInterface $entityManager,
-    AccountProxyInterface $currentUser,
+    EntityRepositoryInterface $entityRepository,
     EntityTypeManagerInterface $entityTypeManager,
+    AccountProxyInterface $currentUser,
     TypedDataManagerInterface $typedDataManager,
     UserDataInterface $userData,
     ConfigFactoryInterface $configFactory,
     PrivateMessageServiceInterface $privateMessageService,
     PrivateMessageThreadManagerInterface $privateMessageThreadManager
   ) {
-    parent::__construct($entityManager);
-
-    $this->currentUser = $currentUser;
+    parent::__construct($entityRepository);
     $this->entityTypeManager = $entityTypeManager;
+    $this->currentUser = $currentUser;
     $this->typedDataManager = $typedDataManager;
     $this->userData = $userData;
     $this->configFactory = $configFactory;
     $this->privateMessageService = $privateMessageService;
     $this->privateMessageThreadManager = $privateMessageThreadManager;
-    $this->userManager = $entityManager->getStorage('user');
+    $this->userManager = $entityTypeManager->getStorage('user');
   }
 
   /**
@@ -137,9 +136,9 @@ class PrivateMessageForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager'),
-      $container->get('current_user'),
+      $container->get('entity.repository'),
       $container->get('entity_type.manager'),
+      $container->get('current_user'),
       $container->get('typed_data_manager'),
       $container->get('user.data'),
       $container->get('config.factory'),
@@ -176,7 +175,7 @@ class PrivateMessageForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-   public function buildForm(array $form, FormStateInterface $form_state, PrivateMessageThreadInterface $privateMessageThread = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, PrivateMessageThreadInterface $privateMessageThread = NULL) {
     $form = parent::buildForm($form, $form_state);
 
     if ($privateMessageThread) {
@@ -187,7 +186,11 @@ class PrivateMessageForm extends ContentEntityForm {
 
       // Only to do these when using #ajax.
       $form['#attached']['library'][] = 'private_message/message_form';
-      $form['message']['widget'][0]['#attributes']['autofocus'] = 'autofocus';
+      $form['#attached']['drupalSettings']['privateMessageSendKey'] = $this->configFactory->get('private_message.settings')->get('keys_send');
+      $autofocus_enabled = $this->configFactory->get('private_message.settings')->get('autofocus_enable');
+      if ($autofocus_enabled) {
+        $form['message']['widget'][0]['#attributes']['autofocus'] = 'autofocus';
+      }
     }
     else {
       // Create a dummy private message thread form so as to retrieve the
@@ -204,6 +207,10 @@ class PrivateMessageForm extends ContentEntityForm {
 
     if ($this->configFactory->get('private_message.settings')->get('hide_form_filter_tips')) {
       $form['#after_build'][] = '::afterBuild';
+    }
+
+    if ($save_label = $this->configFactory->get('private_message.settings')->get('save_message_label')) {
+      $form['actions']['submit']['#value'] = $save_label;
     }
 
     return $form;
@@ -251,7 +258,7 @@ class PrivateMessageForm extends ContentEntityForm {
     // Validate the submitted members.
     $violations = $typed_data->validate();
 
-    // Check to see if any contraint violations were found.
+    // Check to see if any constraint violations were found.
     if ($violations->count() > 0) {
       // Output any errors for found constraint violations.
       foreach ($violations as $violation) {

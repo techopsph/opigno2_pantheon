@@ -100,34 +100,40 @@ class LearningPathController extends ControllerBase {
       case 'opigno_scorm':
         if (isset($opigno_activity->get('opigno_scorm_package')->target_id)) {
           $file = File::load($opigno_activity->get('opigno_scorm_package')->target_id);
-          $file_uri = $file->getFileUri();
-          $file_path = \Drupal::service('file_system')->realpath($file_uri);
-          $scorm_filename = $file->id() . '-' . $file->getFilename();
 
-          $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
-            'file_name' => $file->getFilename(),
-            'filemime' => $file->getMimeType(),
-            'status' => $file->get('status')->getValue()[0]['value'],
-          ];
+          if ($file) {
+            $file_uri = $file->getFileUri();
+            $file_path = \Drupal::service('file_system')->realpath($file_uri);
+            $scorm_filename = $file->id() . '-' . $file->getFilename();
 
-          $zip->addFile($file_path, $scorm_filename);
+            $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
+              'file_name' => $file->getFilename(),
+              'filemime' => $file->getMimeType(),
+              'status' => $file->get('status')->getValue()[0]['value'],
+            ];
+
+            $zip->addFile($file_path, $scorm_filename);
+          }
         }
         break;
 
       case 'opigno_tincan':
         if (isset($opigno_activity->get('opigno_tincan_package')->target_id)) {
           $file = File::load($opigno_activity->get('opigno_tincan_package')->target_id);
-          $file_uri = $file->getFileUri();
-          $file_path = \Drupal::service('file_system')->realpath($file_uri);
-          $tincan_filename = $file->id() . '-' . $file->getFilename();
 
-          $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
-            'file_name' => $file->getFilename(),
-            'filemime' => $file->getMimeType(),
-            'status' => $file->get('status')->getValue()[0]['value'],
-          ];
+          if ($file) {
+            $file_uri = $file->getFileUri();
+            $file_path = \Drupal::service('file_system')->realpath($file_uri);
+            $tincan_filename = $file->id() . '-' . $file->getFilename();
 
-          $zip->addFile($file_path, $tincan_filename);
+            $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
+              'file_name' => $file->getFilename(),
+              'filemime' => $file->getMimeType(),
+              'status' => $file->get('status')->getValue()[0]['value'],
+            ];
+
+            $zip->addFile($file_path, $tincan_filename);
+          }
         }
         break;
 
@@ -137,35 +143,40 @@ class LearningPathController extends ControllerBase {
           $file_id = $media->get('field_media_file')->getValue()[0]['target_id'];
           $file = File::load($file_id);
 
-          $file_uri = $file->getFileUri();
-          $file_path = \Drupal::service('file_system')->realpath($file_uri);
-          $pdf_filename = $file->id() . '-' . $file->getFilename();
+          if ($file) {
+            $file_uri = $file->getFileUri();
+            $file_path = \Drupal::service('file_system')->realpath($file_uri);
+            $pdf_filename = $file->id() . '-' . $file->getFilename();
 
-          $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
-            'file_name' => $file->getFilename(),
-            'filemime' => $file->getMimeType(),
-            'status' => $file->get('status')->getValue()[0]['value'],
-            'bundle' => $media->bundle(),
-          ];
+            $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
+              'file_name' => $file->getFilename(),
+              'filemime' => $file->getMimeType(),
+              'status' => $file->get('status')->getValue()[0]['value'],
+              'bundle' => $media->bundle(),
+            ];
 
-          $zip->addFile($file_path, $pdf_filename);
+            $zip->addFile($file_path, $pdf_filename);
+          }
         }
         break;
 
       case 'opigno_video':
         if (isset($opigno_activity->get('field_video')->target_id)) {
           $file = File::load($opigno_activity->get('field_video')->target_id);
-          $file_uri = $file->getFileUri();
-          $file_path = \Drupal::service('file_system')->realpath($file_uri);
-          $video_filename = $file->id() . '-' . $file->getFilename();
 
-          $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
-            'file_name' => $file->getFilename(),
-            'filemime' => $file->getMimeType(),
-            'status' => $file->get('status')->getValue()[0]['value'],
-          ];
+          if ($file) {
+            $file_uri = $file->getFileUri();
+            $file_path = \Drupal::service('file_system')->realpath($file_uri);
+            $video_filename = $file->id() . '-' . $file->getFilename();
 
-          $zip->addFile($file_path, $video_filename);
+            $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
+              'file_name' => $file->getFilename(),
+              'filemime' => $file->getMimeType(),
+              'status' => $file->get('status')->getValue()[0]['value'],
+            ];
+
+            $zip->addFile($file_path, $video_filename);
+          }
         }
         break;
     }
@@ -253,34 +264,40 @@ class LearningPathController extends ControllerBase {
         case 'opigno_scorm':
           if (isset($opigno_activity->get('opigno_scorm_package')->target_id)) {
             $file = File::load($opigno_activity->get('opigno_scorm_package')->target_id);
-            $file_uri = $file->getFileUri();
-            $file_path = \Drupal::service('file_system')->realpath($file_uri);
-            $scorm_filename = $file->id() . '-' . $file->getFilename();
 
-            $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
-              'file_name' => $file->getFilename(),
-              'filemime' => $file->getMimeType(),
-              'status' => $file->get('status')->getValue()[0]['value'],
-            ];
+            if ($file) {
+              $file_uri = $file->getFileUri();
+              $file_path = \Drupal::service('file_system')->realpath($file_uri);
+              $scorm_filename = $file->id() . '-' . $file->getFilename();
 
-            $zip->addFile($file_path, $scorm_filename);
+              $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
+                'file_name' => $file->getFilename(),
+                'filemime' => $file->getMimeType(),
+                'status' => $file->get('status')->getValue()[0]['value'],
+              ];
+
+              $zip->addFile($file_path, $scorm_filename);
+            }
           }
           break;
 
         case 'opigno_tincan':
           if (isset($opigno_activity->get('opigno_tincan_package')->target_id)) {
             $file = File::load($opigno_activity->get('opigno_tincan_package')->target_id);
-            $file_uri = $file->getFileUri();
-            $file_path = \Drupal::service('file_system')->realpath($file_uri);
-            $tincan_filename = $file->id() . '-' . $file->getFilename();
 
-            $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
-              'file_name' => $file->getFilename(),
-              'filemime' => $file->getMimeType(),
-              'status' => $file->get('status')->getValue()[0]['value'],
-            ];
+            if ($file) {
+              $file_uri = $file->getFileUri();
+              $file_path = \Drupal::service('file_system')->realpath($file_uri);
+              $tincan_filename = $file->id() . '-' . $file->getFilename();
 
-            $zip->addFile($file_path, $tincan_filename);
+              $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
+                'file_name' => $file->getFilename(),
+                'filemime' => $file->getMimeType(),
+                'status' => $file->get('status')->getValue()[0]['value'],
+              ];
+
+              $zip->addFile($file_path, $tincan_filename);
+            }
           }
           break;
 
@@ -290,35 +307,40 @@ class LearningPathController extends ControllerBase {
             $file_id = $media->get('field_media_file')->getValue()[0]['target_id'];
             $file = File::load($file_id);
 
-            $file_uri = $file->getFileUri();
-            $file_path = \Drupal::service('file_system')->realpath($file_uri);
-            $pdf_filename = $file->id() . '-' . $file->getFilename();
+            if ($file) {
+              $file_uri = $file->getFileUri();
+              $file_path = \Drupal::service('file_system')->realpath($file_uri);
+              $pdf_filename = $file->id() . '-' . $file->getFilename();
 
-            $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
-              'file_name' => $file->getFilename(),
-              'filemime' => $file->getMimeType(),
-              'status' => $file->get('status')->getValue()[0]['value'],
-              'bundle' => $media->bundle(),
-            ];
+              $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
+                'file_name' => $file->getFilename(),
+                'filemime' => $file->getMimeType(),
+                'status' => $file->get('status')->getValue()[0]['value'],
+                'bundle' => $media->bundle(),
+              ];
 
-            $zip->addFile($file_path, $pdf_filename);
+              $zip->addFile($file_path, $pdf_filename);
+            }
           }
           break;
 
         case 'opigno_video':
           if (isset($opigno_activity->get('field_video')->target_id)) {
             $file = File::load($opigno_activity->get('field_video')->target_id);
-            $file_uri = $file->getFileUri();
-            $file_path = \Drupal::service('file_system')->realpath($file_uri);
-            $video_filename = $file->id() . '-' . $file->getFilename();
 
-            $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
-              'file_name' => $file->getFilename(),
-              'filemime' => $file->getMimeType(),
-              'status' => $file->get('status')->getValue()[0]['value'],
-            ];
+            if ($file) {
+              $file_uri = $file->getFileUri();
+              $file_path = \Drupal::service('file_system')->realpath($file_uri);
+              $video_filename = $file->id() . '-' . $file->getFilename();
 
-            $zip->addFile($file_path, $video_filename);
+              $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
+                'file_name' => $file->getFilename(),
+                'filemime' => $file->getMimeType(),
+                'status' => $file->get('status')->getValue()[0]['value'],
+              ];
+
+              $zip->addFile($file_path, $video_filename);
+            }
           }
           break;
       }

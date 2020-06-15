@@ -8,8 +8,9 @@ dependencies:
   - opigno_learning_path:opigno_learning_path
 package: Opigno
 core: 8.x
+core_version_requirement: ^8 || ^9
 
-# Information added by Drupal.org packaging script on 2020-01-30
-version: '8.x-1.4'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.5'
 project: 'opigno_calendar'
-datestamp: 1580375770
+datestamp: 1591085432

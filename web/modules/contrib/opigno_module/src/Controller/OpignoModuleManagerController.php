@@ -3,6 +3,7 @@
 namespace Drupal\opigno_module\Controller;
 
 use Drupal\file\Entity\File;
+use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_module\Entity\OpignoActivityType;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Ajax\AjaxResponse;
@@ -145,6 +146,22 @@ class OpignoModuleManagerController extends ControllerBase {
     }
 
     die;
+  }
+
+  /**
+   * Check access.
+   */
+  public function ajaxCheckedActivitiesAccess() {
+    $account = $this->currentUser();
+
+    $is_content_manager = LearningPathAccess::memberHasRole('content_manager', $account);
+
+    if ($is_content_manager > 0 || $account->hasPermission('administer module entities')) {
+      return AccessResult::allowed();
+    }
+    else {
+      return AccessResult::forbidden();
+    }
   }
 
   /**
@@ -540,9 +557,9 @@ class OpignoModuleManagerController extends ControllerBase {
   /**
    * Add existing activity to the module.
    */
-  public function addActivityToModule(OpignoModule $opigno_module, OpignoActivity $opigno_activity, Request $request) {
+  public function addActivityToModule(OpignoModule $opigno_module, OpignoActivity $opigno_activity, $group = NULL) {
     $opigno_module_controller = \Drupal::service('opigno_module.opigno_module');
-    $opigno_module_controller->activitiesToModule([$opigno_activity], $opigno_module);
+    $opigno_module_controller->activitiesToModule([$opigno_activity], $opigno_module, $group);
 
     return new JsonResponse([], Response::HTTP_OK);
   }

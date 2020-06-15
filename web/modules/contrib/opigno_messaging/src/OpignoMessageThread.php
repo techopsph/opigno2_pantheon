@@ -2,6 +2,7 @@
 
 namespace Drupal\opigno_messaging;
 
+use Drupal\private_message\Service\PrivateMessageServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
@@ -38,7 +39,7 @@ class OpignoMessageThread {
    * Returns unread threads count.
    *
    * @param string $return_fields
-   *  Return unread threads fields.
+   *   Return unread threads fields.
    *
    * @return int|array
    *   Unread threads count or ids array.
@@ -49,10 +50,9 @@ class OpignoMessageThread {
 
     if ($uid > 0 && isset($pm_service)) {
       $unread_count = \Drupal::service('private_message.service')->getUnreadThreadCount();
-      $db_connection = \Drupal::service('database');
-
       if ($unread_count > 0) {
         if ($return_fields) {
+          $db_connection = \Drupal::service('database');
           $query = $db_connection->select('private_message_thread__last_access_time', 'pmtlat');
           $query->join('pm_thread_access_time', 'pmtat', 'pmtat.id = pmtlat.last_access_time_target_id AND pmtat.owner = :uid', [':uid' => $uid]);
           $query->join('private_message_threads', 'pmt', 'pmt.id = pmtlat.entity_id AND pmt.updated >= pmtat.access_time');

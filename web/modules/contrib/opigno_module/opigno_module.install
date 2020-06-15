@@ -87,6 +87,11 @@ function opigno_module_schema() {
         'default' => 0,
         'description' => 'Boolean indicating whether updates to the Activity will update the max score of the Activity in the Module.',
       ],
+      'group_id' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'description' => "Training ID",
+      ],
     ],
     'primary key' => ['omr_id'],
     'unique keys' => [
@@ -102,6 +107,7 @@ function opigno_module_schema() {
       'child_vid' => ['child_vid'],
       'parent_id' => ['parent_id'],
       'child_id' => ['child_id'],
+      'group_id' => ['group_id'],
     ],
   ];
 
@@ -950,6 +956,10 @@ function opigno_module_update_8015() {
   $view->setData($data);
   $view->save(TRUE);
 
+  if (!\Drupal::moduleHandler()->moduleExists('locale')) {
+    return;
+  }
+
   // Update translations.
   /* @var \Drupal\Core\Database\Connection $db_connection */
   $db_connection = \Drupal::service('database');
@@ -1457,4 +1467,74 @@ function opigno_module_update_8030() {
 
   $data = $storage->read('views.view.module_list');
   $config_storage->write('views.view.module_list', $data);
+}
+
+/**
+ * Update view: 'Module list'.
+ */
+function opigno_module_update_8031() {
+  $config_path = drupal_get_path('module', 'opigno_module')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.module_list');
+  $config_storage->write('views.view.module_list', $data);
+}
+
+/**
+ * Update view: 'Opigno module results'.
+ */
+function opigno_module_update_8032() {
+  $config_path = drupal_get_path('module', 'opigno_module')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_module_results');
+  $config_storage->write('views.view.opigno_module_results', $data);
+}
+
+/**
+ * Update view: 'People'.
+ */
+function opigno_module_update_8033() {
+  $config_path = drupal_get_path('module', 'opigno_module')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.user_admin_people');
+  $config_storage->write('views.view.user_admin_people', $data);
+}
+
+
+/**
+ * Update views: 'Opigno activities bank (LP interface)'.
+ */
+function opigno_module_update_8034() {
+  $config_path = drupal_get_path('module', 'opigno_module')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_activities_bank_lp_interface');
+  $config_storage->write('views.view.opigno_activities_bank_lp_interface', $data);
+}
+
+/**
+ * Add extra field to DB to save training ID.
+ */
+function opigno_module_update_8035() {
+  $spec = array(
+    'type' => 'int',
+    'size' => 'normal',
+    'description' => "Training ID",
+  );
+  $schema = Database::getConnection()->schema();
+  $schema->addField('opigno_module_relationship', 'group_id', $spec);
 }

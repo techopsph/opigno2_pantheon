@@ -196,20 +196,40 @@ class OpignoActivity extends RevisionableContentEntityBase implements OpignoActi
 
   /**
    * Returns user answer.
+   *
+   * @param \Drupal\opigno_module\Entity\OpignoModuleInterface $opigno_module
+   *   Opigno module object.
+   * @param \Drupal\opigno_module\Entity\UserModuleStatusInterface $attempt
+   *   Attempt object.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   User object.
+   * @param null|int $latest_cert_date
+   *   Latest certification date.
+   *
+   * @return mixed
+   *   Opigno answer object.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function getUserAnswer(OpignoModuleInterface $opigno_module, UserModuleStatusInterface $attempt, AccountInterface $account) {
-    $cid = $opigno_module->id() . '-' . $attempt->id() . '-' .  $account->id();
+  public function getUserAnswer(OpignoModuleInterface $opigno_module, UserModuleStatusInterface $attempt, AccountInterface $account, $latest_cert_date = NULL) {
+    $cid = $opigno_module->id() . '-' . $attempt->id() . '-' . $account->id();
     if (array_key_exists($cid, $this->userAnswers) && $this->userAnswers[$cid] instanceof OpignoAnswer) {
       return $this->userAnswers[$cid];
     }
 
     $answer_storage = static::entityTypeManager()->getStorage('opigno_answer');
     $query = $answer_storage->getQuery();
-    $aid = $query->condition('user_id', $account->id())
+    $query->condition('user_id', $account->id())
       ->condition('user_module_status', $attempt->id())
       ->condition('module', $opigno_module->id())
-      ->condition('activity', $this->id())
-      ->range(0, 1)
+      ->condition('activity', $this->id());
+
+    if ($latest_cert_date) {
+      $query->condition('created', $latest_cert_date, '>');
+    }
+
+    $aid = $query->range(0, 1)
       ->execute();
     $id = reset($aid);
 

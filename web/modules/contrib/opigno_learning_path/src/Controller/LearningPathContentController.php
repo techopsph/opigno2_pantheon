@@ -7,6 +7,7 @@ use Drupal\Core\Link;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\h5p\Entity\H5PContent;
+use Drupal\opigno_group_manager\Entity\OpignoGroupManagedLink;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_learning_path\LearningPathValidator;
 use Drupal\opigno_module\Entity\OpignoActivity;
@@ -265,6 +266,11 @@ class LearningPathContentController extends ControllerBase {
     $activities = $this->getModuleActivitiesEntities($opigno_module);
     $conditional_h5p_types = ['H5P.TrueFalse', 'H5P.MultiChoice'];
 
+    $results = [
+      'conditional' => [],
+      'simple' => FALSE,
+    ];
+
     if ($activities) {
       // Get only H5P.TrueFalse/H5P.MultiChoice activities.
       foreach ($activities as $key => $activity) {
@@ -311,12 +317,16 @@ class LearningPathContentController extends ControllerBase {
 
         if ($exclude) {
           unset($activities[$key]);
+          $results['simple'] = TRUE;
+        }
+        else {
+          $results['conditional'][] = $activities[$key];
         }
       }
     }
 
     // Return all the contents in JSON format.
-    return new JsonResponse($activities, Response::HTTP_OK);
+    return new JsonResponse($results, Response::HTTP_OK);
   }
 
   /**
@@ -395,23 +405,52 @@ class LearningPathContentController extends ControllerBase {
     // Load Activity before deleting relationship.
     $relationship = $db_connection
       ->select('opigno_module_relationship', 'omr')
-      ->fields('omr', ['child_id'])
+      ->fields('omr', ['child_id', 'group_id'])
       ->condition('omr_id', $datas->omr_id, '=')
       ->groupBy('child_id')
       ->execute()
       ->fetchObject();
-    $opigno_activity = OpignoActivity::load($relationship->child_id);
+    if (!empty($relationship->child_id)) {
+      $opigno_activity = OpignoActivity::load($relationship->child_id);
 
-    // Allow other modules to take actions.
-    \Drupal::moduleHandler()->invokeAll(
-    'opigno_learning_path_activity_delete',
-      [$opigno_module, $opigno_activity]
-    );
+      // Allow other modules to take actions.
+      \Drupal::moduleHandler()->invokeAll(
+        'opigno_learning_path_activity_delete',
+        [$opigno_module, $opigno_activity]
+      );
 
-    // Delete relationship.
-    $delete_query = $db_connection->delete('opigno_module_relationship');
-    $delete_query->condition('omr_id', $datas->omr_id);
-    $delete_query->execute();
+      // Delete relationship.
+      $delete_query = $db_connection->delete('opigno_module_relationship');
+      $delete_query->condition('omr_id', $datas->omr_id);
+      $delete_query->execute();
+
+      if (!empty($relationship->group_id)) {
+        $links = OpignoGroupManagedLink::loadByProperties([
+          'group_id' => $relationship->group_id,
+          'parent_content_id' => $opigno_module->id(),
+        ]);
+
+        $added_activities = $opigno_module->getModuleActivities();
+        // Remove conditions if no activities;
+        foreach ($links as $link) {
+          if (empty($added_activities)) {
+            $link->set('required_activities', null);
+            $link->set('required_score', 0);
+            $link->save();
+          } else {
+            $activity_params = $link->get('required_activities')->getString();
+            $activity_params = unserialize($activity_params);
+            foreach ($activity_params as $param) {
+              $options = explode('-', $param);
+              if ($options[0] == $relationship->child_id) {
+                $link->set('required_activities', null)->save();
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
 
     return new JsonResponse(NULL, Response::HTTP_OK);
   }

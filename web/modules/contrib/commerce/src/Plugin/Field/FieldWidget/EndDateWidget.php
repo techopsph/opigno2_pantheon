@@ -5,10 +5,14 @@ namespace Drupal\commerce\Plugin\Field\FieldWidget;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\datetime\Plugin\Field\FieldWidget\DateTimeDefaultWidget;
 
 /**
  * Plugin implementation of the 'commerce_end_date' widget.
+ *
+ * @deprecated in commerce:8.x-2.16 and is removed from commerce:3.x.
+ *   Use the the 'commerce_store_datetime' widget instead.
  *
  * @FieldWidget(
  *   id = "commerce_end_date",
@@ -35,7 +39,6 @@ class EndDateWidget extends DateTimeDefaultWidget {
     $element['value']['#description'] = '';
     // Workaround for #2419131.
     $field_name = $this->fieldDefinition->getName();
-    $element['container']['#type'] = 'container';
     $element['container'] = [
       '#type' => 'container',
       '#states' => [
@@ -58,9 +61,9 @@ class EndDateWidget extends DateTimeDefaultWidget {
       if (!empty($item['container']['value']) && $item['container']['value'] instanceof DrupalDateTime) {
         $date = $item['container']['value'];
         // Adjust the date for storage.
-        datetime_date_default_time($date);
-        $date->setTimezone(new \DateTimezone(DATETIME_STORAGE_TIMEZONE));
-        $item['value'] = $date->format(DATETIME_DATE_STORAGE_FORMAT);
+        $date->setDefaultDateTime();
+        $date->setTimezone(new \DateTimezone(DateTimeItemInterface::STORAGE_TIMEZONE));
+        $item['value'] = $date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT);
         unset($item['container']);
       }
     }

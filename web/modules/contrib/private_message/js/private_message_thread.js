@@ -3,36 +3,44 @@
  * Adds JavaScript functionality to priveate message threads.
  */
 
-/*global jQuery, Drupal, drupalSettings, window*/
-/*jslint white:true, this, browser:true*/
-
 Drupal.PrivateMessages = {};
 Drupal.PrivateMessages.threadChange = {};
 
 (function ($, Drupal, drupalSettings, window) {
 
-  "use strict";
+  'use strict';
 
-  var initialized, threadWrapper, currentThreadId, originalThreadId, loadingPrev, loadingNew, container, timeout, refreshRate, dimmer, loadingThread;
+  var initialized;
+  var threadWrapper;
+  var currentThreadId;
+  var originalThreadId;
+  var loadingPrev;
+  var loadingNew;
+  var container;
+  var timeout;
+  var refreshRate;
+  var dimmer;
+  var loadingThread;
 
   /**
    * Triggers AJAX commands when they happen outside the Form API framework.
+   * @param {Object} data The data.
    */
   function triggerCommands(data) {
     var ajaxObject = Drupal.ajax({
-      url: "",
+      url: '',
       base: false,
       element: false,
       progress: false
     });
 
     // Trigger any any ajax commands in the response.
-    ajaxObject.success(data, "success");
+    ajaxObject.success(data, 'success');
   }
 
   function showDimmer(callback) {
     if (!dimmer) {
-      dimmer = $("<div/>", {id:"private-message-thread-dimmer"}).appendTo(threadWrapper);
+      dimmer = $('<div/>', {id: 'private-message-thread-dimmer'}).appendTo(threadWrapper);
     }
 
     dimmer.fadeTo(500, 0.8, callback);
@@ -46,6 +54,7 @@ Drupal.PrivateMessages.threadChange = {};
 
   /**
    * Click handler for the button to load previous private messages.
+   * @param {Object} e The event.
    */
   var loadPreviousListenerHandler = function (e) {
     e.preventDefault();
@@ -54,24 +63,25 @@ Drupal.PrivateMessages.threadChange = {};
     if (!loadingPrev) {
       loadingPrev = true;
 
-      var threadId, oldestId;
+      var threadId;
+      var oldestId;
 
       // Get the thread ID.
-      threadId = threadWrapper.children(".private-message-thread:first").attr("data-thread-id");
+      threadId = threadWrapper.children('.private-message-thread:first').attr('data-thread-id');
 
       // Get the ID of the oldest message. This will be used for reference to
       // tell the server which messages it should send back.
-      container.find(".private-message").each(function () {
-        if (!oldestId || Number($(this).attr("data-message-id")) < oldestId) {
-          oldestId = Number($(this).attr("data-message-id"));
+      container.find('.private-message').each(function () {
+        if (!oldestId || Number($(this).attr('data-message-id')) < oldestId) {
+          oldestId = Number($(this).attr('data-message-id'));
         }
       });
 
       // Retrieve messages from the server with an AJAX callback.
       $.ajax({
-        url:drupalSettings.privateMessageThread.previousMessageCheckUrl,
-        data: {threadid:threadId, messageid:oldestId},
-        success:function (data) {
+        url: drupalSettings.privateMessageThread.previousMessageCheckUrl,
+        data: {threadid: threadId, messageid: oldestId},
+        success: function (data) {
           loadingPrev = false;
           // Trigger the AJAX commands that were returned from the server.
           triggerCommands(data);
@@ -82,22 +92,37 @@ Drupal.PrivateMessages.threadChange = {};
 
   /**
    * Attaches event handlers to the load previous messages button.
+   * @param {Object} context The context.
    */
   function loadPreviousListener(context) {
-    $(context).find("#load-previous-messages").once("load-previous-private-messages-listener").each(function () {
+    $(context).find('#load-previous-messages').once('load-previous-private-messages-listener').each(function () {
       $(this).click(loadPreviousListenerHandler);
     });
   }
 
   /**
+   * Function to attach behaviors to HTML.
+   * @param {string} html The HTML.
+   */
+  function htmlAttachBehaviors(html) {
+    // Find the node element when Twig debug is enabled.
+    for (var i = 0; i < html.length; i++) {
+      if (html[i].nodeType === 1) {
+        Drupal.attachBehaviors(html[i]);
+      }
+    }
+  }
+
+  /**
    * Inserts new messages into the thread.
+   * @param {string} messages The new messages.
    */
   function insertNewMessages(messages) {
     // Render the messages as HTML, and set them to be hidden.
-    var html = $("<div/>").html(messages).contents().css("display", "none");
+    var html = $('<div/>').html(messages).contents().css('display', 'none');
 
     // Insert the messages into the thread.
-    if (drupalSettings.privateMessageThread.messageOrder === "asc") {
+    if (drupalSettings.privateMessageThread.messageOrder === 'asc') {
       html.appendTo(container);
     }
     else {
@@ -106,17 +131,16 @@ Drupal.PrivateMessages.threadChange = {};
 
     // Show the messages.
     html.slideDown(300);
-
-    Drupal.attachBehaviors(html[0]);
+    htmlAttachBehaviors(html);
   }
 
   // Insert older messages into the thread.
   function insertPreviousMessages(messages) {
     // Render the messages as HTML, setting them to be hidden.
-    var html = $("<div/>").html(messages).contents().css("display", "none");
+    var html = $('<div/>').html(messages).contents().css('display', 'none');
 
     // Insert the messages into the thread.
-    if (drupalSettings.privateMessageThread.messageOrder === "asc") {
+    if (drupalSettings.privateMessageThread.messageOrder === 'asc') {
       html.prependTo(container);
     }
     else {
@@ -125,8 +149,7 @@ Drupal.PrivateMessages.threadChange = {};
 
     // Show the messages.
     html.slideDown(300);
-
-    Drupal.attachBehaviors(html[0]);
+    htmlAttachBehaviors(html);
   }
 
   /**
@@ -135,25 +158,26 @@ Drupal.PrivateMessages.threadChange = {};
   function getNewMessages() {
     // Only attempt a retrieval if one is not already in progress.
     if (!loadingNew) {
-      var threadId, newestId = 0;
+      var threadId;
+      var newestId = 0;
 
       loadingNew = true;
 
       // Get the thread ID.
-      threadId = threadWrapper.children(".private-message-thread:first").attr("data-thread-id");
+      threadId = threadWrapper.children('.private-message-thread:first').attr('data-thread-id');
 
       // Get the ID of the newest message. This will be used as a reference
       // server side to determine which messages to return to the browser.
-      container.find(".private-message").each(function () {
-        if (Number($(this).attr("data-message-id")) > newestId) {
-          newestId = Number($(this).attr("data-message-id"));
+      container.find('.private-message').each(function () {
+        if (Number($(this).attr('data-message-id')) > newestId) {
+          newestId = Number($(this).attr('data-message-id'));
         }
       });
 
       $.ajax({
-        url:drupalSettings.privateMessageThread.newMessageCheckUrl,
-        data: {threadid:threadId, messageid:newestId},
-        success:function (data) {
+        url: drupalSettings.privateMessageThread.newMessageCheckUrl,
+        data: {threadid: threadId, messageid: newestId},
+        success: function (data) {
           triggerCommands(data);
 
           loadingNew = false;
@@ -169,14 +193,16 @@ Drupal.PrivateMessages.threadChange = {};
 
   /**
    * Remove the existing thread from the DOM, and insert a new one in its place.
+   * @param {Object} thread The thread.
    */
   function insertThread(thread) {
-    var newThread, originalThread;
+    var newThread;
+    var originalThread;
 
     // Render the new thread as HTML.
-    newThread = $("<div/>").html(thread).find(".private-message-thread:first");
+    newThread = $('<div/>').html(thread).find('.private-message-thread:first');
     // Find the current thread in the DOM.
-    originalThread = threadWrapper.children(".private-message-thread:first");
+    originalThread = threadWrapper.children('.private-message-thread:first');
     // Detach any behaviors from the old thread, to prevent memory leaks.
     Drupal.detachBehaviors(threadWrapper[0]);
     // Insert the new thread into the DOM.
@@ -192,6 +218,8 @@ Drupal.PrivateMessages.threadChange = {};
 
   /**
    * Loads a thread from the server.
+   * @param {string} threadId The thread ID.
+   * @param {boolean} pushHistory True if the browser allows changing history.
    */
   function loadThread(threadId, pushHistory) {
     // Only try loading the thread if a thread isn't already loading, and if the
@@ -205,9 +233,9 @@ Drupal.PrivateMessages.threadChange = {};
 
       // Load the new thread from the server with AJAX.
       $.ajax({
-        url:drupalSettings.privateMessageThread.loadThreadUrl,
-        data:{id:threadId},
-        success:function (data) {
+        url: drupalSettings.privateMessageThread.loadThreadUrl,
+        data: {id: threadId},
+        success: function (data) {
           triggerCommands(data);
 
           if (Drupal.PrivateMessages.setActiveThread) {
@@ -226,39 +254,24 @@ Drupal.PrivateMessages.threadChange = {};
 
       // Change the URl if using a browser that allows it.
       if (pushHistory) {
-        Drupal.history.push({threadId:threadId}, $("title").text(), "/private_messages/" + threadId);
+        Drupal.history.push({threadId: threadId}, $('title').text(), '/private-messages/' + threadId);
       }
     }
   }
 
   function init() {
+    // Get the rate (in seconds) after which the server should be polled for
+    // new messages.
+    refreshRate = drupalSettings.privateMessageThread.refreshRate;
+    // Find the wrapper for the current thread.
+    threadWrapper = $('.private-message-thread-full').parent();
+    insertPreviousButton(threadWrapper);
+
     if (!initialized) {
       initialized = true;
 
-      // Initialize the previous button. This will be inserted into the thread.
-      var loadPreviousButton;
-
-      // Find the wrapper for the current thread.
-      threadWrapper = $(".private-message-thread").parent();
-      // Get the rate (in seconds) after which the server should be polled for
-      // new messages.
-      refreshRate = drupalSettings.privateMessageThread.refreshRate;
-      // Get the container for messages.
-      container = threadWrapper.find(".private-message-thread-messages:first .private-message-wrapper:first").parent();
-
-      // Create the HTML for the load previous button.
-      loadPreviousButton = $("<div/>", {id:"load-previous-messages-button-wrapper"}).append($("<a/>", {href:"#", id:"load-previous-messages"}).text(Drupal.t("Load Previous")));
-
-      // Insert the load previous button into the DOM.
-      if (drupalSettings.privateMessageThread.messageOrder === "asc") {
-        loadPreviousButton.addClass("load-previous-position-before").insertBefore(container);
-      }
-      else {
-        loadPreviousButton.addClass("load-previous-position-after").insertAfter(container);
-      }
-
       // Get the original thread ID on page load.
-      originalThreadId = threadWrapper.children(".private-message-thread:first").attr("data-thread-id");
+      originalThreadId = threadWrapper.children('.private-message-thread:first').attr('data-thread-id');
 
       // If the refresh rate is anything above zero (zero is disabled) start the
       // server polling for new messages.
@@ -273,27 +286,53 @@ Drupal.PrivateMessages.threadChange = {};
     }
   }
 
+  /**
+   * Insert button to load previous thread messages.
+   * @param {object} threadWrapper The thread wrapper.
+   */
+  function insertPreviousButton(threadWrapper) {
+    if (threadWrapper.find('#load-previous-messages').length === 0 && drupalSettings.privateMessageThread.messageTotal > drupalSettings.privateMessageThread.messageCount) {
+      // Initialize the previous button. This will be inserted into the thread.
+      var loadPreviousButton;
+
+      // Get the container for messages.
+      container = threadWrapper.find('.private-message-thread-messages:first .private-message-wrapper:first').parent();
+
+      // Don't add the load previous button if the thread is completely loaded.
+      if (!container.hasClass('js-completely-loaded')) {
+        // Create the HTML for the load previous button.
+        loadPreviousButton = $('<div/>', {id: 'load-previous-messages-button-wrapper'}).append($('<a/>', {href: '#', id: 'load-previous-messages'}).text(Drupal.t('Load Previous')));
+
+        // Insert the load previous button into the DOM.
+        if (drupalSettings.privateMessageThread.messageOrder === 'asc') {
+          loadPreviousButton.addClass('load-previous-position-before').insertBefore(container);
+        }
+        else {
+          loadPreviousButton.addClass('load-previous-position-after').insertAfter(container);
+        }
+      }
+    }
+  }
+
   Drupal.behaviors.privateMessageThread = {
-    attach:function (context) {
+    attach: function (context) {
       init();
       loadPreviousListener(context);
-      currentThreadId = threadWrapper.children(".private-message-thread:first").attr("data-thread-id");
-      container = threadWrapper.find(".private-message-thread-messages:first .private-message-wrapper:first").parent();
+      currentThreadId = threadWrapper.children('.private-message-thread:first').attr('data-thread-id');
+      container = threadWrapper.find('.private-message-thread-messages:first .private-message-wrapper:first').parent();
 
       // Ajax commands insertPrivateMessages command callback.
       Drupal.AjaxCommands.prototype.insertPrivateMessages = function (ajax, response) {
-        // Stifles jSlint warning.
-        ajax = ajax;
-
-        if (response.insertType === "new") {
+        if (response.insertType === 'new') {
           insertNewMessages(response.messages);
         }
         else {
           if (response.messages) {
             insertPreviousMessages(response.messages);
           }
-          else {
-            $("#load-previous-messages").parent().slideUp(300, function () {
+          if (!response.hasNext) {
+            container.addClass('js-completely-loaded');
+            $('#load-previous-messages').parent().slideUp(300, function () {
               $(this).remove();
             });
           }
@@ -310,9 +349,6 @@ Drupal.PrivateMessages.threadChange = {};
 
       // Ajax commands privateMessageInsertThread command callback.
       Drupal.AjaxCommands.prototype.privateMessageInsertThread = function (ajax, response) {
-        // Stifle jslint warning.
-        ajax = ajax;
-
         if (response.thread && response.thread.length) {
           insertThread(response.thread);
         }
@@ -338,8 +374,8 @@ Drupal.PrivateMessages.threadChange = {};
         });
       };
     },
-    detach:function (context) {
-      $(context).find("#load-previous-messages").unbind("click", loadPreviousListenerHandler);
+    detach: function (context) {
+      $(context).find('#load-previous-messages').unbind('click', loadPreviousListenerHandler);
     }
   };
 

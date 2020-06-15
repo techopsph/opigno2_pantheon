@@ -1,7 +1,7 @@
 name: Opigno Commerce
 type: module
 description: Integrated Opigno with commerce.
-# core: 8.x
+core: 8.x
 package: Opigno
 dependencies:
   - opigno_learning_path:opigno_learning_path
@@ -15,8 +15,7 @@ dependencies:
   - commerce:commerce_product
   - commerce:commerce_store
 
-# Information added by Drupal.org packaging script on 2019-02-21
-version: '8.x-1.2'
-core: '8.x'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.3'
 project: 'opigno_commerce'
-datestamp: 1550773097
+datestamp: 1591089649

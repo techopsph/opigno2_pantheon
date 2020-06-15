@@ -82,14 +82,22 @@
     &:nth-child(odd) {
       .message {
         order: 1;
-        margin-left: 30px;
+        margin-left: 15px;
+
+        @include media-breakpoint-up(md) {
+          margin-left: 30px;
+        }
       }
     }
 
     &:nth-child(even) {
       .message {
         order: -1;
-        margin-right: 30px;
+        margin-right: 15px;
+
+        @include media-breakpoint-up(md) {
+          margin-right: 30px;
+        }
       }
     }
   }
@@ -124,7 +132,6 @@
 
   .private-message-recipients {
     position: relative;
-    font-size: 25px;
     margin-bottom: 1em!important;
     display: block;
     overflow: hidden;
@@ -161,13 +168,6 @@
     font-weight: 400;
     margin-bottom: 1rem;
     flex: 1 0 100%;
-    background-color: $green !important;
-    color: #fff;
-
-    &:hover {
-      text-decoration: none;
-      background-color: darken($green, 5%) !important;
-    }
   }
 
   #edit-message-0-format {
@@ -176,10 +176,6 @@
 
   div#edit-message-0-format-guidelines {
     display: none;
-  }
-
-  .multiselect-wrapper select.form-multiselect {
-    border: 0;
   }
 }
 

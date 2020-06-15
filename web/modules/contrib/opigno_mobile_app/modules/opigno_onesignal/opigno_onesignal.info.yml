@@ -6,7 +6,7 @@ package: Opigno
 dependencies:
   - opigno_mobile_app:opigno_mobile_app
   - opigno_notification:opigno_notification
-# Information added by Drupal.org packaging script on 2019-10-02
-version: '8.x-1.2'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.3'
 project: 'opigno_mobile_app'
-datestamp: 1570006111
+datestamp: 1591089882

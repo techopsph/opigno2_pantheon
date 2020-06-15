@@ -4,7 +4,6 @@ namespace Drupal\migrate_tools;
 
 use Drupal\migrate\MigrateMessage;
 use Drupal\migrate\MigrateMessageInterface;
-use Drupal\migrate\Plugin\Migration;
 use Drupal\migrate\Plugin\MigrationInterface;
 
 /**
@@ -65,10 +64,10 @@ class MigrateBatchExecutable extends MigrateExecutable {
   /**
    * Sets the current batch content so listeners can update the messages.
    *
-   * @param array $context
+   * @param array|\DrushBatchContext $context
    *   The batch context.
    */
-  public function setBatchContext(array &$context) {
+  public function setBatchContext(&$context) {
     $this->batchContext = &$context;
   }
 
@@ -98,10 +97,10 @@ class MigrateBatchExecutable extends MigrateExecutable {
     if (count($operations) > 0) {
       $batch = [
         'operations' => $operations,
-        'title' => t('Migrating %migrate', ['%migrate' => $this->migration->label()]),
-        'init_message' => t('Start migrating %migrate', ['%migrate' => $this->migration->label()]),
-        'progress_message' => t('Migrating %migrate', ['%migrate' => $this->migration->label()]),
-        'error_message' => t('An error occurred while migrating %migrate.', ['%migrate' => $this->migration->label()]),
+        'title' => $this->t('Migrating %migrate', ['%migrate' => $this->migration->label()]),
+        'init_message' => $this->t('Start migrating %migrate', ['%migrate' => $this->migration->label()]),
+        'progress_message' => $this->t('Migrating %migrate', ['%migrate' => $this->migration->label()]),
+        'error_message' => $this->t('An error occurred while migrating %migrate.', ['%migrate' => $this->migration->label()]),
         'finished' => '\Drupal\migrate_tools\MigrateBatchExecutable::batchFinishedImport',
       ];
 
@@ -138,13 +137,11 @@ class MigrateBatchExecutable extends MigrateExecutable {
         if (!empty($dependencies['required'])) {
           $required_migrations = $this->migrationPluginManager->createInstances($dependencies['required']);
           // For dependent migrations will need to be migrate all items.
-          $dependent_options = $options;
-          $dependent_options['limit'] = 0;
-          $operations += $this->batchOperations($required_migrations, $operation, [
+          $operations = array_merge($operations, $this->batchOperations($required_migrations, $operation, [
             'limit' => 0,
             'update' => $options['update'],
             'force' => $options['force'],
-          ]);
+          ]));
         }
       }
 
@@ -164,10 +161,10 @@ class MigrateBatchExecutable extends MigrateExecutable {
    *   The migration id.
    * @param array $options
    *   The batch executable options.
-   * @param array $context
+   * @param array|\DrushBatchContext $context
    *   The sandbox context.
    */
-  public static function batchProcessImport($migration_id, array $options, array &$context) {
+  public static function batchProcessImport($migration_id, array $options, &$context) {
     if (empty($context['sandbox'])) {
       $context['finished'] = 0;
       $context['sandbox'] = [];
@@ -181,6 +178,12 @@ class MigrateBatchExecutable extends MigrateExecutable {
     $message = new MigrateMessage();
     /** @var \Drupal\migrate\Plugin\MigrationInterface $migration */
     $migration = \Drupal::getContainer()->get('plugin.manager.migration')->createInstance($migration_id);
+
+    // Each batch run we need to reinitialize the counter for the migration.
+    if (!empty($options['limit']) && isset($context['results'][$migration->id()]['@numitems'])) {
+      $options['limit'] = $options['limit'] - $context['results'][$migration->id()]['@numitems'];
+    }
+
     $executable = new MigrateBatchExecutable($migration, $message, $options);
 
     if (empty($context['sandbox']['total'])) {
@@ -249,7 +252,7 @@ class MigrateBatchExecutable extends MigrateExecutable {
       foreach ($results as $migration_id => $result) {
         $singular_message = "Processed 1 item (@created created, @updated updated, @failures failed, @ignored ignored) - done with '@name'";
         $plural_message = "Processed @numitems items (@created created, @updated updated, @failures failed, @ignored ignored) - done with '@name'";
-        drupal_set_message(\Drupal::translation()->formatPlural($result['@numitems'],
+        \Drupal::messenger()->addStatus(\Drupal::translation()->formatPlural($result['@numitems'],
           $singular_message,
           $plural_message,
           $result));
@@ -281,13 +284,13 @@ class MigrateBatchExecutable extends MigrateExecutable {
   /**
    * Calculates how much a single batch iteration will handle.
    *
-   * @param array $context
+   * @param array|\DrushBatchContext $context
    *   The sandbox context.
    *
    * @return float
    *   The batch limit.
    */
-  public function calculateBatchLimit(array $context) {
+  public function calculateBatchLimit($context) {
     // TODO Maybe we need some other more sophisticated logic here?
     return ceil($context['sandbox']['total'] / 100);
   }

@@ -239,7 +239,8 @@ class OpignoCalendarEventsRestResource extends ResourceBase {
     }
 
     if ($before) {
-      $before_str = DrupalDateTime::createFromTimestamp(1551963791)->format('Y-m-d\TH:i:s');
+      $before_str = DrupalDateTime::createFromTimestamp($before)
+        ->format('Y-m-d\TH:i:s');
       $query->condition('o_c_e_d_d.date_daterange_value', $before_str, '<=');
       $query->orderBy('o_c_e_d_d.date_daterange_value', $order_by);
     }

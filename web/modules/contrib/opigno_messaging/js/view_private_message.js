@@ -5,12 +5,13 @@
       var $readAll = $('#read-all-messages', context);
       var $unreadCount = $('#site-header #header-right .user-messages a .unread');
       var baseUrl = drupalSettings.path.baseUrl ? drupalSettings.path.baseUrl : '/';
+      var language = (drupalSettings.path.currentLanguage !== undefined) ? '/' + drupalSettings.path.currentLanguage : '';
 
-      rowsClickListener($rows);
+      rowsClickListener($rows, language);
 
       $(document).ajaxSuccess(function() {
         var $rows = $('.view-private-message .views-row', context);
-        rowsClickListener($rows);
+        rowsClickListener($rows, language);
       });
 
       // Mark all messages as read.
@@ -34,7 +35,7 @@
     }
   };
 
-  function rowsClickListener($rows) {
+  function rowsClickListener($rows, language) {
     // Redirects to thread if user clicks on thread block.
     $rows.once('click').click(function(e) {
       e.preventDefault();
@@ -46,7 +47,7 @@
       }
 
       var id = $thread.attr('data-thread-id');
-      window.location = '/private_messages/' + id;
+      window.location = language + '/private-messages/' + id;
 
       return false;
     });

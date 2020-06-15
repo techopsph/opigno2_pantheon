@@ -101,7 +101,7 @@ class TcPdfv1 extends PrintEngineBase {
    * {@inheritdoc}
    */
   public function getBlob() {
-    return $this->tcpdf->Output('S');
+    return $this->tcpdf->Output('', 'S');
   }
 
   /**

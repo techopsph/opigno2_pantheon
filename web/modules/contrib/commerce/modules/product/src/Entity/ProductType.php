@@ -23,10 +23,14 @@ use Drupal\commerce\Entity\CommerceBundleEntityBase;
  *     "form" = {
  *       "add" = "Drupal\commerce_product\Form\ProductTypeForm",
  *       "edit" = "Drupal\commerce_product\Form\ProductTypeForm",
+ *       "duplicate" = "Drupal\commerce_product\Form\ProductTypeForm",
  *       "delete" = "Drupal\commerce\Form\CommerceBundleEntityDeleteFormBase"
  *     },
+ *     "local_task_provider" = {
+ *       "default" = "Drupal\entity\Menu\DefaultEntityLocalTaskProvider",
+ *     },
  *     "route_provider" = {
- *       "default" = "Drupal\Core\Entity\Routing\DefaultHtmlRouteProvider",
+ *       "default" = "Drupal\entity\Routing\DefaultHtmlRouteProvider",
  *     },
  *   },
  *   config_prefix = "commerce_product_type",
@@ -42,6 +46,7 @@ use Drupal\commerce\Entity\CommerceBundleEntityBase;
  *     "label",
  *     "description",
  *     "variationType",
+ *     "multipleVariations",
  *     "injectVariationFields",
  *     "traits",
  *     "locked",
@@ -49,6 +54,7 @@ use Drupal\commerce\Entity\CommerceBundleEntityBase;
  *   links = {
  *     "add-form" = "/admin/commerce/config/product-types/add",
  *     "edit-form" = "/admin/commerce/config/product-types/{commerce_product_type}/edit",
+ *     "duplicate-form" = "/admin/commerce/config/product-types/{commerce_product_type}/duplicate",
  *     "delete-form" = "/admin/commerce/config/product-types/{commerce_product_type}/delete",
  *     "collection" = "/admin/commerce/config/product-types"
  *   }
@@ -71,7 +77,14 @@ class ProductType extends CommerceBundleEntityBase implements ProductTypeInterfa
   protected $variationType;
 
   /**
-   * Indicates if variation fields should be injected.
+   * Whether products of this type can have multiple variations.
+   *
+   * @var bool
+   */
+  protected $multipleVariations = TRUE;
+
+  /**
+   * Whether variation fields should be injected.
    *
    * @var bool
    */
@@ -104,6 +117,21 @@ class ProductType extends CommerceBundleEntityBase implements ProductTypeInterfa
    */
   public function setVariationTypeId($variation_type_id) {
     $this->variationType = $variation_type_id;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function allowsMultipleVariations() {
+    return $this->multipleVariations;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setMultipleVariations($multiple_variations) {
+    $this->multipleVariations = $multiple_variations;
     return $this;
   }
 

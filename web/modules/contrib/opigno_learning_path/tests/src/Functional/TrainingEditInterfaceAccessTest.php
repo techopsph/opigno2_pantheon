@@ -83,8 +83,8 @@ class TrainingEditInterfaceAccessTest extends LearningPathBrowserTestBase {
     $this->drupalLogin($student_manager);
     $this->accountSwitcher->switchTo($student_manager);
     // Add user to a training.
-    $training->addMember($student_manager);
     $this->addGroupRoleForUser($training, $student_manager, ['learning_path-user_manager']);
+    $training->addMember($student_manager);
     $this->drupalGet('/group/' . $training->id() . '/members');
     $this->assertSession()->statusCodeEquals(200, 'Local student manager has access to user manage page in training where he is a member.');
     // User manager can't see some links in left sidebar menu.

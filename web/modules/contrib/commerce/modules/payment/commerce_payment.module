@@ -6,10 +6,12 @@
  */
 
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\HasPaymentInstructionsInterface;
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsStoredPaymentMethodsInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 
@@ -117,19 +119,6 @@ function template_preprocess_commerce_payment_method(array &$variables) {
 }
 
 /**
- * Implements hook_preprocess_commerce_order().
- */
-function commerce_payment_preprocess_commerce_order(&$variables) {
-  /** @var Drupal\commerce_order\Entity\OrderInterface $order */
-  $order = $variables['elements']['#commerce_order'];
-  if (!$order->get('payment_method')->isEmpty()) {
-    $variables['payment_method'] = [
-      '#markup' => $order->get('payment_method')->first()->entity->label(),
-    ];
-  }
-}
-
-/**
  * Implements hook_preprocess_commerce_checkout_completion_message().
  */
 function commerce_payment_preprocess_commerce_checkout_completion_message(&$variables) {
@@ -157,14 +146,63 @@ function commerce_payment_preprocess_commerce_checkout_completion_message(&$vari
 }
 
 /**
+ * Implements hook_preprocess_commerce_order().
+ */
+function commerce_payment_preprocess_commerce_order(&$variables) {
+  /** @var Drupal\commerce_order\Entity\OrderInterface $order */
+  $order = $variables['order_entity'];
+  /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface $payment_gateway */
+  $payment_gateway = $order->get('payment_gateway')->entity;
+  /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method */
+  $payment_method = $order->get('payment_method')->entity;
+
+  // The payment_method variable represents the selected payment option.
+  // Uses the payment gateway display label if payment methods are not
+  // supported, matching the logic in PaymentOptionsBuilder::buildOptions().
+  $variables['payment_method'] = NULL;
+  if ($payment_method) {
+    $variables['payment_method'] = [
+      '#markup' => $payment_method->label(),
+    ];
+  }
+  elseif ($payment_gateway) {
+    $payment_gateway_plugin = $payment_gateway->getPlugin();
+    if (!($payment_gateway_plugin instanceof SupportsStoredPaymentMethodsInterface)) {
+      $variables['payment_method'] = [
+        '#markup' => $payment_gateway_plugin->getDisplayLabel(),
+      ];
+    }
+  }
+}
+
+/**
  * Implements hook_preprocess_commerce_order_receipt().
  */
 function commerce_payment_preprocess_commerce_order_receipt(&$variables) {
-  /** @var Drupal\commerce_order\Entity\OrderInterface $order */
-  $order = $variables['order_entity'];
-  if (!$order->get('payment_method')->isEmpty()) {
-    $variables['payment_method'] = [
-      '#markup' => $order->get('payment_method')->first()->entity->label(),
-    ];
+  commerce_payment_preprocess_commerce_order($variables);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function commerce_payment_form_commerce_checkout_flow_edit_form_alter(array &$form, FormStateInterface $form_state) {
+  $form['#validate'][] = 'commerce_payment_validate_checkout_flow';
+}
+
+/**
+ * Validate callback for the checkout flow form.
+ *
+ * Prevents users from putting the PaymentInformation and PaymentProcess panes
+ * on the same step, which would result in an infinite loop.
+ */
+function commerce_payment_validate_checkout_flow(array $form, FormStateInterface $form_state) {
+  $pane_configuration = $form_state->getValue(['configuration', 'panes']);
+  if (!isset($pane_configuration['payment_information'], $pane_configuration['payment_process'])) {
+    return;
+  }
+  $payment_information_step = $pane_configuration['payment_information']['step_id'];
+  $payment_process_step = $pane_configuration['payment_process']['step_id'];
+  if ($payment_information_step !== '_disabled' && $payment_information_step === $payment_process_step) {
+    $form_state->setError($form, t('<em>Payment information</em> and <em>Payment process</em> panes need to be on separate steps.'));
   }
 }

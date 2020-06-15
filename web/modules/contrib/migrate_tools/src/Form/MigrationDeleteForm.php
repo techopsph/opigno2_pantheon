@@ -3,8 +3,8 @@
 namespace Drupal\migrate_tools\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
-use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 
 /**
  * Provides the delete form for our Migration entity.
@@ -60,7 +60,7 @@ class MigrationDeleteForm extends EntityConfirmFormBase {
     $this->entity->delete();
 
     // Set a message that the entity was deleted.
-    drupal_set_message(t('Migration %label was deleted.', [
+    $this->messenger()->addStatus($this->t('Migration %label was deleted.', [
       '%label' => $this->entity->label(),
     ]));
 

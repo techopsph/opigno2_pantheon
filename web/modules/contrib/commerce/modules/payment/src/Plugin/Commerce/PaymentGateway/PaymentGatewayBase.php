@@ -36,9 +36,19 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
   protected $entityTypeManager;
 
   /**
-   * The ID of the parent config entity.
+   * The parent config entity.
    *
    * Not available while the plugin is being configured.
+   *
+   * @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface
+   */
+  protected $parentEntity;
+
+  /**
+   * The ID of the parent config entity.
+   *
+   * @deprecated in commerce:8.x-2.16 and is removed from commerce:3.x.
+   *   Use $this->parentEntity->id() instead.
    *
    * @var string
    */
@@ -88,9 +98,10 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
 
     $this->entityTypeManager = $entity_type_manager;
     $this->time = $time;
-    if (array_key_exists('_entity_id', $configuration)) {
-      $this->entityId = $configuration['_entity_id'];
-      unset($configuration['_entity_id']);
+    if (array_key_exists('_entity', $configuration)) {
+      $this->parentEntity = $configuration['_entity'];
+      $this->entityId = $this->parentEntity->id();
+      unset($configuration['_entity']);
     }
     // Instantiate the types right away to ensure that their IDs are valid.
     $this->paymentType = $payment_type_manager->createInstance($this->pluginDefinition['payment_type']);
@@ -114,6 +125,31 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
       $container->get('plugin.manager.commerce_payment_method_type'),
       $container->get('datetime.time')
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __sleep() {
+    if (!empty($this->parentEntity)) {
+      $this->_parentEntityId = $this->parentEntity->id();
+      unset($this->parentEntity);
+    }
+
+    return parent::__sleep();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __wakeup() {
+    parent::__wakeup();
+
+    if (!empty($this->_parentEntityId)) {
+      $payment_gateway_storage = $this->entityTypeManager->getStorage('commerce_payment_gateway');
+      $this->parentEntity = $payment_gateway_storage->load($this->_parentEntityId);
+      unset($this->_parentEntityId);
+    }
   }
 
   /**
@@ -219,6 +255,13 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
   /**
    * {@inheritdoc}
    */
+  public function collectsBillingInformation() {
+    return $this->configuration['collect_billing_information'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function calculateDependencies() {
     return [];
   }
@@ -252,6 +295,7 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
       'display_label' => $this->pluginDefinition['display_label'],
       'mode' => $modes ? reset($modes) : '',
       'payment_method_types' => [],
+      'collect_billing_information' => TRUE,
     ];
   }
 
@@ -269,6 +313,7 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
       '#title' => $this->t('Display name'),
       '#description' => t('Shown to customers during checkout.'),
       '#default_value' => $this->configuration['display_label'],
+      '#required' => TRUE,
     ];
 
     if (count($modes) > 1) {
@@ -304,6 +349,16 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
       ];
     }
 
+    $form['collect_billing_information'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Collect billing information'),
+      '#description' => $this->t('Before disabling, make sure you are not legally required to collect billing information.'),
+      '#default_value' => $this->configuration['collect_billing_information'],
+      // Merchants can disable collecting billing information only if the
+      // payment gateway indicated that it doesn't require it.
+      '#access' => !$this->pluginDefinition['requires_billing_information'],
+    ];
+
     return $form;
   }
 
@@ -324,6 +379,7 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
       $this->configuration['display_label'] = $values['display_label'];
       $this->configuration['mode'] = $values['mode'];
       $this->configuration['payment_method_types'] = array_keys($values['payment_method_types']);
+      $this->configuration['collect_billing_information'] = $values['collect_billing_information'];
     }
   }
 
@@ -331,7 +387,7 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
    * {@inheritdoc}
    */
   public function buildPaymentOperations(PaymentInterface $payment) {
-    $payment_state = $payment->getState()->value;
+    $payment_state = $payment->getState()->getId();
     $operations = [];
     if ($this instanceof SupportsAuthorizationsInterface) {
       $operations['capture'] = [
@@ -362,17 +418,9 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
   }
 
   /**
-   * Converts the given amount to its minor units.
-   *
-   * For example, 9.99 USD becomes 999.
-   *
-   * @param \Drupal\commerce_price\Price $amount
-   *   The amount.
-   *
-   * @return int
-   *   The amount in minor units, as an integer.
+   * {@inheritdoc}
    */
-  protected function toMinorUnits(Price $amount) {
+  public function toMinorUnits(Price $amount) {
     $currency_storage = $this->entityTypeManager->getStorage('commerce_currency');
     /** @var \Drupal\commerce_price\Entity\CurrencyInterface $currency */
     $currency = $currency_storage->load($amount->getCurrencyCode());
@@ -401,15 +449,16 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
   protected function getRemoteCustomerId(UserInterface $account) {
     $remote_id = NULL;
     if ($account->isAuthenticated()) {
+      $provider = $this->parentEntity->id() . '|' . $this->getMode();
       /** @var \Drupal\commerce\Plugin\Field\FieldType\RemoteIdFieldItemListInterface $remote_ids */
       $remote_ids = $account->get('commerce_remote_id');
-      $remote_id = $remote_ids->getByProvider($this->entityId . '|' . $this->getMode());
+      $remote_id = $remote_ids->getByProvider($provider);
       // Gateways used to key customer IDs by module name, migrate that data.
       if (!$remote_id) {
         $remote_id = $remote_ids->getByProvider($this->pluginDefinition['provider']);
         if ($remote_id) {
           $remote_ids->setByProvider($this->pluginDefinition['provider'], NULL);
-          $remote_ids->setByProvider($this->entityId . '|' . $this->getMode(), $remote_id);
+          $remote_ids->setByProvider($provider, $remote_id);
           $account->save();
         }
       }
@@ -430,7 +479,7 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
     if ($account->isAuthenticated()) {
       /** @var \Drupal\commerce\Plugin\Field\FieldType\RemoteIdFieldItemListInterface $remote_ids */
       $remote_ids = $account->get('commerce_remote_id');
-      $remote_ids->setByProvider($this->entityId . '|' . $this->getMode(), $remote_id);
+      $remote_ids->setByProvider($this->parentEntity->id() . '|' . $this->getMode(), $remote_id);
     }
   }
 
@@ -446,7 +495,7 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
    *   Thrown if the payment state does not match the allowed states.
    */
   protected function assertPaymentState(PaymentInterface $payment, array $states) {
-    $state = $payment->getState()->value;
+    $state = $payment->getState()->getId();
     if (!in_array($state, $states)) {
       throw new \InvalidArgumentException(sprintf('The provided payment is in an invalid state ("%s").', $state));
     }
@@ -478,7 +527,7 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
    * @param \Drupal\commerce_payment\Entity\PaymentInterface $payment
    *   The payment.
    * @param \Drupal\commerce_price\Price $refund_amount
-   *   The allowed states.
+   *   The refund amount.
    *
    * @throws \Drupal\commerce_payment\Exception\InvalidRequestException
    *   Thrown when the refund amount is larger than the payment balance.

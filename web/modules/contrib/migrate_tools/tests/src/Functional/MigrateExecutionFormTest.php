@@ -2,7 +2,9 @@
 
 namespace Drupal\Tests\migrate_tools\Functional;
 
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\taxonomy\VocabularyInterface;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -11,6 +13,7 @@ use Drupal\Tests\BrowserTestBase;
  * @group migrate_tools
  */
 class MigrateExecutionFormTest extends BrowserTestBase {
+  use StringTranslationTrait;
 
   /**
    * {@inheritdoc}
@@ -31,7 +34,7 @@ class MigrateExecutionFormTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $profile = 'testing';
+  protected $defaultTheme = 'stark';
 
   /**
    * The vocabulary.
@@ -50,7 +53,7 @@ class MigrateExecutionFormTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->vocabulary = $this->createVocabulary(['vid' => 'fruit', 'name' => 'Fruit']);
     $this->vocabularyQuery = $this->container->get('entity_type.manager')
@@ -65,7 +68,7 @@ class MigrateExecutionFormTest extends BrowserTestBase {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    */
-  public function testExecution() {
+  public function testExecution(): void {
     $group = 'default';
     $migration = 'fruit_terms';
     $urlPath = "/admin/structure/migrate/manage/{$group}/migrations/{$migration}/execute";
@@ -77,21 +80,21 @@ class MigrateExecutionFormTest extends BrowserTestBase {
     $edit = [
       'operation' => 'import',
     ];
-    $this->drupalPostForm($urlPath, $edit, t('Execute'));
+    $this->drupalPostForm($urlPath, $edit, $this->t('Execute'));
     $real_count = $this->vocabularyQuery->count()->execute();
     $expected_count = 3;
     $this->assertEquals($expected_count, $real_count);
     $edit = [
       'operation' => 'rollback',
     ];
-    $this->drupalPostForm($urlPath, $edit, t('Execute'));
+    $this->drupalPostForm($urlPath, $edit, $this->t('Execute'));
     $real_count = $this->vocabularyQuery->count()->execute();
     $expected_count = 0;
     $this->assertEquals($expected_count, $real_count);
     $edit = [
       'operation' => 'import',
     ];
-    $this->drupalPostForm($urlPath, $edit, t('Execute'));
+    $this->drupalPostForm($urlPath, $edit, $this->t('Execute'));
     $real_count = $this->vocabularyQuery->count()->execute();
     $expected_count = 3;
     $this->assertEquals($expected_count, $real_count);
@@ -107,7 +110,7 @@ class MigrateExecutionFormTest extends BrowserTestBase {
    * @return \Drupal\taxonomy\VocabularyInterface
    *   Created vocabulary.
    */
-  protected function createVocabulary(array $values = []) {
+  protected function createVocabulary(array $values = []): VocabularyInterface {
     // Find a non-existent random vocabulary name.
     if (!isset($values['vid'])) {
       do {

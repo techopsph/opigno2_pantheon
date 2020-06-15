@@ -92,6 +92,25 @@ class OpignoGroupManagerController extends ControllerBase {
       '#group_id' => $group->id(),
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
       '#user_has_info_card' => $tempstore->get('hide_info_card') ? FALSE : TRUE,
+      '#text_add_a_link' => $this->t('add a link')->render(),
+      '#text_add_your_first_item' => $this->t('Add your first item')->render(),
+      '#text_guided_navigation' => $this->t('Guided navigation')->render(),
+      '#text_free_navigation' => $this->t('Free navigation')->render(),
+      '#text_if_entity_dropped_under_children' => $this->t('Cannot drop under or at the same level as children, move children before')->render(),
+      '#text_cannot_drop_over_or_at_the_same_level' => $this->t('Cannot drop over or at the same level as parent')->render(),
+      '#text_click_now_on_the_two_steps_of_your_training' => $this->t('Click now on the two steps of your training to be linked in order to create the link')->render(),
+      '#text_status_message' => $this->t('Status message')->render(),
+      '#text_conditions' => $this->t('Conditions')->render(),
+      '#text_score' => $this->t('Score:')->render(),
+      '#text_edit' => $this->t('edit')->render(),
+      '#text_delete' => $this->t('delete')->render(),
+      '#text_last_step' => $this->t('Last step:')->render(),
+      '#text_add' => $this->t('add')->render(),
+      '#text_validate' => $this->t('Validate')->render(),
+      '#text_cancel' => $this->t('cancel')->render(),
+      '#text_delete_link' => $this->t('delete link')->render(),
+      '#text_this_action_create_an_orphan' => $this->t('This action create an orphan, confirm:')->render(),
+      '#text_confirm' => $this->t('confirm')->render(),
     ];
   }
 
@@ -176,7 +195,14 @@ class OpignoGroupManagerController extends ControllerBase {
     $entity = $form_state->getBuildInfo()['callback_object']->getEntity();
     // Load image.
     if ($entity->hasField('field_course_media_image')) {
-      $media = $entity->get('field_course_media_image')->entity;
+      $image_field = 'field_course_media_image';
+    }
+    elseif ($entity->hasField('module_media_image')) {
+      $image_field = 'module_media_image';
+    }
+
+    if ($entity->hasField($image_field)) {
+      $media = $entity->get($image_field)->entity;
       $file = isset($media)
         ? File::load($media->get('field_media_image')->target_id)
         : NULL;
@@ -188,7 +214,8 @@ class OpignoGroupManagerController extends ControllerBase {
     $item['entityId'] = $entity->id();
     $item['entityBundle'] = \Drupal::routeMatch()->getParameter('type');
     $item['title'] = $entity->label();
-    $item['imageUrl'] = (isset($file) && $file) ? file_create_url($file->getFileUri()) : '';
+    $item['imageUrl'] = (isset($file) && $file) ? file_create_url($file->getFileUri()) :
+      self::getDefaultBundleImageUrl($entity->bundle());
     $item['in_skills_system'] = FALSE;
     $item['isMandatory'] = FALSE;
 
@@ -358,6 +385,38 @@ class OpignoGroupManagerController extends ControllerBase {
         $group_content = $course->getContent('opigno_module_group');
         $manager_array['modules_count'] = count($group_content);
       }
+
+      // Add translatable values into Angular.
+      switch ($lp_content->getGroupContentTypeId()) {
+        case 'ContentTypeCourse':
+          $manager_array['translate']['content_type_title'] = $this->t('Course')->render();
+          break;
+
+        case 'ContentTypeModule':
+          $manager_array['translate']['content_type_title'] = $this->t('Opigno module')->render();
+          break;
+
+        case 'ContentTypeMeeting':
+          $manager_array['translate']['content_type_title'] = $this->t('Live meeting')->render();
+          break;
+
+        case 'ContentTypeILT':
+          $manager_array['translate']['content_type_title'] = $this->t('Instructor-Led Training')->render();
+          break;
+      }
+
+      $manager_array['translate']['text_close'] = $this->t('close')->render();
+      $manager_array['translate']['text_add_a_new_item'] = $this->t('Click here to add a new item')->render();
+      $manager_array['translate']['text_do_not_show_this_message_again'] = $this->t('Do not show this message again')->render();
+      $manager_array['translate']['text_modules'] = $this->t('modules')->render();
+      $manager_array['translate']['text_module'] = $this->t('module')->render();
+      $manager_array['translate']['text_add'] = $this->t('add')->render();
+      $manager_array['translate']['text_score'] = $this->t('score')->render();
+      $manager_array['translate']['text_update'] = $this->t('update')->render();
+      $manager_array['translate']['text_delete'] = $this->t('delete')->render();
+      $manager_array['translate']['text_mandatory'] = $this->t('Mandatory')->render();
+      $manager_array['translate']['text_minimum_score_to_validate_step'] = $this->t('Minimum score to validate step')->render();
+
       $entities[] = $manager_array;
     }
 
@@ -885,11 +944,13 @@ class OpignoGroupManagerController extends ControllerBase {
       if ($content instanceof OpignoModule) {
         $duplicate->addContent($content, 'opigno_module_group');
 
-        $managed_content = reset(OpignoGroupManagedContent::loadByProperties([
+        $managed_content_array = OpignoGroupManagedContent::loadByProperties([
           'group_content_type_id' => 'ContentTypeModule',
           'entity_id' => $content->id(),
           'group_id' => $group->id(),
-        ]));
+        ]);
+
+        $managed_content = reset($managed_content_array);
 
         $parent_links = $managed_content->getParentsLinks();
 
@@ -909,11 +970,13 @@ class OpignoGroupManagerController extends ControllerBase {
           $parent_old_content = OpignoGroupManagedContent::load($link->getParentContentId());
           $parent_module_id = $parent_old_content->getEntityId();
 
-          $parent_new_content = reset(OpignoGroupManagedContent::loadByProperties([
+          $parent_new_content_array = OpignoGroupManagedContent::loadByProperties([
             'group_content_type_id' => 'ContentTypeModule',
             'entity_id' => $parent_module_id,
             'group_id' => $duplicate_id,
-          ]));
+          ]);
+
+          $parent_new_content = reset($parent_new_content_array);
 
           if ($parent_new_content) {
             OpignoGroupManagedLink::createWithValues(
@@ -980,11 +1043,13 @@ class OpignoGroupManagerController extends ControllerBase {
           $data_structure[$entity->id()][$field_key] = $field->getValue();
         }
 
-        $managed_content = reset(OpignoGroupManagedContent::loadByProperties([
+        $managed_content_array = OpignoGroupManagedContent::loadByProperties([
           'group_content_type_id' => 'ContentTypeModule',
           'entity_id' => $entity->id(),
           'group_id' => $group->id(),
-        ]));
+        ]);
+
+        $managed_content = reset($managed_content_array);
 
         $parent_links = $managed_content->getParentsLinks();
 
@@ -992,11 +1057,13 @@ class OpignoGroupManagerController extends ControllerBase {
           $parent_old_content = OpignoGroupManagedContent::load($link->getParentContentId());
           $parent_module_id = $parent_old_content->getEntityId();
 
-          $parent_new_content = reset(OpignoGroupManagedContent::loadByProperties([
+          $parent_new_content_array =  OpignoGroupManagedContent::loadByProperties([
             'group_content_type_id' => 'ContentTypeModule',
             'entity_id' => $parent_module_id,
             'group_id' => $group->id(),
-          ]));
+          ]);
+
+          $parent_new_content = reset($parent_new_content_array);
 
           if ($parent_new_content) {
             $link = [
@@ -1041,34 +1108,38 @@ class OpignoGroupManagerController extends ControllerBase {
             case 'opigno_scorm':
               if (isset($opigno_activity->get('opigno_scorm_package')->target_id)) {
                 $file = File::load($opigno_activity->get('opigno_scorm_package')->target_id);
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $scorm_filename = $file->id() . '-' . $file->getFilename();
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $scorm_filename = $file->id() . '-' . $file->getFilename();
 
-                $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                ];
+                  $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                  ];
 
-                $zip->addFile($file_path, $scorm_filename);
+                  $zip->addFile($file_path, $scorm_filename);
+                }
               }
               break;
 
             case 'opigno_tincan':
               if (isset($opigno_activity->get('opigno_tincan_package')->target_id)) {
                 $file = File::load($opigno_activity->get('opigno_tincan_package')->target_id);
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $tincan_filename = $file->id() . '-' . $file->getFilename();
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $tincan_filename = $file->id() . '-' . $file->getFilename();
 
-                $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                ];
+                  $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                  ];
 
-                $zip->addFile($file_path, $tincan_filename);
+                  $zip->addFile($file_path, $tincan_filename);
+                }
               }
               break;
 
@@ -1078,35 +1149,39 @@ class OpignoGroupManagerController extends ControllerBase {
                 $file_id = $media->get('field_media_file')->getValue()[0]['target_id'];
                 $file = File::load($file_id);
 
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $pdf_filename = $file->id() . '-' . $file->getFilename();
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $pdf_filename = $file->id() . '-' . $file->getFilename();
 
-                $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                  'bundle' => $media->bundle(),
-                ];
+                  $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                    'bundle' => $media->bundle(),
+                  ];
 
-                $zip->addFile($file_path, $pdf_filename);
+                  $zip->addFile($file_path, $pdf_filename);
+                }
               }
               break;
 
             case 'opigno_video':
               if (isset($opigno_activity->get('field_video')->target_id)) {
                 $file = File::load($opigno_activity->get('field_video')->target_id);
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $video_filename = $file->id() . '-' . $file->getFilename();
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $video_filename = $file->id() . '-' . $file->getFilename();
 
-                $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                ];
+                  $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                  ];
 
-                $zip->addFile($file_path, $video_filename);
+                  $zip->addFile($file_path, $video_filename);
+                }
               }
               break;
           }
@@ -1221,20 +1296,24 @@ class OpignoGroupManagerController extends ControllerBase {
           $data_structure[$entity->id()][$field_key] = $field->getValue();
         }
 
-        $managed_content = reset(OpignoGroupManagedContent::loadByProperties([
+        $managed_content_array = OpignoGroupManagedContent::loadByProperties([
           'group_content_type_id' => $group_content_type_id,
           'entity_id' => $entity->id(),
           'group_id' => $group->id(),
-        ]));
+        ]);
+
+        $managed_content = reset($managed_content_array);
 
         $link_group_id = $group->id();
 
         if (!$managed_content && isset($modules_in_courses[$entity->id()])) {
-          $managed_content = reset(OpignoGroupManagedContent::loadByProperties([
+          $managed_content_array = OpignoGroupManagedContent::loadByProperties([
             'group_content_type_id' => $group_content_type_id,
             'entity_id' => $entity->id(),
             'group_id' => $modules_in_courses[$entity->id()],
-          ]));
+          ]);
+
+          $managed_content = reset($managed_content_array);
 
           $data_structure[$entity->id()]['course_rel'] = $modules_in_courses[$entity->id()];
           $link_group_id = $modules_in_courses[$entity->id()];
@@ -1247,11 +1326,13 @@ class OpignoGroupManagerController extends ControllerBase {
             $parent_old_content = OpignoGroupManagedContent::load($link->getParentContentId());
             $parent_module_id = $parent_old_content->getEntityId();
 
-            $parent_new_content = reset(OpignoGroupManagedContent::loadByProperties([
+            $parent_new_content_array = OpignoGroupManagedContent::loadByProperties([
               'group_content_type_id' => 'ContentTypeModule',
               'entity_id' => $parent_module_id,
               'group_id' => $link_group_id,
-            ]));
+            ]);
+
+            $parent_new_content = reset($parent_new_content_array);
 
             if ($parent_new_content) {
               $link = [
@@ -1305,34 +1386,38 @@ class OpignoGroupManagerController extends ControllerBase {
             case 'opigno_scorm':
               if (isset($opigno_activity->get('opigno_scorm_package')->target_id)) {
                 $file = File::load($opigno_activity->get('opigno_scorm_package')->target_id);
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $scorm_filename = $file->id() . '-' . $file->getFilename();
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $scorm_filename = $file->id() . '-' . $file->getFilename();
 
-                $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                ];
+                  $data_structure[$opigno_activity->id()]['files'][$scorm_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                  ];
 
-                $zip->addFile($file_path, $scorm_filename);
+                  $zip->addFile($file_path, $scorm_filename);
+                }
               }
               break;
 
             case 'opigno_tincan':
               if (isset($opigno_activity->get('opigno_tincan_package')->target_id)) {
                 $file = File::load($opigno_activity->get('opigno_tincan_package')->target_id);
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $tincan_filename = $file->id() . '-' . $file->getFilename();
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $tincan_filename = $file->id() . '-' . $file->getFilename();
 
-                $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                ];
+                  $data_structure[$opigno_activity->id()]['files'][$tincan_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                  ];
 
-                $zip->addFile($file_path, $tincan_filename);
+                  $zip->addFile($file_path, $tincan_filename);
+                }
               }
               break;
 
@@ -1341,36 +1426,39 @@ class OpignoGroupManagerController extends ControllerBase {
                 $media = Media::load($opigno_activity->get('opigno_slide_pdf')->target_id);
                 $file_id = $media->get('field_media_file')->getValue()[0]['target_id'];
                 $file = File::load($file_id);
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $pdf_filename = $file->id() . '-' . $file->getFilename();
 
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $pdf_filename = $file->id() . '-' . $file->getFilename();
+                  $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                    'bundle' => $media->bundle(),
+                  ];
 
-                $data_structure[$opigno_activity->id()]['files'][$pdf_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                  'bundle' => $media->bundle(),
-                ];
-
-                $zip->addFile($file_path, $pdf_filename);
+                  $zip->addFile($file_path, $pdf_filename);
+                }
               }
               break;
 
             case 'opigno_video':
               if (isset($opigno_activity->get('field_video')->target_id)) {
                 $file = File::load($opigno_activity->get('field_video')->target_id);
-                $file_uri = $file->getFileUri();
-                $file_path = \Drupal::service('file_system')->realpath($file_uri);
-                $video_filename = $file->id() . '-' . $file->getFilename();
+                if ($file) {
+                  $file_uri = $file->getFileUri();
+                  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+                  $video_filename = $file->id() . '-' . $file->getFilename();
 
-                $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
-                  'file_name' => $file->getFilename(),
-                  'filemime' => $file->getMimeType(),
-                  'status' => $file->get('status')->getValue()[0]['value'],
-                ];
+                  $data_structure[$opigno_activity->id()]['files'][$video_filename] = [
+                    'file_name' => $file->getFilename(),
+                    'filemime' => $file->getMimeType(),
+                    'status' => $file->get('status')->getValue()[0]['value'],
+                  ];
 
-                $zip->addFile($file_path, $video_filename);
+                  $zip->addFile($file_path, $video_filename);
+                }
               }
               break;
           }
@@ -1413,18 +1501,21 @@ class OpignoGroupManagerController extends ControllerBase {
 
         $file_id = $media->get('tft_file')->getValue()[0]['target_id'];
         $file = File::load($file_id);
-        $file_uri = $file->getFileUri();
-        $filename = $file->id() . '-' . $file->getFilename();
-        $file_path = \Drupal::service('file_system')->realpath($file_uri);
 
-        $zip->addFile($file_path, 'library/' . $filename);
+        if ($file) {
+          $file_uri = $file->getFileUri();
+          $filename = $file->id() . '-' . $file->getFilename();
+          $file_path = \Drupal::service('file_system')->realpath($file_uri);
 
-        $filename = $file->id() . '_file_' . $file->label() . '.' . $format;
-        $files_to_export['files'][$item['id']]['file'] = $filename;
-        $filename_path = "{$folder_library}/{$filename}";
-        $content = $serializer->serialize($file, $format);
-        $context['results']['file'] = \Drupal::service('file_system')->saveData($content, $filename_path, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
-        $zip->addFile($filename_path, 'library/' . $filename);
+          $zip->addFile($file_path, 'library/' . $filename);
+
+          $filename = $file->id() . '_file_' . $file->label() . '.' . $format;
+          $files_to_export['files'][$item['id']]['file'] = $filename;
+          $filename_path = "{$folder_library}/{$filename}";
+          $content = $serializer->serialize($file, $format);
+          $context['results']['file'] = \Drupal::service('file_system')->saveData($content, $filename_path, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
+          $zip->addFile($filename_path, 'library/' . $filename);
+        }
       }
       elseif($item['type'] == 'term') {
         $term = Term::load($item['id']);
@@ -1492,20 +1583,22 @@ class OpignoGroupManagerController extends ControllerBase {
     $duplicate->set('field_learning_path_folder', NULL);
     $duplicate->save();
 
-    // Create workspace.
-    $moxtra_api = _opigno_moxtra_get_moxtra_api();
-    $response = $moxtra_api->createWorkspace($user_id, $new_name);
-    $binder_id = $response['data']['id'];
+    if ($this->moduleHandler()->moduleExists('opigno_moxtra')) {
+      // Create workspace.
+      $moxtra_api = _opigno_moxtra_get_moxtra_api();
+      $response = $moxtra_api->createWorkspace($user_id, $new_name);
+      $binder_id = $response['data']['id'];
 
-    $workspace = Workspace::create();
-    $workspace->setName($new_name);
-    $workspace->setBinderId($binder_id);
-    $workspace->save();
+      $workspace = Workspace::create();
+      $workspace->setName($new_name);
+      $workspace->setBinderId($binder_id);
+      $workspace->save();
 
-    // Attach workspace to the training.
-    $duplicate->set('field_workspace', [
-      'target_id' => $workspace->id(),
-    ]);
+      // Attach workspace to the training.
+      $duplicate->set('field_workspace', [
+        'target_id' => $workspace->id(),
+      ]);
+    }
 
     // Duplicate documents library.
     $tid = $group->get('field_learning_path_folder')->getString();
@@ -1523,27 +1616,29 @@ class OpignoGroupManagerController extends ControllerBase {
         $file_id = $media->get('tft_file')->getValue()[0]['target_id'];
         $old_tid = $media->get('tft_folder')->getValue()[0]['target_id'];
         $file = File::load($file_id);
-        $file_copy = $file->createDuplicate();
-        $new_name = $file->id(). '-' . $file->label();
-        $new_name = substr($new_name, 0, 200);
-        $new_uri = str_replace($file->label(), $new_name, $file->getFileUri());
-        $file_copy->setFilename($new_name);
-        $file_copy->setFileUri($new_uri);
-        $file_copy->save();
-        $file_copy_id = $file_copy->id();
+        if ($file) {
+          $file_copy = $file->createDuplicate();
+          $new_name = $file->id(). '-' . $file->label();
+          $new_name = substr($new_name, 0, 200);
+          $new_uri = str_replace($file->label(), $new_name, $file->getFileUri());
+          $file_copy->setFilename($new_name);
+          $file_copy->setFileUri($new_uri);
+          $file_copy->save();
+          $file_copy_id = $file_copy->id();
 
-        if (isset($tids_relashionships[$old_tid])) {
-          $new_tid = $tids_relashionships[$old_tid];
+          if (isset($tids_relashionships[$old_tid])) {
+            $new_tid = $tids_relashionships[$old_tid];
+          }
+          else {
+            $new_tid = $main_tid;
+          }
+
+          $media_copy->set('tft_file', $file_copy_id);
+          $media_copy->set('tft_folder', $new_tid);
+
+          copy($file->getFileUri(), $new_uri);
+          $media_copy->save();
         }
-        else {
-          $new_tid = $main_tid;
-        }
-
-        $media_copy->set('tft_file', $file_copy_id);
-        $media_copy->set('tft_folder', $new_tid);
-
-        copy($file->getFileUri(), $new_uri);
-        $media_copy->save();
       }
       elseif($item['type'] == 'term') {
         $old_term = Term::load($item['id']);
@@ -1586,11 +1681,13 @@ class OpignoGroupManagerController extends ControllerBase {
           $group_content_type_id = 'ContentTypeCourse';
         }
 
-        $managed_content = reset(OpignoGroupManagedContent::loadByProperties([
+        $managed_content_array = OpignoGroupManagedContent::loadByProperties([
           'group_content_type_id' => $group_content_type_id,
           'entity_id' => $content->id(),
           'group_id' => $group->id(),
-        ]));
+        ]);
+
+        $managed_content = reset($managed_content_array);
 
         $parent_links = $managed_content->getParentsLinks();
 
@@ -1610,11 +1707,13 @@ class OpignoGroupManagerController extends ControllerBase {
           $parent_old_content = OpignoGroupManagedContent::load($link->getParentContentId());
           $parent_module_id = $parent_old_content->getEntityId();
 
-          $parent_new_content = reset(OpignoGroupManagedContent::loadByProperties([
+          $parent_new_content_array = OpignoGroupManagedContent::loadByProperties([
             'group_content_type_id' => 'ContentTypeModule',
             'entity_id' => $parent_module_id,
             'group_id' => $duplicate_id,
-          ]));
+          ]);
+
+          $parent_new_content = reset($parent_new_content_array);
 
           if ($parent_new_content) {
             OpignoGroupManagedLink::createWithValues(
@@ -1656,4 +1755,53 @@ class OpignoGroupManagerController extends ControllerBase {
 
     return $all_content;
   }
+
+  /**
+   * Check if step is required meeting.
+   *
+   * @param array $step
+   *  Step options.
+   *
+   * @param \Drupal\group\Entity\Group $group
+   *   Group object.
+   *
+   * @return bool
+   */
+  public static function mustBeVisitedMeeting($step, Group $group) {
+    if (self::getGuidedNavigation($group) &&
+      $step['typology'] == 'Meeting' &&
+      $step['mandatory'] == 1 &&
+      empty($step['presence'])
+    ) {
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Returns default image url.
+   *
+   * @param string $bundle
+   *
+   * @return string
+   */
+  public static function getDefaultBundleImageUrl($bundle) {
+    switch ($bundle) {
+      case 'opigno_course':
+        $module = 'opigno_course';
+        $image = 'img_course.svg';
+        break;
+
+      default:
+        $module = 'opigno_module';
+        $image = 'img_module.svg';
+        break;
+    }
+
+    $request = \Drupal::request();
+    $path = \Drupal::service('module_handler')->getModule($module)->getPath();
+    return $request->getBasePath() . '/' . $path . '/img/' . $image;
+  }
+
 }

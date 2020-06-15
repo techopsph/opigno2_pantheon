@@ -14,6 +14,7 @@ use Drupal\Core\Link;
 use Drupal\file\Entity\File;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
+use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Drupal\opigno_statistics\StatisticsPageTrait;
@@ -357,18 +358,30 @@ class UserController extends ControllerBase {
     $course,
     OpignoModule $module
   ) {
+    // Get user training expiration flag.
+    $expired = LPStatus::isCertificateExpired($training, $user->id());
+
+    // Get training latest certification timestamp.
+    $latest_cert_date = LPStatus::getTrainingStartDate($training, $user->id());
+
     $moduleHandler = \Drupal::service('module_handler');
     $parent = isset($course) ? $course : $training;
-    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module);
-    $completed_on = $step['completed on'];
-    $completed_on = $completed_on > 0
-      ? $this->date_formatter->format($completed_on, 'custom', 'F d, Y')
-      : '';
+    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module, $latest_cert_date);
+
+    if ($expired) {
+      $completed_on = '';
+    }
+    else {
+      $completed_on = $step['completed on'];
+      $completed_on = $completed_on > 0
+        ? $this->date_formatter->format($completed_on, 'custom', 'F d, Y')
+        : '';
+    }
 
     /** @var \Drupal\opigno_module\Entity\OpignoModule $module */
     $module = OpignoModule::load($step['id']);
     /** @var \Drupal\opigno_module\Entity\UserModuleStatus[] $attempts */
-    $attempts = $module->getModuleAttempts($user);
+    $attempts = !$expired ? $module->getModuleAttempts($user, NULL, $latest_cert_date) : [];
 
     if ($moduleHandler->moduleExists('opigno_skills_system') && $module->getSkillsActive()
         && $module->getModuleSkillsGlobal() && !empty($attempts)) {
@@ -471,12 +484,14 @@ class UserController extends ControllerBase {
 
     $training_id = $training->id();
     $module_id = $module->id();
+    $user_id = $user->id();
+
     if (isset($course)) {
       $course_id = $course->id();
-      $id = "module_panel_${training_id}_${course_id}_${module_id}";
+      $id = "module_panel_${user_id}_${training_id}_${course_id}_${module_id}";
     }
     else {
-      $id = "module_panel_${training_id}_${module_id}";
+      $id = "module_panel_${user_id}_${training_id}_${module_id}";
     }
 
     if (isset($attempt)) {
@@ -657,6 +672,7 @@ class UserController extends ControllerBase {
           $training_gid = $training->id();
           $course_gid = $course->id();
           $module_id = $id;
+          $user_id = $user->id();
           $details = Link::createFromRoute('', 'opigno_statistics.user.course_module_details', [
             'user' => $user->id(),
             'training' => $training->id(),
@@ -665,7 +681,7 @@ class UserController extends ControllerBase {
           ])->toRenderable();
           $details['#attributes']['class'][] = 'details';
           $details['#attributes']['class'][] = 'course-module-details-open';
-          $details['#attributes']['data-user'] = $user->id();
+          $details['#attributes']['data-user'] = $user_id;
           $details['#attributes']['data-training'] = $training_gid;
           $details['#attributes']['data-course'] = $course_gid;
           $details['#attributes']['data-id'] = $module_id;
@@ -681,7 +697,7 @@ class UserController extends ControllerBase {
                   '#type' => 'html_tag',
                   '#tag' => 'span',
                   '#attributes' => [
-                    'id' => "module_panel_${training_gid}_${course_gid}_${module_id}",
+                    'id' => "module_panel_${user_id}_${training_gid}_${course_gid}_${module_id}",
                   ],
                 ],
               ],
@@ -737,45 +753,61 @@ class UserController extends ControllerBase {
     $gid = $group->id();
     $uid = $user->id();
 
+    // Get user training expiration flag.
+    $expired = LPStatus::isCertificateExpired($group, $uid);
+    // Get training latest certification timestamp.
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $uid);
+
     // Load group steps.
     // Get training guided navigation option.
     $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
     if ($freeNavigation) {
       // Get all steps for LP.
-      $steps = opigno_learning_path_get_all_steps($gid, $uid);
+      $steps = opigno_learning_path_get_all_steps($gid, $uid, NULL, $latest_cert_date);
     }
     else {
       // Get guided steps.
-      $steps = opigno_learning_path_get_steps($gid, $uid);
+      $steps = opigno_learning_path_get_steps($gid, $uid, NULL, $latest_cert_date);
     }
     $steps_count = count($steps);
 
-    $query = $this->database
-      ->select('opigno_learning_path_achievements', 'a')
-      ->fields('a', ['score', 'progress', 'time', 'completed'])
-      ->condition('a.gid', $gid)
-      ->condition('a.uid', $uid);
-    $training_data = $query->execute()->fetchAssoc();
+    if ($expired) {
+      $passed_modules_count = 0;
+      $training_data = [
+        'progress' => 0,
+        'score' => 0,
+        'time' => 0,
+      ];
+      $modules = [];
+    }
+    else {
+      $query = $this->database
+        ->select('opigno_learning_path_achievements', 'a')
+        ->fields('a', ['score', 'progress', 'time', 'completed'])
+        ->condition('a.gid', $gid)
+        ->condition('a.uid', $uid);
+      $training_data = $query->execute()->fetchAssoc();
 
-    $query = $this->database
-      ->select('opigno_learning_path_step_achievements', 'sa')
-      ->fields('sa', [
-        'entity_id',
-        'typology',
-        'name',
-        'score',
-        'status',
-        'time',
-        'completed',
-      ])
-      ->condition('sa.gid', $gid)
-      ->condition('sa.uid', $uid)
-      ->condition('sa.parent_id', 0);
-    $modules = $query->execute()->fetchAll();
-    $passed_modules = array_filter($modules, function ($module) {
-      return $module->status === 'passed';
-    });
-    $passed_modules_count = count($passed_modules);
+      $query = $this->database
+        ->select('opigno_learning_path_step_achievements', 'sa')
+        ->fields('sa', [
+          'entity_id',
+          'typology',
+          'name',
+          'score',
+          'status',
+          'time',
+          'completed',
+        ])
+        ->condition('sa.gid', $gid)
+        ->condition('sa.uid', $uid)
+        ->condition('sa.parent_id', 0);
+      $modules = $query->execute()->fetchAll();
+      $passed_modules = array_filter($modules, function ($module) {
+        return $module->status === 'passed';
+      });
+      $passed_modules_count = count($passed_modules);
+    }
 
     $content = [
       '#type' => 'container',
@@ -956,7 +988,7 @@ class UserController extends ControllerBase {
                   '#type' => 'html_tag',
                   '#tag' => 'span',
                   '#attributes' => [
-                    'id' => "module_panel_${gid}_${module_id}",
+                    'id' => "module_panel_${uid}_${gid}_${module_id}",
                   ],
                 ],
               ],
@@ -974,6 +1006,7 @@ class UserController extends ControllerBase {
         'class' => $is_course ? 'course' : 'module',
         'data-training' => $gid,
         'data-id' => $id,
+        'data-user' => $uid,
         'data' => [
           $name,
           $score,
@@ -1044,7 +1077,8 @@ class UserController extends ControllerBase {
     $training_id = $training->id();
     $course_id = $course->id();
     $module_id = $module->id();
-    $selector = "#module_panel_${training_id}_${course_id}_${module_id}";
+    $user_id = $user->id();
+    $selector = "#module_panel_${user_id}_${training_id}_${course_id}_${module_id}";
     $content = $this->buildModuleDetails($user, $training, $course, $module);
     $content['#attributes']['data-ajax-loaded'] = TRUE;
     $response = new AjaxResponse();
@@ -1075,7 +1109,8 @@ class UserController extends ControllerBase {
   ) {
     $training_id = $training->id();
     $module_id = $module->id();
-    $selector = "#module_panel_${training_id}_${module_id}";
+    $user_id = $user->id();
+    $selector = "#module_panel_${user_id}_${training_id}_${module_id}";
     $content = $this->buildModuleDetails($user, $training, NULL, $module);
     $content['#attributes']['data-ajax-loaded'] = TRUE;
     $response = new AjaxResponse();
@@ -1107,7 +1142,8 @@ class UserController extends ControllerBase {
   ) {
     $training_gid = $training->id();
     $course_gid = $course->id();
-    $selector = ".training-modules-list tr.course[data-training=\"$training_gid\"][data-id=\"$course_gid\"]";
+    $user_id = $user->id();
+    $selector = ".training-modules-list tr.course[data-user=\"$user_id\"][data-training=\"$training_gid\"][data-id=\"$course_gid\"]";
     $content = [
       [
         '#type' => 'html_tag',
@@ -1469,25 +1505,31 @@ class UserController extends ControllerBase {
       ];
     }, $rows);
 
-    return [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['skills-list'],
-      ],
-      [
-        '#type' => 'table',
+    $rows = array_filter($rows);
+
+    if ($rows) {
+      return [
+        '#type' => 'container',
         '#attributes' => [
-          'class' => ['statistics-table', 'skills-list', 'table-striped'],
+          'class' => ['skills-list'],
         ],
-        '#header' => [
-          $this->t('Skill'),
-          $this->t('Score'),
-          $this->t('Progress'),
-          $this->t('Level'),
+        [
+          '#type' => 'table',
+          '#attributes' => [
+            'class' => ['statistics-table', 'skills-list', 'table-striped'],
+          ],
+          '#header' => [
+            $this->t('Skill'),
+            $this->t('Score'),
+            $this->t('Progress'),
+          ],
+          '#rows' => $rows,
         ],
-        '#rows' => $rows,
-      ],
-    ];
+      ];
+    }
+    else {
+      return [];
+    }
   }
 
   /**

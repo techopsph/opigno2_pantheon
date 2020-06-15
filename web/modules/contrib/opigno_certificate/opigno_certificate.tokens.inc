@@ -36,9 +36,7 @@ function opigno_certificate_token_info() {
 function opigno_certificate_tokens($type, $tokens, array $data, array $options, BubbleableMetadata $bubbleable_metadata) {
   $token_service = \Drupal::token();
 
-  $url_options = ['absolute' => TRUE];
   if (isset($options['langcode'])) {
-    $url_options['language'] = \Drupal::languageManager()->getLanguage($options['langcode']);
     $langcode = $options['langcode'];
   }
   else {

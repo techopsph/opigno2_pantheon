@@ -5,14 +5,13 @@ namespace Drupal\commerce_store\Command;
 // @codingStandardsIgnoreStart
 use CommerceGuys\Addressing\Country\CountryRepositoryInterface;
 use CommerceGuys\Intl\Currency\CurrencyRepository;
-use Drupal\Console\Core\Command\Shared\CommandTrait;
-use Drupal\Console\Core\Style\DrupalStyle;
 use Drupal\Console\Annotations\DrupalCommand;
+use Drupal\Console\Core\Command\Command;
+use Drupal\Console\Core\Style\DrupalStyle;
 use Drupal\commerce_price\CurrencyImporter;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\MetadataBubblingUrlGenerator;
 use Egulias\EmailValidator\EmailValidator;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -30,8 +29,6 @@ use Symfony\Component\Console\Question\Question;
  * )
  */
 class CreateStoreCommand extends Command {
-
-  use CommandTrait;
 
   /**
    * The currency importer.
@@ -129,17 +126,18 @@ class CreateStoreCommand extends Command {
       'uid' => 1,
       'name' => $input->getOption('name'),
       'mail' => $input->getOption('mail'),
+      'default_currency' => $currency_code,
+      'timezone' => 'UTC',
       'address' => [
         'country_code' => $country_code,
       ],
-      'default_currency' => $currency_code,
     ];
     $store = $store_storage->create($values);
-    $store->save();
     // Make this the default store, since there's no other.
     if (!$store_storage->loadDefault()) {
-      $store_storage->markAsDefault($store);
+      $store->setDefault(TRUE);
     }
+    $store->save();
 
     $link = $this->urlGenerator->generate('entity.commerce_store.edit_form', ['commerce_store' => $store->id()], TRUE);
     $io->writeln(sprintf('The store has been created. Go to %s to complete the store address and manage other settings.', $link));

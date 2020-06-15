@@ -50,8 +50,6 @@ function opigno_tincan_modules_user_module_status_insert(EntityInterface $entity
   // Check if Tincan PHP library is installed.
   $has_library = opigno_tincan_api_tincanphp_is_installed();
   if (!$has_library) {
-    \Drupal::logger('opigno_tincan')
-      ->notice('Tincan statements can not be send. Tincan PHP library is not installed.');
     return;
   };
 
@@ -130,9 +128,7 @@ function opigno_tincan_modules_user_module_status_presave(EntityInterface $entit
   // Check if Tincan PHP library is installed.
   $has_library = opigno_tincan_api_tincanphp_is_installed();
   if (!$has_library) {
-    \Drupal::logger('opigno_tincan')
-      ->notice('Tincan statements can not be send. Tincan PHP library is not installed.');
-    return;
+    return FALSE;
   };
 
   /* @var $user_module_status UserModuleStatus */
@@ -144,11 +140,16 @@ function opigno_tincan_modules_user_module_status_presave(EntityInterface $entit
     $gid = OpignoGroupContext::getCurrentGroupId();
 
     if (!$gid) {
-      return;
+      return FALSE;
     }
 
     // Know if the user has passed or failed this module.
     $cid = OpignoGroupContext::getCurrentGroupContentId();
+
+    if (empty($cid)) {
+      return FALSE;
+    }
+
     $group_content = OpignoGroupManagedContent::loadByProperties(['id' => $cid]);
     $group_content = reset($group_content);
     $required_score = $group_content->getSuccessScoreMin();
@@ -165,7 +166,7 @@ function opigno_tincan_modules_user_module_status_presave(EntityInterface $entit
     );
 
     if ($statement === FALSE) {
-      return;
+      return FALSE;
     }
 
     // Context creation.

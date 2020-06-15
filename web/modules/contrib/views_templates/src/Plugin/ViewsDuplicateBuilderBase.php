@@ -1,12 +1,6 @@
 <?php
-/**
- * @file
- * Contains \Drupal\views_templates\Plugin\ViewsDuplicateBuilder.
- */
-
 
 namespace Drupal\views_templates\Plugin;
-
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -15,19 +9,33 @@ use Drupal\views_templates\ViewsTemplateLoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 
+/**
+ * ViewsDuplicateBuilderBase Class.
+ */
 abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements ViewsDuplicateBuilderPluginInterface, ContainerFactoryPluginInterface {
 
-  /** @var \Drupal\views_templates\ViewsTemplateLoaderInterface $template_loader */
-  protected $template_loader;
+  /**
+   * The view template loader.
+   *
+   * @var \Drupal\views_templates\ViewsTemplateLoaderInterface
+   */
+  protected $templateLoader;
 
-  protected $loaded_template;
+  /**
+   * The loaded template.
+   *
+   * @var mixed
+   */
+  protected $loadedTemplate;
 
+  /**
+   * Constructor to the class ViewDuplicateBuilderBase.
+   */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, ViewsTemplateLoaderInterface $loader) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->template_loader = $loader;
+    $this->templateLoader = $loader;
 
   }
-
 
   /**
    * {@inheritdoc}
@@ -55,7 +63,6 @@ abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements Vie
 
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -66,7 +73,7 @@ abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements Vie
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm($form, FormStateInterface $form_state) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     return [];
   }
 
@@ -87,11 +94,13 @@ abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements Vie
   /**
    * Return value from template.
    *
-   * @param $key
-   *
-   * @param null $options
+   * @param mixed $key
+   *   The Key.
+   * @param mixed $options
+   *   The options.
    *
    * @return mixed|null
+   *   Return the value or a null.
    */
   protected function loadViewsTemplateValue($key, $options = NULL) {
     $view_template = $this->loadTemplate($options);
@@ -104,35 +113,38 @@ abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements Vie
   /**
    * Load template from service.
    *
-   * @param $options
+   * @param mixed $options
+   *   The options to load template.
    *
    * @return object
+   *   Returns loaded template in object form.
    */
   protected function loadTemplate($options) {
-    if (empty($this->loaded_template)) {
+    if (empty($this->loadedTemplate)) {
       try {
-        $template = $this->template_loader->load($this);
-      } catch (FileNotFoundException $e) {
+        $template = $this->templateLoader->load($this);
+      }
+      catch (FileNotFoundException $e) {
         watchdog_exception('views_templates', $e, $e->getMessage());
         return NULL;
       }
 
       $this->alterViewTemplateAfterCreation($template, $options);
-      $this->loaded_template = $template;
+      $this->loadedTemplate = $template;
     }
 
-    return $this->loaded_template;
+    return $this->loadedTemplate;
   }
 
   /**
    * After View Template has been created the Builder should alter it some how.
    *
    * @param array $view_template
-   *
+   *   The array of view template.
    * @param array $options
-   *  Options for altering
+   *   Options for altering.
    */
-  protected function alterViewTemplateAfterCreation(array &$view_template, $options = NULL) {
+  protected function alterViewTemplateAfterCreation(array &$view_template, array $options = NULL) {
     if ($replacements = $this->getReplacements($options)) {
       $this->replaceTemplateKeyAndValues($view_template, $replacements, $options);
     }
@@ -143,9 +155,11 @@ abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements Vie
    *
    * The keys will be converted to work with yml files.
    *
-   * @param $options
+   * @param mixed $options
+   *   Options to get replacements.
    *
    * @return array
+   *   Returns an array.
    */
   protected function getReplacements($options) {
     if ($replacements = $this->getDefinitionValue('replacements')) {
@@ -164,15 +178,16 @@ abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements Vie
    *
    * For example of builder and yml template:
    *
-   * @see Drupal\views_templates_builder_test\Plugin\ViewsTemplateBuilder
-   *
    * @param array $template_elements
-   *  Array of elements from a View Template array
+   *   Array of elements from a View Template array.
    * @param array $replace_values
-   *  The values in that should be replaced in the template.
-   *  The keys in this array can be keys OR values template array.
-   *  This allows replacing both keys and values in the template.
-   * @param null $options
+   *   The values in that should be replaced in the template.
+   *   The keys in this array can be keys OR values template array.
+   *   This allows replacing both keys and values in the template.
+   * @param mixed $options
+   *   The options to replace template key and values.
+   *
+   * @see Drupal\views_templates_builder_test\Plugin\ViewsTemplateBuilder
    */
   protected function replaceTemplateKeyAndValues(array &$template_elements, array $replace_values, $options = NULL) {
     foreach ($template_elements as $key => &$value) {
@@ -203,9 +218,10 @@ abstract class ViewsDuplicateBuilderBase extends ViewsBuilderBase implements Vie
   }
 
   /**
-   * Check if template exists
+   * Check if template exists.
    *
    * @return bool
+   *   Returns a boolean value.
    */
   public function templateExists() {
     return $this->loadTemplate([]) ? TRUE : FALSE;

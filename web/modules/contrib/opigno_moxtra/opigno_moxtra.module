@@ -242,17 +242,21 @@ function _opigno_moxtra_upcoming_live_meetings(UserInterface $user) {
   $meetings = Meeting::loadMultiple($meetings_ids);
 
   foreach ($meetings as $meeting) {
-    $group = Group::load($meeting->getTrainingId());
-    $members_ids = $meeting->getMembersIds();
-    $owner_id = $meeting->getOwnerId();
-    $session_key = $meeting->getSessionKey();
+    $group_id = $meeting->getTrainingId();
+
+    if (!empty($group_id)) {
+      $group = Group::load($meeting->getTrainingId());
+      $members_ids = $meeting->getMembersIds();
+      $owner_id = $meeting->getOwnerId();
+      $session_key = $meeting->getSessionKey();
+    }
 
     if (isset($session_key)) {
       $info = $moxtra_api->getMeetingInfo($owner_id, $session_key);
       $status = $info['data']['status'];
     }
 
-    if ($group instanceof Group && $group->getMember($user) && isset($session_key)
+    if (!empty($group) && $group instanceof Group && $group->getMember($user) && isset($session_key)
       && (empty($members_ids) || in_array($user_id, $members_ids)) && $status != 'SESSION_ENDED') {
       $meetings_list[$meeting->id()] = $meeting;
     }

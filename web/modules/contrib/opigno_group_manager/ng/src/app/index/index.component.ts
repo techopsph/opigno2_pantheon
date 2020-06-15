@@ -23,7 +23,11 @@ export class IndexComponent implements OnInit {
   viewType: string;
   entities: Entity[];
   hasNextLink = false;
-  moduleContext: boolean
+  moduleContext: boolean;
+  text_module: string;
+  text_modules: string;
+  text_tree_view: string;
+  text_score: string;
 
   constructor(
     private route: ActivatedRoute,
@@ -34,6 +38,10 @@ export class IndexComponent implements OnInit {
     this.viewType = window['appConfig'].viewType;
     this.moduleContext = window['appConfig'].moduleContext;
     this.nextLink = this.sanitizer.bypassSecurityTrustHtml(window['appConfig'].nextLink);
+    this.text_module = window['appConfig'].text_module;
+    this.text_modules = window['appConfig'].text_modules;
+    this.text_tree_view = window['appConfig'].text_tree_view;
+    this.text_score = window['appConfig'].text_score;
   }
 
   ngOnInit(): void {

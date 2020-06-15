@@ -9,7 +9,7 @@ dependencies:
  - drupal:views
  - ckeditor_bgimage:ckeditor_bgimage
 
-# Information added by Drupal.org packaging script on 2020-01-30
-version: '8.x-1.5'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.6'
 project: 'opigno_certificate'
-datestamp: 1580375827
+datestamp: 1591089553

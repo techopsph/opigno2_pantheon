@@ -17,20 +17,22 @@ use Drupal\Core\Field\BaseFieldDefinition;
  * Implements hook_install().
  */
 function opigno_ilt_install() {
-  // Allow users to view ILT entities.
-  $role = Role::load(RoleInterface::AUTHENTICATED_ID);
-  $role->grantPermission('view ilt entities');
-  $role->save();
+  if (!\Drupal::isConfigSyncing()) {
+    // Allow users to view ILT entities.
+    $role = Role::load(RoleInterface::AUTHENTICATED_ID);
+    $role->grantPermission('view ilt entities');
+    $role->save();
 
-  // Allow platform-level student managers to score ILT entities.
-  $role = Role::load('user_manager');
-  $role->grantPermission('score ilt entities');
-  $role->save();
+    // Allow platform-level student managers to score ILT entities.
+    $role = Role::load('user_manager');
+    $role->grantPermission('score ilt entities');
+    $role->save();
 
-  // Allow group-level student managers to score ILT entities.
-  $role = GroupRole::load('learning_path-user_manager');
-  $role->grantPermission('score ilt entities');
-  $role->save();
+    // Allow group-level student managers to score ILT entities.
+    $role = GroupRole::load('learning_path-user_manager');
+    $role->grantPermission('score ilt entities');
+    $role->save();
+  }
 }
 
 /**

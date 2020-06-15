@@ -5,3 +5,5 @@ view_private_message:
   css:
     theme:
       css/view_private_message.css: {}
+  dependencies:
+    - opigno_learning_path/opigno_autocomplite_multiselect

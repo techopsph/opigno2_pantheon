@@ -7,6 +7,9 @@
 
 (function ($, Drupal) {
   var autocomplete = void 0;
+  var inBrowser = typeof window !== 'undefined';
+  var UA = inBrowser && window.navigator.userAgent.toLowerCase();
+  var isAndroid = UA && UA.indexOf('android') > 0;
 
   function autocompleteSplitValues(value) {
     var result = [];
@@ -122,12 +125,17 @@
           $(this).data('ui-autocomplete')._renderItem = autocomplete.options.renderItem;
         });
 
-        $autocomplete.on('compositionstart.autocomplete', function () {
-          autocomplete.options.isComposing = true;
-        });
-        $autocomplete.on('compositionend.autocomplete', function () {
+        $autocomplete.on('change.autocomplete', function () {
           autocomplete.options.isComposing = false;
         });
+        if (!isAndroid) {
+          $autocomplete.on('compositionstart.autocomplete', function () {
+            autocomplete.options.isComposing = true;
+          });
+          $autocomplete.on('compositionend.autocomplete', function () {
+            autocomplete.options.isComposing = false;
+          });
+        }
       }
     },
     detach: function detach(context, settings, trigger) {

@@ -52,7 +52,7 @@ nav#mobile-menu {
       a {
         $color: #c7c7c7;
         $color-hover: $blue;
-        background-size: 28px;
+        position: relative;
         display: flex;
         align-items: center;
         text-align: center;
@@ -60,10 +60,34 @@ nav#mobile-menu {
         text-decoration: none;
         padding: 2.5rem 0.75rem;
 
-        @each $picto in (search, user, administration, help, logout) {
-          &.#{$picto} {
-            @include svg-picto(#{'picto-' + $picto});
-          }
+        &:before {
+          display: block;
+          position: absolute;
+          top: 50%;
+          left: 0;
+          transform: translateY(-50%);
+          font-family: 'icomoon';
+          font-size: 25px;
+        }
+
+        &.search:before {
+          content: '\e915';
+        }
+
+        &.user:before {
+          content: '\e917';
+        }
+
+        &.administration:before {
+          content: '\e916';
+        }
+
+        &.help:before {
+          content: '\e90c';
+        }
+
+        &.logout:before {
+          content: '\e90e';
         }
 
         @include media-breakpoint-up(breakpoint-next($header-mobile-breakpoint)) {
@@ -88,11 +112,21 @@ nav#mobile-menu {
 
         @each $path, $picto in $menu-pictos {
           &[data-drupal-link-system-path="#{$path}"] {
-            @include svg-picto($picto);
+            position: relative;
             display: block;
 
+            &:before {
+              content: $picto;
+              position: absolute;
+              top: 0;
+              left: 50%;
+              transform: translate(-50%, 0);
+              display: block;
+              font-family: 'icomoon';
+              font-size: 25px;
+            }
+
             @include media-breakpoint-up(breakpoint-next($header-mobile-breakpoint)) {
-              background-position: center top;
               font-size: 0.9rem;
               text-align: center;
             }
@@ -100,8 +134,13 @@ nav#mobile-menu {
             @include media-breakpoint-down($header-mobile-breakpoint) {
               font-size: 1rem;
               text-align: left;
-              background-position: left center;
               padding-left: 3rem;
+
+              &:before {
+                top: 50%;
+                left: 0;
+                transform: translate(0, -50%);
+              }
             }
           }
         }

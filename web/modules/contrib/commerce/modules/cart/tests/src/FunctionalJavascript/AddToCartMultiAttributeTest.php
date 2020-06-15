@@ -2,20 +2,16 @@
 
 namespace Drupal\Tests\commerce_cart\FunctionalJavascript;
 
-use Drupal\Tests\commerce\FunctionalJavascript\JavascriptTestTrait;
 use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_product\Entity\ProductVariationType;
-use Drupal\Tests\commerce_cart\Functional\CartBrowserTestBase;
 
 /**
  * Tests the add to cart form.
  *
  * @group commerce
  */
-class AddToCartMultiAttributeTest extends CartBrowserTestBase {
-
-  use JavascriptTestTrait;
+class AddToCartMultiAttributeTest extends CartWebDriverTestBase {
 
   /**
    * {@inheritdoc}
@@ -98,7 +94,7 @@ class AddToCartMultiAttributeTest extends CartBrowserTestBase {
     $this->drupalGet($product->toUrl());
     // Use AJAX to change the size to Medium, keeping the color on Red.
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][attributes][attribute_size]', 'Medium');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_color]', 'Red');
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_size]', 'Medium');
     $this->assertAttributeExists('purchased_entity[0][attributes][attribute_color]', $color_attributes['blue']->id());
@@ -107,7 +103,7 @@ class AddToCartMultiAttributeTest extends CartBrowserTestBase {
 
     // Use AJAX to change the color to Blue, keeping the size on Medium.
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][attributes][attribute_color]', 'Blue');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_color]', 'Blue');
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_size]', 'Medium');
     $this->assertAttributeExists('purchased_entity[0][attributes][attribute_color]', $color_attributes['red']->id());
@@ -164,7 +160,7 @@ class AddToCartMultiAttributeTest extends CartBrowserTestBase {
     $this->assertSession()->pageTextContains($variation1->getSku());
 
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][attributes][attribute_color]', 'Magenta');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertSession()->pageTextContains($variation2->getSku());
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_color]', 'Magenta');
 
@@ -173,7 +169,7 @@ class AddToCartMultiAttributeTest extends CartBrowserTestBase {
     $this->assertSession()->pageTextContains($variation2->getSku());
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_color]', 'Magenta');
     $this->getSession()->getPage()->selectFieldOption('purchased_entity[0][attributes][attribute_color]', 'Cyan');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertSession()->pageTextContains($variation1->getSku());
     $this->assertAttributeSelected('purchased_entity[0][attributes][attribute_color]', 'Cyan');
   }

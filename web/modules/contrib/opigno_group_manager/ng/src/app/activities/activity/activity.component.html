@@ -1,18 +1,18 @@
 <td class="move">
-  <span class="handle ic-drag-handle-black-24px" i18n>move</span>
+  <span class="handle ic-drag-handle-black-24px">{{ text_move }}</span>
 </td>
-<td class="name"><a href="javascript:void(0);" (click)="activity.showPreview=true" title="Preview">{{activity.name}}</a></td>
-<td class="max-score"><input type="text" placeholder="MAX SCORE" [(ngModel)]="activity.max_score" (change)="updateActivity()"></td>
-<td class="edit"><button class="btn btn-success" (click)="activity.showUpdate=true" i18n>edit</button></td>
-<td class="delete"><button class="btn btn-danger delete-link" (click)="showDelete()" i18n>delete</button></td>
+<td class="name"><a href="javascript:void(0);" (click)="activity.showPreview=true" title="{{ text_preview }}">{{activity.name}}</a></td>
+<td class="max-score"><input type="text" placeholder="{{ text_max_score }}" [(ngModel)]="activity.max_score" (change)="updateActivity()"></td>
+<td *ngIf="module.editable" class="edit"><button class="btn btn-success" (click)="activity.showUpdate=true">{{ text_edit }}</button></td>
+<td *ngIf="module.editable" class="delete"><button class="btn btn-danger delete-link" (click)="showDelete()">{{ text_delete }}</button></td>
 
 <update-activity class="activity-update lateral-panel"
                  [module]="module"
                  [activity]="activity"
                  (closeEvent)="activity.showUpdate=false"
-                 *ngIf="activity.showUpdate"></update-activity>
+                 *ngIf="activity.showUpdate && module.editable"></update-activity>
 
 <preview-activity class="activity-preview lateral-panel"
                  [activity]="activity"
                  (closeEvent)="activity.showPreview=false"
-                 *ngIf="activity.showPreview"></preview-activity>
+                 *ngIf="activity.showPreview && module.editable"></preview-activity>

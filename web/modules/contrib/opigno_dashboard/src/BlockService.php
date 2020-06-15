@@ -3,11 +3,14 @@
 namespace Drupal\opigno_dashboard;
 
 use Drupal\block\Entity\Block;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Class BlockService.
  */
 class BlockService implements BlockServiceInterface {
+
+  use StringTranslationTrait;
 
   /**
    * Constructs a new BlockService object.
@@ -77,9 +80,28 @@ class BlockService implements BlockServiceInterface {
         $block = Block::load($this->sanitizeIdOld($id));
       }
 
-      if ($block) {
-        $render = \Drupal::entityTypeManager()->getViewBuilder('block')->view($block);
-        $blocks[$id] = \Drupal::service('renderer')->renderRoot($render);
+      if (!empty($block)) {
+        $account = \Drupal::currentUser();
+        $account_roles = $account->getRoles();
+        $block_visibility = $block->getVisibility();
+        $role_access = TRUE;
+
+        if (isset($block_visibility['user_role']) && !empty($block_visibility['user_role'])) {
+          $role_access = FALSE;
+
+          foreach ($block_visibility['user_role']['roles'] as $block_role) {
+            if (in_array($block_role, $account_roles)) {
+              $role_access = TRUE;
+            }
+          }
+        }
+
+        if ($block && $role_access) {
+          $render = \Drupal::entityTypeManager()
+            ->getViewBuilder('block')
+            ->view($block);
+          $blocks[$id] = \Drupal::service('renderer')->renderRoot($render);
+        }
       }
     }
 
@@ -103,7 +125,7 @@ class BlockService implements BlockServiceInterface {
           'region' => 'content',
           'id' => $id,
           'theme' => isset($theme) ? $theme : $config->get('system.theme')->get('default'),
-          'label' => t('Dashboard:') . ' ' . $item['admin_label'],
+          'label' => $this->t('Dashboard:') . ' ' . $item['admin_label'],
           'visibility' => [
             'request_path' => [
               'id' => 'request_path',

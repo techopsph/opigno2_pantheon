@@ -11,8 +11,8 @@ entity_print:
     all: entity_print_test_theme/node
     page: entity_print_test_theme/page
 
-# Information added by Drupal.org packaging script on 2017-04-13
-version: '8.x-2.0'
+# Information added by Drupal.org packaging script on 2018-08-02
+version: '8.x-2.1'
 core: '8.x'
 project: 'entity_print'
-datestamp: 1492069754
+datestamp: 1533220072

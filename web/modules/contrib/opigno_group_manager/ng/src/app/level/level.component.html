@@ -5,8 +5,7 @@
         mat-raised-button
         color="primary"
         (click)="openAddPanel(null)"
-        *ngIf="entities && entities.length==0"
-        i18n>Add your first item</button>
+        *ngIf="entities && entities.length==0">{{ text_add_your_first_item }}</button>
 
 <div id="entity-wrapper" [class.add-link]="addLinkIsRunning" #entitiesWrapper>
   <table class="drag-and-drop-wrapper my-5" [class.gu-dragging]="dragging" [class.user-has-info-card]="userHasInfoCard">
@@ -58,16 +57,15 @@
                    (click)="listenAddLink()"
                    [class.activate]="addLinkIsRunning"
                    [class.disable]="!entities || entities.length==0"
-                   #addLinkButton
-                   i18n>Add a link</mat-button-toggle>
+                   #addLinkButton>{{ bt_add_a_link }}</mat-button-toggle>
 
 <mat-button-toggle class="guided-navigation"
                    (click)="listenGuidedNavigation()"
                    [class.activate]="!this.guidedNavigationIsOn"
                    [class.disable]="!entities || entities.length==0"
                    #guidedNavigationButton
-                   *ngIf="showGuidedNavigationButton()"
-                   i18n>{{getGuidedNavigationText()}}</mat-button-toggle>
+                   *ngIf="showGuidedNavigationButton()">
+                   {{getGuidedNavigationText()}}</mat-button-toggle>
 
 <entity-add [entities]="entities"
             [entitiesPositions]="entitiesPositions"

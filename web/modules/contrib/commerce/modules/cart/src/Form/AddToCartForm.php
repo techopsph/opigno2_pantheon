@@ -3,16 +3,16 @@
 namespace Drupal\commerce_cart\Form;
 
 use Drupal\commerce\Context;
-use Drupal\commerce\PurchasableEntityInterface;
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\commerce_order\Resolver\OrderTypeResolverInterface;
 use Drupal\commerce_price\Resolver\ChainPriceResolverInterface;
 use Drupal\commerce_store\CurrentStoreInterface;
+use Drupal\commerce_store\SelectStoreTrait;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -22,6 +22,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides the order item add to cart form.
  */
 class AddToCartForm extends ContentEntityForm implements AddToCartFormInterface {
+
+  use SelectStoreTrait;
 
   /**
    * The cart manager.
@@ -75,8 +77,8 @@ class AddToCartForm extends ContentEntityForm implements AddToCartFormInterface 
   /**
    * Constructs a new AddToCartForm object.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
    *   The entity type bundle info.
    * @param \Drupal\Component\Datetime\TimeInterface $time
@@ -94,8 +96,8 @@ class AddToCartForm extends ContentEntityForm implements AddToCartFormInterface 
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
    */
-  public function __construct(EntityManagerInterface $entity_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, TimeInterface $time, CartManagerInterface $cart_manager, CartProviderInterface $cart_provider, OrderTypeResolverInterface $order_type_resolver, CurrentStoreInterface $current_store, ChainPriceResolverInterface $chain_price_resolver, AccountInterface $current_user) {
-    parent::__construct($entity_manager, $entity_type_bundle_info, $time);
+  public function __construct(EntityRepositoryInterface $entity_repository, EntityTypeBundleInfoInterface $entity_type_bundle_info, TimeInterface $time, CartManagerInterface $cart_manager, CartProviderInterface $cart_provider, OrderTypeResolverInterface $order_type_resolver, CurrentStoreInterface $current_store, ChainPriceResolverInterface $chain_price_resolver, AccountInterface $current_user) {
+    parent::__construct($entity_repository, $entity_type_bundle_info, $time);
 
     $this->cartManager = $cart_manager;
     $this->cartProvider = $cart_provider;
@@ -110,7 +112,7 @@ class AddToCartForm extends ContentEntityForm implements AddToCartFormInterface 
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager'),
+      $container->get('entity.repository'),
       $container->get('entity_type.bundle.info'),
       $container->get('datetime.time'),
       $container->get('commerce_cart.cart_manager'),
@@ -183,6 +185,9 @@ class AddToCartForm extends ContentEntityForm implements AddToCartFormInterface 
       '#type' => 'submit',
       '#value' => $this->t('Add to cart'),
       '#submit' => ['::submitForm'],
+      '#attributes' => [
+        'class' => ['button--add-to-cart'],
+      ],
     ];
 
     return $actions;
@@ -227,42 +232,6 @@ class AddToCartForm extends ContentEntityForm implements AddToCartFormInterface 
     }
 
     return $entity;
-  }
-
-  /**
-   * Selects the store for the given purchasable entity.
-   *
-   * If the entity is sold from one store, then that store is selected.
-   * If the entity is sold from multiple stores, and the current store is
-   * one of them, then that store is selected.
-   *
-   * @param \Drupal\commerce\PurchasableEntityInterface $entity
-   *   The entity being added to cart.
-   *
-   * @throws \Exception
-   *   When the entity can't be purchased from the current store.
-   *
-   * @return \Drupal\commerce_store\Entity\StoreInterface
-   *   The selected store.
-   */
-  protected function selectStore(PurchasableEntityInterface $entity) {
-    $stores = $entity->getStores();
-    if (count($stores) === 1) {
-      $store = reset($stores);
-    }
-    elseif (count($stores) === 0) {
-      // Malformed entity.
-      throw new \Exception('The given entity is not assigned to any store.');
-    }
-    else {
-      $store = $this->currentStore->getStore();
-      if (!in_array($store, $stores)) {
-        // Indicates that the site listings are not filtered properly.
-        throw new \Exception("The given entity can't be purchased from the current store.");
-      }
-    }
-
-    return $store;
   }
 
 }

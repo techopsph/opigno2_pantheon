@@ -7,6 +7,7 @@
 
 use Drupal\block\Entity\Block;
 use Drupal\opigno_dashboard\BlockService;
+use Drupal\user\Entity\Role;
 
 /**
  * Implements hook_schema().
@@ -82,5 +83,16 @@ function opigno_dashboard_update_8002() {
         }
       }
     }
+  }
+}
+
+/**
+ * Grant 'opigno dashboard layout access' permission.
+ */
+function opigno_dashboard_update_8003() {
+  $roles = Role::loadMultiple();
+  foreach ($roles as $role) {
+    $role->grantPermission('opigno dashboard layout access');
+    $role->save();
   }
 }

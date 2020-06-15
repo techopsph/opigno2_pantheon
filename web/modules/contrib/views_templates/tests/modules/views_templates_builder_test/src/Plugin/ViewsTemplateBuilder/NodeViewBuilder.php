@@ -1,17 +1,11 @@
 <?php
-/**
- * @file
- * Contains \Drupal\views_templates_builder_test\NodeViewBuilder.
- */
-
 
 namespace Drupal\views_templates_builder_test\Plugin\ViewsTemplateBuilder;
 
 use Drupal\views_templates\Plugin\ViewsBuilderBase;
 
-
 /**
- * Test comment
+ * Test comment.
  *
  * @todo Switch to our own annotation in ViewsBuilderPluginManager
  *
@@ -23,9 +17,12 @@ use Drupal\views_templates\Plugin\ViewsBuilderBase;
  * )
  */
 class NodeViewBuilder extends ViewsBuilderBase {
+
+  /**
+   * {@inheritDoc}
+   */
   public function createView($options = NULL) {
     $view = parent::createView($options);
-
 
     $display_options = $view->getDisplay('default');
     $display_options['fields']['title']['id'] = 'title';
@@ -48,22 +45,20 @@ class NodeViewBuilder extends ViewsBuilderBase {
     $display_options['fields']['title']['plugin_id'] = 'field';
 
     // $executable = $view->getExecutable();
-
     // Display: Master
-    //$default_display = $executable->newDisplay('default', 'Master', 'default');
+    // $default_display = $executable->newDisplay('default', 'Master',
+    // 'default');
     $view->addDisplay('page');
 
-
     /*
-        foreach ($display_options['default'] as $option => $value) {
-          $master->setOption($option, $value);
-        }
-    */
+    foreach ($display_options['default'] as $option => $value) {
+    $master->setOption($option, $value);
+    }
+     */
 
     // $executable->save();
     return $view;
 
   }
-
 
 }

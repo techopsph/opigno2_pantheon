@@ -27,10 +27,14 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "form" = {
  *       "add" = "Drupal\commerce_payment\Form\PaymentGatewayForm",
  *       "edit" = "Drupal\commerce_payment\Form\PaymentGatewayForm",
+ *       "duplicate" = "Drupal\commerce_payment\Form\PaymentGatewayForm",
  *       "delete" = "Drupal\Core\Entity\EntityDeleteForm"
  *     },
+ *     "local_task_provider" = {
+ *       "default" = "Drupal\entity\Menu\DefaultEntityLocalTaskProvider",
+ *     },
  *     "route_provider" = {
- *       "default" = "Drupal\Core\Entity\Routing\DefaultHtmlRouteProvider",
+ *       "default" = "Drupal\entity\Routing\DefaultHtmlRouteProvider",
  *     },
  *   },
  *   admin_permission = "administer commerce_payment_gateway",
@@ -55,6 +59,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   links = {
  *     "add-form" = "/admin/commerce/config/payment-gateways/add",
  *     "edit-form" = "/admin/commerce/config/payment-gateways/manage/{commerce_payment_gateway}",
+ *     "duplicate-form" = "/admin/commerce/config/payment-gateways/manage/{commerce_payment_gateway}/duplicate",
  *     "delete-form" = "/admin/commerce/config/payment-gateways/manage/{commerce_payment_gateway}/delete",
  *     "collection" =  "/admin/commerce/config/payment-gateways"
  *   }
@@ -258,7 +263,7 @@ class PaymentGateway extends ConfigEntityBase implements PaymentGatewayInterface
   protected function getPluginCollection() {
     if (!$this->pluginCollection) {
       $plugin_manager = \Drupal::service('plugin.manager.commerce_payment_gateway');
-      $this->pluginCollection = new CommerceSinglePluginCollection($plugin_manager, $this->plugin, $this->configuration, $this->id);
+      $this->pluginCollection = new CommerceSinglePluginCollection($plugin_manager, $this->plugin, $this->configuration, $this);
     }
     return $this->pluginCollection;
   }

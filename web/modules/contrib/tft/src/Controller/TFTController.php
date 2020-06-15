@@ -336,9 +336,15 @@ class TFTController extends ControllerBase {
 
     return [
       [
-        '#type' => 'table',
-        '#header' => $headers,
-        '#rows' => $this->get_content($tid, $gid),
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['table-responsive']
+        ],
+        'table' => [
+          '#type' => 'table',
+          '#header' => $headers,
+          '#rows' => $this->get_content($tid, $gid),
+        ]
       ],
       $this->add_content_links($tid, $gid),
     ];

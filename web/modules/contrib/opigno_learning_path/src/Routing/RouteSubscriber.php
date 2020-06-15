@@ -16,8 +16,9 @@ class RouteSubscriber extends RouteSubscriberBase {
   protected function alterRoutes(RouteCollection $collection) {
     // Alters '/group/{group}/members' route path from Group module
     // to use this path in custom controller.
-    $route = $collection->get('view.group_members.page_1');
-    $route->setPath('/group/{group}/members/default');
+    if ($route = $collection->get('view.group_members.page_1')) {
+      $route->setPath('/group/{group}/members/default');
+    }
 
     if ($route = $collection->get('entity.group.join')) {
       $route->setRequirement('_entity_access', 'group.join');

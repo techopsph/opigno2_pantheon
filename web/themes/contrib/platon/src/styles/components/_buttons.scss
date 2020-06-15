@@ -41,6 +41,17 @@ button {
   }
 }
 
+.btn-success {
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
 a.button#edit-delete {
   @extend .btn-outline-danger;
 }

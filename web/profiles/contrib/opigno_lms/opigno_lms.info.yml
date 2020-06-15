@@ -2,7 +2,7 @@ name: Opigno LMS
 type: profile
 description: 'Install Opigno with commonly used features pre-configured.'
 core: 8.x
-# version: 8.x-2.11
+# version: 8.x-2.12
 distribution:
   name: "Opigno LMS"
 dependencies:
@@ -100,6 +100,7 @@ dependencies:
   - private_message
   - quickedit
   - rdf
+  - role_delegation
   - search_api
   - serialization
   - shortcut
@@ -113,6 +114,7 @@ dependencies:
   - tour
   - update
   - user
+  - userprotect
   - video
   - view_mode_selector
   - views_role_based_global_text
@@ -123,7 +125,7 @@ themes:
   - platon
   - seven
 
-# Information added by Drupal.org packaging script on 2020-03-19
-version: '8.x-2.11'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-2.12'
 project: 'opigno_lms'
-datestamp: 1584623185
+datestamp: 1591115032

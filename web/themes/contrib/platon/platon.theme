@@ -17,6 +17,7 @@ use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\user\Entity\User;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\opigno_messaging\OpignoMessageThread;
 
 /**
  * Callback for both ajax-enabled buttons.
@@ -104,6 +105,15 @@ function platon_preprocess_html(&$variables) {
   }
   catch (Exception $e) {
     $variables['is_front'] = FALSE;
+  }
+
+  $route = \Drupal::routeMatch()->getRouteName();
+
+  if ($route == 'opigno_activity.preview') {
+    $content = $variables['page']['content']['platon_content'];
+    unset($variables['page']['content']);
+    unset($variables['page_top']);
+    $variables['page']['content']['platon_content'] = $content;
   }
 
     // If we're on the front page.
@@ -196,8 +206,16 @@ function platon_preprocess_page(&$variables)
     $register = $account_settings->get('register');
     $variables['register'] = $register;
 
+    // Check if demo module enabled.
+    if ($moduleHandler->moduleExists('opigno_demo') && $route == 'view.frontpage.page_1') {
+      $variables['opgino_demo'] = TRUE;
+    }
+    else {
+      $variables['opgino_demo'] = FALSE;
+    }
+
     /** About opigno version */
-    if (function_exists('opigno_lms_check_opigno_lms_updates')) {
+    if (function_exists('opigno_lms_check_opigno_lms_updates') && function_exists('update_get_available')) {
         $variables['opigno_lms_updates'] = opigno_lms_check_opigno_lms_updates() ? 'nok' : 'ok';
     }
 
@@ -219,7 +237,7 @@ function platon_preprocess_page(&$variables)
         $form['pass']['#attributes']['placeholder'] = $form['pass']['#title'];
         $form['name']['#title'] = $form['name']['#description'] = null;
         $form['pass']['#title'] = $form['pass']['#description'] = null;
-//        $form['#action'] = Url::fromRoute('user.login')->toString();
+        $form['#action'] = Url::fromRoute('user.login')->toString();
         $variables['login_form'] = $render->renderPlain($form);
     }
 
@@ -232,17 +250,18 @@ function platon_preprocess_page(&$variables)
         $form['name']['#attributes']['placeholder'] = $form['name']['#title'];
         $form['name']['#title'] = $form['name']['#description'] = null;
         $form['mail']['#access'] = false;
+        $form['#action'] = Url::fromRoute('user.pass')->toString();
         $variables['password_form'] = $render->renderPlain($form);
     }
 
     /** Password form */
     $variables['register_form'] = null;
     if (!$account->id()) {
-        $entity = \Drupal::entityManager()
+        $entity = \Drupal::entityTypeManager()
           ->getStorage('user')
           ->create(array());
 
-        $formObject = \Drupal::entityManager()
+        $formObject = \Drupal::entityTypeManager()
           ->getFormObject('user', 'register')
           ->setEntity($entity);
 
@@ -255,6 +274,7 @@ function platon_preprocess_page(&$variables)
         $form['user_picture']['#access'] = false;
         $form['contact']['#access'] = false;
         $form['timezone']['#access'] = false;
+        $form['#action'] = Url::fromRoute('user.register')->toString();
         $variables['register_form'] = $form;
     }
 
@@ -354,12 +374,12 @@ function platon_preprocess_page(&$variables)
         $user = \Drupal\user\Entity\User::load($account->id());
         $user_picture = $user->get('user_picture')->getValue();
         if (isset($user_picture[0]['target_id'])) {
-            $user_picture = \Drupal\file\Entity\File::load($user_picture[0]['target_id']);
+            $user_picture = File::load($user_picture[0]['target_id']);
             $variables['user_picture'] = file_create_url($user_picture->getFileUri());
         }
     }
 
-    $variables['unread_thread_count'] = \Drupal\opigno_messaging\OpignoMessageThread::getUnreadThreadCount();
+    $variables['unread_thread_count'] = OpignoMessageThread::getUnreadThreadCount();
     $variables['opigno_logo'] = file_create_url(drupal_get_path('theme', 'platon') . '/logo.png');
 }
 
@@ -498,7 +518,7 @@ function platon_preprocess_user(&$variables, $var1, $var2)
             $variables['content']['linked_username']['#prefix'] = new FormattableMarkup('<div class="user-picture-wrapper"><div class="user-picture without-image"></div>' . $variables['content']['linked_username']['#prefix'], []);
         } else {
             $user_picture = $variables['user']->get('user_picture')->getValue();
-            $user_picture = \Drupal\file\Entity\File::load($user_picture[0]['target_id']);
+            $user_picture = File::load($user_picture[0]['target_id']);
             $image = NULL;
 
             if ($user_picture) {
@@ -559,6 +579,16 @@ function platon_preprocess_private_message_thread(&$variables)
           $suffix = '</div>' . $suffix;
         }
     }
+}
+
+/**
+ * Implements hook_preprocess_file_video().
+ */
+function platon_preprocess_file_video(&$variables) {
+  if (is_object($variables['attributes']) && !$variables['attributes']->hasAttribute('autoplay')) {
+    global $base_url;
+    $variables['video_image'] = $base_url . '/' . drupal_get_path('theme', 'platon') . '/images/video-image.svg';
+  }
 }
 
 function platon_page_has_faded_background()
@@ -637,7 +667,7 @@ function _platon_get_css_override_file() {
   $fid = theme_get_setting('platon_css_override_fid', 'platon');
   if (!empty($fid)) {
     $file = File::load($fid);
-    if ($file && is_readable(drupal_realpath($file->getFileUri()))) {
+    if ($file && is_readable(\Drupal::service('file_system')->realpath($file->getFileUri()))) {
       return $file;
     }
   }
@@ -699,20 +729,9 @@ function _platon_store_css_override_file($content) {
  */
 function _platon_get_css_override_file_content() {
   if ($file = _platon_get_css_override_file()) {
-    return file_get_contents(drupal_realpath($file->getFileUri()));
+    return file_get_contents(\Drupal::service('file_system')->realpath($file->getFileUri()));
   }
   else {
     return FALSE;
-  }
-}
-
-/**
- * Helper function to inject the override CSS into the current page, if it exists.
- */
-function _platon_inject_css_override() {
-  if ($file = _platon_get_css_override_file()) {
-    $realpath = drupal_realpath($file->uri);
-    $path = str_replace(realpath($_SERVER['DOCUMENT_ROOT']) . '/', '', $realpath);
-    drupal_add_css($path, ['group' => CSS_THEME]);
   }
 }

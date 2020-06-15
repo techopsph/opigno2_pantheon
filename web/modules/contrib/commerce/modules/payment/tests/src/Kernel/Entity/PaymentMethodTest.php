@@ -2,12 +2,11 @@
 
 namespace Drupal\Tests\commerce_payment\Kernel\Entity;
 
-use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Entity\PaymentMethod;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentMethodType\CreditCard;
 use Drupal\profile\Entity\Profile;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\Tests\commerce_order\Kernel\OrderKernelTestBase;
 
 /**
  * Tests the payment method entity.
@@ -16,7 +15,7 @@ use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
  *
  * @group commerce
  */
-class PaymentMethodTest extends CommerceKernelTestBase {
+class PaymentMethodTest extends OrderKernelTestBase {
 
   /**
    * A sample user.
@@ -31,11 +30,6 @@ class PaymentMethodTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'entity_reference_revisions',
-    'profile',
-    'state_machine',
-    'commerce_product',
-    'commerce_order',
     'commerce_payment',
     'commerce_payment_example',
   ];
@@ -46,19 +40,8 @@ class PaymentMethodTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('commerce_payment_method');
-    $this->installConfig('commerce_order');
     $this->installConfig('commerce_payment');
-
-    // An order item type that doesn't need a purchasable entity, for simplicity.
-    OrderItemType::create([
-      'id' => 'test',
-      'label' => 'Test',
-      'orderType' => 'default',
-    ])->save();
 
     PaymentGateway::create([
       'id' => 'example',
@@ -96,6 +79,15 @@ class PaymentMethodTest extends CommerceKernelTestBase {
     /** @var \Drupal\profile\Entity\ProfileInterface $profile */
     $profile = Profile::create([
       'type' => 'customer',
+      'address' => [
+        'country_code' => 'US',
+        'postal_code' => '53177',
+        'locality' => 'Milwaukee',
+        'address_line1' => 'Pabst Blue Ribbon Dr',
+        'administrative_area' => 'WI',
+        'given_name' => 'Frederick',
+        'family_name' => 'Pabst',
+      ],
     ]);
     $profile->save();
     $profile = $this->reloadEntity($profile);
@@ -141,6 +133,44 @@ class PaymentMethodTest extends CommerceKernelTestBase {
 
     $payment_method->setCreatedTime(635879700);
     $this->assertEquals(635879700, $payment_method->getCreatedTime());
+  }
+
+  /**
+   * @covers ::preSave
+   */
+  public function testPreSave() {
+    /** @var \Drupal\profile\Entity\ProfileInterface $profile */
+    $profile = Profile::create([
+      'type' => 'customer',
+      'uid' => $this->user->id(),
+      'address' => [
+        'country_code' => 'US',
+        'postal_code' => '53177',
+        'locality' => 'Milwaukee',
+        'address_line1' => 'Pabst Blue Ribbon Dr',
+        'administrative_area' => 'WI',
+        'given_name' => 'Frederick',
+        'family_name' => 'Pabst',
+      ],
+    ]);
+    $profile->save();
+    $profile = $this->reloadEntity($profile);
+
+    /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method */
+    $payment_method = PaymentMethod::create([
+      'type' => 'credit_card',
+      'payment_gateway' => 'example',
+      'billing_profile' => $profile,
+    ]);
+    $payment_method->save();
+
+    // Confirm that the payment_gateway_mode field is populated.
+    $this->assertEquals('test', $payment_method->getPaymentGatewayMode());
+
+    // Confirm that saving the payment method reassigns the billing profile.
+    $payment_method->save();
+    $this->assertEquals(0, $payment_method->getBillingProfile()->getOwnerId());
+    $this->assertEquals($profile->id(), $payment_method->getBillingProfile()->id());
   }
 
 }

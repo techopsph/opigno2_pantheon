@@ -10,14 +10,13 @@ use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_product\Entity\ProductVariationType;
 use Drupal\profile\Entity\Profile;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
 
 /**
  * Tests the order total summary.
  *
  * @group commerce
  */
-class OrderTotalSummaryTest extends CommerceKernelTestBase {
+class OrderTotalSummaryTest extends OrderKernelTestBase {
 
   /**
    * A sample order.
@@ -39,13 +38,7 @@ class OrderTotalSummaryTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'entity_reference_revisions',
-    'path',
-    'profile',
-    'state_machine',
-    'commerce_product',
     'commerce_promotion',
-    'commerce_order',
     'commerce_test',
     'commerce_order_test',
   ];
@@ -56,13 +49,7 @@ class OrderTotalSummaryTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
-    $this->installEntitySchema('commerce_product');
-    $this->installEntitySchema('commerce_product_variation');
     $this->installEntitySchema('commerce_promotion');
-    $this->installConfig(['commerce_product', 'commerce_order']);
 
     $this->orderTotalSummary = $this->container->get('commerce_order.order_total_summary');
 
@@ -98,13 +85,13 @@ class OrderTotalSummaryTest extends CommerceKernelTestBase {
     /** @var \Drupal\commerce_order\Entity\Order $order */
     $order = Order::create([
       'type' => 'default',
-      'state' => 'draft',
       'mail' => $user->getEmail(),
       'uid' => $user->id(),
       'ip_address' => '127.0.0.1',
       'order_number' => '6',
       'billing_profile' => $profile,
       'store_id' => $this->store->id(),
+      'state' => 'completed',
     ]);
 
     $order->save();
@@ -125,15 +112,13 @@ class OrderTotalSummaryTest extends CommerceKernelTestBase {
     $order_item = $this->reloadEntity($order_item);
     $this->order->addItem($order_item);
 
-    $test_order_adjustments = [];
-    $test_order_adjustments[] = new Adjustment([
+    $this->order->addAdjustment(new Adjustment([
       'type' => 'promotion',
       'label' => 'Back to school discount',
       'amount' => new Price('-5.00', 'USD'),
       'percentage' => '0.1',
       'source_id' => '1',
-    ]);
-    $this->order->setData('test_adjustments', $test_order_adjustments);
+    ]));
     $this->order->save();
 
     $totals = $this->orderTotalSummary->buildTotals($this->order);
@@ -158,15 +143,13 @@ class OrderTotalSummaryTest extends CommerceKernelTestBase {
       'quantity' => 1,
       'unit_price' => new Price('12.00', 'USD'),
     ]);
-    $order_item_test_adjustments = [];
-    $order_item_test_adjustments[] = new Adjustment([
+    $order_item->addAdjustment(new Adjustment([
       'type' => 'promotion',
       'label' => 'Back to school discount',
       'amount' => new Price('-1.00', 'USD'),
       'percentage' => '0.1',
       'source_id' => '1',
-    ]);
-    $order_item->setData('test_adjustments', $order_item_test_adjustments);
+    ]));
     $order_item->save();
     $order_item = $this->reloadEntity($order_item);
     $this->order->addItem($order_item);
@@ -194,35 +177,30 @@ class OrderTotalSummaryTest extends CommerceKernelTestBase {
       'quantity' => 2,
       'unit_price' => new Price('12.00', 'USD'),
     ]);
-    $order_item_test_adjustments = [];
-    $order_item_test_adjustments[] = new Adjustment([
+    $order_item->addAdjustment(new Adjustment([
       'type' => 'promotion',
       'label' => 'Back to school discount',
       'amount' => new Price('-1.00', 'USD'),
       'percentage' => '0.1',
       'source_id' => '1',
-    ]);
+    ]));
     // This adjustment should be first.
-    $order_item_test_adjustments[] = new Adjustment([
+    $order_item->addAdjustment(new Adjustment([
       'type' => 'test_adjustment_type',
       'label' => '50 cent item fee',
       'amount' => new Price('0.50', 'USD'),
-    ]);
-    $order_item->setData('test_adjustments', $order_item_test_adjustments);
+    ]));
     $order_item->save();
     $order_item = $this->reloadEntity($order_item);
     $this->order->addItem($order_item);
 
-    $test_order_adjustments = [];
-    $test_order_adjustments[] = new Adjustment([
+    $this->order->addAdjustment(new Adjustment([
       'type' => 'promotion',
       'label' => 'Back to school discount',
       'amount' => new Price('-5.00', 'USD'),
       'percentage' => '0.1',
       'source_id' => '1',
-    ]);
-    $this->order->setData('test_adjustments', $test_order_adjustments);
-
+    ]));
     $this->order->addAdjustment(new Adjustment([
       'type' => 'custom',
       'label' => 'Handling fee',
@@ -252,6 +230,52 @@ class OrderTotalSummaryTest extends CommerceKernelTestBase {
     $this->assertEquals('Handling fee', $third['label']);
     $this->assertEquals(new Price('10', 'USD'), $third['amount']);
     $this->assertNull($third['percentage']);
+  }
+
+  /**
+   * Tests the order total summary with included adjustments.
+   */
+  public function testIncludedAdjustments() {
+    /** @var \Drupal\commerce_order\Entity\OrderItemInterface $order_item */
+    $order_item = OrderItem::create([
+      'type' => 'default',
+      'quantity' => 1,
+      'unit_price' => new Price('12.00', 'USD'),
+    ]);
+    $order_item->save();
+    $order_item = $this->reloadEntity($order_item);
+    $this->order->addItem($order_item);
+
+    $this->order->addAdjustment(new Adjustment([
+      'type' => 'promotion',
+      'label' => 'Back to school discount',
+      'amount' => new Price('-5.00', 'USD'),
+      'source_id' => '1',
+      'included' => TRUE,
+    ]));
+    $this->order->save();
+    $this->order->addAdjustment(new Adjustment([
+      'type' => 'tax',
+      'label' => 'VAT',
+      'amount' => new Price('2.00', 'USD'),
+      'source_id' => 'us_vat|default|reduced',
+      'percentage' => '0.2',
+      'included' => TRUE,
+    ]));
+    $this->order->save();
+
+    $totals = $this->orderTotalSummary->buildTotals($this->order);
+    $this->assertEquals(new Price('12.00', 'USD'), $totals['subtotal']);
+    $this->assertEquals(new Price('12.00', 'USD'), $totals['total']);
+    // Confirm that the promotion adjustment was filtered out,
+    // but the tax one wasn't.
+    $this->assertCount(1, $totals['adjustments']);
+    $first = array_shift($totals['adjustments']);
+    $this->assertEquals('tax', $first['type']);
+    $this->assertEquals('VAT', $first['label']);
+    $this->assertEquals(new Price('2.00', 'USD'), $first['amount']);
+    $this->assertEquals('us_vat|default|reduced', $first['source_id']);
+    $this->assertEquals('0.2', $first['percentage']);
   }
 
 }

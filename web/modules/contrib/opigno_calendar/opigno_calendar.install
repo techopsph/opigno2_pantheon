@@ -50,6 +50,10 @@ function opigno_calendar_update_8002() {
   $view->set($base . '.alter', $alter_option);
   $view->save(TRUE);
 
+  if (!\Drupal::moduleHandler()->moduleExists('locale')) {
+    return;
+  }
+
   // Update translations.
   $db_connection = \Drupal::service('database');
   // Get id of translation.
@@ -72,4 +76,43 @@ function opigno_calendar_update_8002() {
   catch (Exception $e) {
     \Drupal::logger('opigno_calendar')->error($e->getMessage());
   }
+}
+
+/**
+ * Adding Datepicker date format.
+ */
+function opigno_calendar_update_8003() {
+  $config_path = drupal_get_path('module', 'opigno_calendar')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('core.date_format.datepicker');
+  $config_storage->write('core.date_format.datepicker', $data);
+}
+
+/**
+ * Show tabs on calendar page.
+ */
+function opigno_calendar_update_8004() {
+  $config_path = drupal_get_path('theme', 'platon')
+    . '/config/optional';
+  $storage = new FileStorage($config_path);
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('block.block.tabs');
+  $config_storage->write('block.block.tabs', $data);
+}
+
+/**
+ * Hide tabs on calendar month page.
+ */
+function opigno_calendar_update_8005() {
+  $config_path = drupal_get_path('theme', 'platon')
+    . '/config/optional';
+  $storage = new FileStorage($config_path);
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('block.block.tabs');
+  $config_storage->write('block.block.tabs', $data);
 }

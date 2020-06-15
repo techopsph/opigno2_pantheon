@@ -66,7 +66,7 @@ class ImportTrainingForm extends FormBase {
       // Only need to validate if the field actually has a file.
       $form_state->setError(
         $form['training_opi'],
-        $this->t("Files isn't uploaded.")
+        $this->t("The file was not uploaded.")
       );
     }
   }
@@ -541,6 +541,11 @@ class ImportTrainingForm extends FormBase {
               $require = explode('-', $require_string);
               $link['required_activities'][$key_req] = str_replace($require[0], $ids['activities'][$require[0]], $link['required_activities'][$key_req]);
             }
+
+            $link['required_activities'] = serialize($link['required_activities']);
+          }
+          else {
+            $link['required_activities'] = NULL;
           }
 
           OpignoGroupManagedLink::createWithValues(
@@ -548,7 +553,7 @@ class ImportTrainingForm extends FormBase {
             $ids['link'][$link['parent_content_id']],
             $new_content->id(),
             $link['required_score'],
-            serialize($link['required_activities'])
+            $link['required_activities']
           )->save();
         }
 

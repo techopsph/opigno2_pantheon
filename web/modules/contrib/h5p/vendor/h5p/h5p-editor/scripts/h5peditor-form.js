@@ -414,7 +414,7 @@ ns.Form.prototype.processSemantics = function (semantics, defaultParams, metadat
   this.metadata = (metadata ? metadata : defaultParams.metadata || {});
 
   if (ns.enableMetadata(this.currentLibrary)) {
-    this.metadataForm = new ns.MetadataForm(this, this.metadata, this.$form.children('.tree'), false);
+    this.metadataForm = new ns.MetadataForm(this, this.metadata, this.$form.children('.tree'), true);
   }
   else {
     this.metadataForm = H5PEditor.MetadataForm.createLegacyForm(this.metadata, this.$form.children('.tree'));

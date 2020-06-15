@@ -69,10 +69,9 @@ class CurrencyForm extends EntityForm {
       '#type' => 'textfield',
       '#title' => $this->t('Numeric code'),
       '#description' => $this->t('The three digit code, as defined by <a href=":url" target="_blank">ISO 4217</a>.', [':url' => $iso_4217_url]),
-      '#default_value' => $currency->getNumericCode(),
+      '#default_value' => $currency->getNumericCode() ?: '000',
       '#element_validate' => ['::validateNumericCode'],
       '#pattern' => '[\d]{3}',
-      '#placeholder' => '999',
       '#maxlength' => 3,
       '#size' => 4,
       '#required' => TRUE,
@@ -86,11 +85,11 @@ class CurrencyForm extends EntityForm {
       '#required' => TRUE,
     ];
     $form['fractionDigits'] = [
-      '#type' => 'number',
+      '#type' => 'select',
       '#title' => $this->t('Fraction digits'),
       '#description' => $this->t('The number of digits after the decimal sign.'),
+      '#options' => range(0, 6),
       '#default_value' => $currency->getFractionDigits(),
-      '#min' => 0,
       '#required' => TRUE,
     ];
 

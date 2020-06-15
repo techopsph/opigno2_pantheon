@@ -20,6 +20,21 @@ private_message.settings:
     hide_recipient_field_when_prefilled:
       type: boolean
       label: 'Whether or not to hide the recipient field when a recipient is passed through the URL'
+    create_message_label:
+      type: label
+      label: 'The label of the action to create private message'
+    save_message_label:
+      type: label
+      label: 'The label of the button to send a new message.'
+    autofocus_enable:
+      type: boolean
+      label: 'Whether or not the message autofocus feature is enabled.'
+    keys_send:
+      type: string
+      label: 'The keys allowed to press to send directly the message.'
+    remove_css:
+      type: boolean
+      label: 'Whether or not to remove the default CSS styles'
 
 field.formatter.settings.private_message_thread_member_formatter:
   type: mapping
@@ -62,6 +77,12 @@ field.widget.settings.private_message_thread_member_widget:
     match_operator:
       type: string
       label: 'Autocomplete matching'
+    match_limit:
+      type: integer
+      label: 'Maximum number of autocomplete suggestions.'
+    max_members:
+      type: integer
+      label: 'Maximum number of members that can be added.'
     size:
       type: integer
       label: 'Size of textfield'

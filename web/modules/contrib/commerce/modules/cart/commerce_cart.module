@@ -5,11 +5,24 @@
  * Implements the shopping cart system and add to cart features.
  */
 
+use Drupal\commerce_cart\CartSessionInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AnonymousUserSession;
+
+/**
+ * Implements hook_cron().
+ */
+function commerce_cart_cron() {
+  \Drupal::service('commerce_cart.cron')->run();
+}
 
 /**
  * Implements hook_menu_links_discovered_alter().
@@ -79,30 +92,6 @@ function commerce_cart_entity_base_field_info(EntityTypeInterface $entity_type) 
 }
 
 /**
- * Implements hook_entity_bundle_create().
- *
- * Creates an 'add_to_cart' form display for each new order item type.
- */
-function commerce_cart_entity_bundle_create($entity_type_id, $bundle) {
-  if ($entity_type_id == 'commerce_order_item' && !\Drupal::isConfigSyncing()) {
-    $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
-    $form_display = $storage->load('commerce_order_item.' . $bundle . '.add_to_cart');
-    if (!$form_display) {
-      /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $form_display */
-      $form_display = $storage->create([
-        'targetEntityType' => 'commerce_order_item',
-        'bundle' => $bundle,
-        'mode' => 'add_to_cart',
-        'status' => TRUE,
-      ]);
-      // Hide the unit price by default.
-      $form_display->removeComponent('unit_price');
-      $form_display->save();
-    }
-  }
-}
-
-/**
  * Implements hook_entity_type_build().
  */
 function commerce_cart_entity_type_build(array &$entity_types) {
@@ -126,9 +115,64 @@ function commerce_cart_user_login($account) {
  * Removes deleted carts from the anonymous user's session.
  */
 function commerce_cart_commerce_order_delete(OrderInterface $order) {
-  if (!empty($order->cart)) {
+  if (!empty($order->cart->value)) {
     \Drupal::service('commerce_cart.cart_session')->deleteCartId($order->id());
   }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function commerce_cart_commerce_order_access(OrderInterface $order, $operation, AccountInterface $account) {
+  return _commerce_cart_order_access($order, $operation, $account);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function commerce_cart_commerce_order_item_access(OrderItemInterface $order_item, $operation, AccountInterface $account) {
+  $order = $order_item->getOrder();
+  return $order ? _commerce_cart_order_access($order, $operation, $account) : AccessResult::neutral();
+}
+
+/**
+ * Checks that the account has access to the cart.
+ *
+ * @param \Drupal\commerce_order\Entity\OrderInterface $order
+ *   The cart order.
+ * @param string $operation
+ *   The operation.
+ * @param \Drupal\Core\Session\AccountInterface $account
+ *   The account.
+ *
+ * @return \Drupal\Core\Access\AccessResultInterface
+ *   The access result.
+ */
+function _commerce_cart_order_access(OrderInterface $order, $operation, AccountInterface $account) {
+  if ($operation !== 'view' && $operation !== 'update') {
+    return AccessResult::neutral();
+  }
+  $customer_id = (int) $order->getCustomerId();
+  $order_id = $order->id();
+
+  if ($account->isAuthenticated()) {
+    $customer_check = (int) $account->id() === $customer_id;
+  }
+  else {
+    $cart_session = \Drupal::service('commerce_cart.cart_session');
+    assert($cart_session instanceof CartSessionInterface);
+    $active_cart = $cart_session->hasCartId($order_id, CartSessionInterface::ACTIVE);
+    $completed_cart = $cart_session->hasCartId($order_id, CartSessionInterface::COMPLETED);
+    $customer_check = $active_cart || $completed_cart;
+  }
+
+  $access_result = AccessResult::allowedIf($customer_check);
+  if ($operation === 'update') {
+    $access_result = $access_result->andIf(AccessResult::allowedIf($order->getState()->getId() === 'draft'));
+  }
+  return $access_result
+    ->addCacheableDependency($order)
+    ->cachePerUser();
 }
 
 /**
@@ -158,7 +202,7 @@ function commerce_cart_form_commerce_order_form_alter(array &$form, FormStateInt
   if (isset($form['cart'])) {
     /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
     $order = $form_state->getFormObject()->getEntity();
-    if ($order->getState()->value == 'draft') {
+    if ($order->getState()->getId() == 'draft') {
       // Move the cart element to the bottom of the meta sidebar container.
       $form['cart']['#group'] = 'meta';
       $form['cart']['#weight'] = 100;
@@ -175,10 +219,11 @@ function commerce_cart_form_commerce_order_form_alter(array &$form, FormStateInt
  * Implements hook_form_BASE_FORM_ID_alter() for 'commerce_order_type_form'.
  */
 function commerce_cart_form_commerce_order_type_form_alter(array &$form, FormStateInterface $form_state) {
+  /** @var \Drupal\commerce_order\Entity\OrderTypeInterface $order_type */
   $order_type = $form_state->getFormObject()->getEntity();
   $cart_form_view = $order_type->getThirdPartySetting('commerce_cart', 'cart_form_view', 'commerce_cart_form');
   $cart_block_view = $order_type->getThirdPartySetting('commerce_cart', 'cart_block_view', 'commerce_cart_block');
-  // Prepare a list of views tagged 'commerce_cart_form'.
+  $cart_expiration = $order_type->getThirdPartySetting('commerce_cart', 'cart_expiration');
   $view_storage = \Drupal::entityTypeManager()->getStorage('view');
   $available_form_views = [];
   $available_block_views = [];
@@ -186,7 +231,7 @@ function commerce_cart_form_commerce_order_type_form_alter(array &$form, FormSta
     if (strpos($view->get('tag'), 'commerce_cart_form') !== FALSE) {
       $available_form_views[$view->id()] = $view->label();
     }
-    elseif (strpos($view->get('tag'), 'commerce_cart_block') !== FALSE) {
+    if (strpos($view->get('tag'), 'commerce_cart_block') !== FALSE) {
       $available_block_views[$view->id()] = $view->label();
     }
   }
@@ -196,7 +241,9 @@ function commerce_cart_form_commerce_order_type_form_alter(array &$form, FormSta
     '#title' => t('Shopping cart settings'),
     '#weight' => 5,
     '#open' => TRUE,
-    '#collapsible' => TRUE,
+    '#attached' => [
+      'library' => ['commerce_cart/admin'],
+    ],
   ];
   $form['commerce_cart']['cart_form_view'] = [
     '#type' => 'select',
@@ -211,6 +258,43 @@ function commerce_cart_form_commerce_order_type_form_alter(array &$form, FormSta
     '#default_value' => $cart_block_view,
   ];
 
+  $form['commerce_cart']['cart_expiration_enable'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Delete abandoned carts'),
+    '#default_value' => !empty($cart_expiration['number']),
+  ];
+  $form['commerce_cart']['cart_expiration'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['interval'],
+    ],
+    '#states' => [
+      'visible' => [
+        ':input[name="commerce_cart[cart_expiration_enable]"]' => ['checked' => TRUE],
+      ],
+    ],
+    '#open' => TRUE,
+  ];
+  $form['commerce_cart']['cart_expiration']['number'] = [
+    '#type' => 'number',
+    '#title' => t('Interval'),
+    '#default_value' => !empty($cart_expiration['number']) ? $cart_expiration['number'] : 30,
+    '#required' => TRUE,
+    '#min' => 1,
+  ];
+  $form['commerce_cart']['cart_expiration']['unit'] = [
+    '#type' => 'select',
+    '#title' => t('Unit'),
+    '#title_display' => 'invisible',
+    '#default_value' => !empty($cart_expiration['unit']) ? $cart_expiration['unit'] : 'day',
+    '#options' => [
+      'hour' => t('Hour'),
+      'day' => t('Day'),
+      'month' => t('Month'),
+    ],
+    '#required' => TRUE,
+  ];
+
   $form['actions']['submit']['#submit'][] = 'commerce_cart_order_type_form_submit';
 }
 
@@ -223,7 +307,59 @@ function commerce_cart_order_type_form_submit($form, FormStateInterface $form_st
   $settings = &$form_state->getValue('commerce_cart');
   $order_type->setThirdPartySetting('commerce_cart', 'cart_form_view', $settings['cart_form_view']);
   $order_type->setThirdPartySetting('commerce_cart', 'cart_block_view', $settings['cart_block_view']);
+
+  $cart_expiration = [];
+  if (!empty($settings['cart_expiration_enable'])) {
+    $cart_expiration = [
+      'unit' => $settings['cart_expiration']['unit'],
+      'number' => $settings['cart_expiration']['number'],
+    ];
+  }
+  $order_type->setThirdPartySetting('commerce_cart', 'cart_expiration', $cart_expiration);
   $order_type->save();
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for 'commerce_order_item_type_form'.
+ */
+function commerce_cart_form_commerce_order_item_type_form_alter(array &$form, FormStateInterface $form_state) {
+  $form['actions']['submit']['#submit'][] = 'commerce_cart_order_item_type_form_submit';
+}
+
+/**
+ * Form submission handler for 'commerce_order_item_type_form'.
+ */
+function commerce_cart_order_item_type_form_submit($form, FormStateInterface $form_state) {
+  $form_object = $form_state->getFormObject();
+  assert($form_object instanceof EntityForm);
+  if ($form_object->getOperation() == 'add') {
+    // Help merchants navigate the admin UI by ensuring the order item type
+    // has a matching 'add_to_cart' form display.
+    $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+    /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $form_display */
+    $form_display = $storage->create([
+      'targetEntityType' => 'commerce_order_item',
+      'bundle' => $form_object->getEntity()->id(),
+      'mode' => 'add_to_cart',
+      'status' => TRUE,
+    ]);
+    $form_display->removeComponent('unit_price');
+    $form_display->save();
+  }
+}
+
+/**
+ * Implements hook_entity_form_display_alter().
+ */
+function commerce_cart_entity_form_display_alter(EntityFormDisplayInterface $form_display, array $context) {
+  if ($context['entity_type'] != 'commerce_order_item') {
+    return;
+  }
+  // The "add_to_cart" form mode doesn't have a form display yet.
+  // Default to hiding the unit_price field.
+  if ($context['form_mode'] == 'add_to_cart' && $context['form_mode'] != $form_display->getMode()) {
+    $form_display->removeComponent('unit_price');
+  }
 }
 
 /**

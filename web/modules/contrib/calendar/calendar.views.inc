@@ -64,36 +64,28 @@ function _calendar_create_field_arguments($field_id, $group = '') {
  * Implements hook_field_views_data_alter().
  */
 function calendar_field_views_data_alter(array &$data, FieldStorageConfigInterface $field_storage) {
-  $supported_types = ['datetime', 'datetime_range'];
-  foreach ($data as $table_name => &$table_data) {
-    foreach (['value', 'end_value'] as $column_name) {
-      // Set the 'datetime' filter type.
-      $views_field = $field_storage->getName() . '_' . $column_name;
-      if (isset($table_data[$views_field]) && in_array($table_data[$views_field]['filter']['id'], $supported_types)) {
-        // Create year, month, and day arguments.
-        $group = $table_data[$field_storage->getName() . '_value']['group'];
-        $arguments = [
-          // Argument type => help text.
-          'year_week' => t('Calendar Date in the form of CCYYW.'),
+  foreach ($data as $table_name => $table_data) {
+    // Set the 'datetime' filter type.
+    if (isset($data[$table_name][$field_storage->getName() . '_value'])
+      && $data[$table_name][$field_storage->getName() . '_value']['filter']['id'] == 'datetime') {
+      // Create year, month, and day arguments.
+      $group = $data[$table_name][$field_storage->getName() . '_value']['group'];
+      $arguments = [
+        // Argument type => help text.
+        'year_week' => t('Calendar Date in the form of CCYYW.'),
+      ];
+      foreach ($arguments as $argument_type => $help_text) {
+        $data[$table_name][$field_storage->getName() . '_value_' . $argument_type] = [
+          'title' => 'Calendar ' . $field_storage->getLabel() . ' (' . $argument_type . ')',
+          'help' => $help_text,
+          'argument' => [
+            'field' => $field_storage->getName() . '_value',
+            'id' => 'datetime_' . $argument_type,
+            'entity_type' => $field_storage->getTargetEntityTypeId(),
+            'field_name' => $field_storage->getName(),
+          ],
+          'group' => $group,
         ];
-        foreach ($arguments as $argument_type => $help_text) {
-          $column_name_text = $column_name === $field_storage->getMainPropertyName() ? '' : ':' . $column_name;
-          $table_data[$views_field . '_' . $argument_type] = [
-            'title' => t('Calendar @label@column (@argument)', [
-              '@label' => $field_storage->getLabel(),
-              '@column' => $column_name_text,
-              '@argument' => $argument_type,
-            ]),
-            'help' => $help_text,
-            'argument' => [
-              'field' => $views_field,
-              'id' => $table_data[$views_field]['argument']['id'] . '_' . $argument_type,
-              'entity_type' => $field_storage->getTargetEntityTypeId(),
-              'field_name' => $field_storage->getName(),
-            ],
-            'group' => $group,
-          ];
-        }
       }
     }
   }

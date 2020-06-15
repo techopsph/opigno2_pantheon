@@ -8,7 +8,7 @@ dependencies:
   - opigno_learning_path:opigno_learning_path
   - opigno_module:opigno_module
 
-# Information added by Drupal.org packaging script on 2020-01-30
-version: '8.x-1.5'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.6'
 project: 'opigno_statistics'
-datestamp: 1580377392
+datestamp: 1591090467

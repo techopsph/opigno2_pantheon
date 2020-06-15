@@ -10,6 +10,8 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\group\Entity\GroupInterface;
+use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
+use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_statistics\StatisticsPageTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\group\Entity\Group;
@@ -80,18 +82,30 @@ class TrainingForm extends FormBase {
    *   Group.
    * @param \Drupal\Core\Datetime\DrupalDateTime $datetime
    *   Date.
+   * @param mixed $expired_uids
+   *   Users uids with the training expired certification.
    *
    * @return array
    *   Render array.
+   *
+   * @throws \Exception
    */
-  protected function buildTrainingsProgress(GroupInterface $group, DrupalDateTime $datetime) {
+  protected function buildTrainingsProgress(GroupInterface $group, DrupalDateTime $datetime, $expired_uids = NULL) {
     $time_str = $datetime->format(DrupalDateTime::FORMAT);
     $group_bundle = $group->bundle();
 
+    // Get number of users with expired certificates.
+    $expired_users_number = !empty($expired_uids) ? count($expired_uids) : 0;
+
     $query = $this->database->select('opigno_learning_path_achievements', 'a');
-    $query->addExpression('SUM(a.progress) / COUNT(a.progress) / 100', 'progress');
-    $query->addExpression('COUNT(a.completed) / COUNT(a.registered)', 'completion');
+    $query->addExpression('SUM(a.progress) / (COUNT(a.progress) + :expired_users_number) / 100', 'progress', [':expired_users_number' => $expired_users_number]);
+    $query->addExpression('COUNT(a.completed) / (COUNT(a.registered) + :expired_users_number)', 'completion', [':expired_users_number' => $expired_users_number]);
     $query->condition('a.uid', 0, '<>');
+
+    if (!empty($expired_uids)) {
+      // Exclude users with the training expired certification.
+      $query->condition('a.uid', $expired_uids, 'NOT IN');
+    }
 
     $or_group = $query->orConditionGroup();
     $or_group->condition('a.completed', $time_str, '<');
@@ -274,7 +288,7 @@ AND gc.gid = :gid",
     $new_users_block = $this->buildUserMetric(
       $this->t('New users'),
       $new_users,
-      t('@TODO help text New users')
+      t('This is the number of users who registered during the last 7 days')
     );
     $active_users_block = $this->buildUserMetric(
       $this->t('Recently active users'),
@@ -322,40 +336,16 @@ AND gc.gid = :gid",
    *
    * @param \Drupal\group\Entity\GroupInterface $group
    *   Group.
+   * @param mixed $expired_uids
+   *   Users uids with the training expired certification.
    *
    * @return array
    *   Render array.
+   *
+   * @throws \Exception
    */
-  protected function buildTrainingContent(GroupInterface $group) {
-    $query = $this->database
-      ->select('opigno_learning_path_achievements', 'a');
-    $query->leftJoin(
-      'opigno_learning_path_step_achievements',
-      's',
-      's.gid = a.gid AND s.uid = a.uid'
-    );
-    $query->leftJoin(
-      'opigno_learning_path_step_achievements',
-      'sc',
-      'sc.id = s.id AND sc.completed IS NOT NULL'
-    );
-    $query->addExpression('COUNT(sc.uid)', 'completed');
-    $query->addExpression('AVG(s.score)', 'score');
-    $query->addExpression('AVG(s.time)', 'time');
-    $query->addExpression('MAX(s.entity_id)', 'entity_id');
-    $query->addExpression('MAX(s.parent_id)', 'parent_id');
-    $query->addExpression('MAX(s.position)', 'position');
-    $query->addExpression('MAX(s.typology)', 'typology');
-    $query->addExpression('MAX(s.id)', 'id');
-    $query->condition('a.uid', 0, '<>');
-
-    $data = $query->fields('s', ['name'])
-      ->condition('a.gid', $group->id())
-      ->groupBy('s.name')
-      ->orderBy('position')
-      ->orderBy('parent_id')
-      ->execute()
-      ->fetchAllAssoc('entity_id');
+  protected function buildTrainingContent(GroupInterface $group, $expired_uids = NULL) {
+    $gid = $group->id();
 
     $query = $this->database->select('users', 'u');
     $query->innerJoin(
@@ -365,14 +355,21 @@ AND gc.gid = :gid",
 AND gc.type IN ('learning_path-group_membership', 'opigno_course-group_membership')
 AND gc.gid = :gid",
       [
-        ':gid' => $group->id(),
+        ':gid' => $gid,
       ]
     );
+    $query->fields('u', ['uid']);
     $users = $query
       ->condition('u.uid', 0, '<>')
-      ->countQuery()
       ->execute()
-      ->fetchField();
+      ->fetchAll();
+
+    $users_number = count($users);
+
+    // Filter users with expired certificate.
+    $users = array_filter($users, function ($user) use ($expired_uids) {
+      return !in_array($user->uid, $expired_uids);
+    });
 
     $table = [
       '#type' => 'table',
@@ -392,54 +389,56 @@ AND gc.gid = :gid",
       '#rows' => [],
     ];
 
-    $entity_ids = array_keys($data);
-
-    // Get relationships between courses and modules.
-    $query = \Drupal::database()
-      ->select('group_content_field_data', 'g_c_f_d');
-    $query->fields('g_c_f_d', ['entity_id', 'gid']);
-    $query->condition('g_c_f_d.entity_id', $entity_ids, 'IN');
-    $group_content = $query
-      ->execute()
-      ->fetchAll();
-
-    $modules_relationships = [];
-
-    foreach ($group_content as $content) {
-      $modules_relationships[$content->entity_id][] = $content->gid;
-    }
-
-    // Sort courses and modules.
     $rows = [];
-    foreach ($data as $row) {
-      if ($row->typology == 'Course') {
-        $rows[] = $row;
-        foreach ($data as $module) {
-          if (in_array($row->entity_id, $modules_relationships[$module->entity_id])) {
-            $rows[] = $module;
+    if (LPStatus::isCertificateExpireSet($group)) {
+      // Calculate training content in condition of certification.
+      $contents = OpignoGroupManagedContent::loadByGroupId($gid);
+      if ($users && $contents) {
+        foreach ($contents as $content) {
+          $content_id = $content->id();
+          $rows[$content_id] = new \stdClass();
+
+          $rows[$content_id]->name = '';
+          $rows[$content_id]->completed = 0;
+          $rows[$content_id]->score = 0;
+          $rows[$content_id]->time = 0;
+
+          $statistics = $this->getGroupContentStatisticsCertificated($group, $users, $content);
+
+          if (!empty($statistics['name'])) {
+            // Step name.
+            $rows[$content_id]->name = $statistics['name'];
+            // Step average completed.
+            $rows[$content_id]->completed = $statistics['completed'];
+            // Step average score.
+            $rows[$content_id]->score = $statistics['score'] / $users_number;
+            // Step average score.
+            $rows[$content_id]->time = round($statistics['time'] / $users_number);
           }
         }
       }
-      elseif (($row->typology == 'Module' && $row->parent_id == 0)
-        || $row->typology == 'ILT' || $row->typology == 'Meeting') {
-        $rows[] = $row;
-      }
+    }
+    else {
+      // Calculate training content without certification condition.
+      $rows = $this->getTrainingContentStatistics($gid);
     }
 
-    foreach ($rows as $row) {
-      if (!empty($row->name)) {
-        $completed = round(100 * $row->completed / $users);
-        $score = round($row->score);
-        $time = $row->time > 0
-          ? $this->date_formatter->formatInterval($row->time)
-          : '-';
+    if ($rows) {
+      foreach ($rows as $row) {
+        if (!empty($row->name)) {
+          $completed = round(100 * $row->completed / $users_number);
+          $score = round($row->score);
+          $time = $row->time > 0
+            ? $this->date_formatter->formatInterval($row->time)
+            : '-';
 
-        $table['#rows'][] = [
-          $row->name,
-          $this->t('@completed%', ['@completed' => $completed]),
-          $this->t('@score%', ['@score' => $score]),
-          $time,
-        ];
+          $table['#rows'][] = [
+            $row->name,
+            $this->t('@completed%', ['@completed' => $completed]),
+            $this->t('@score%', ['@score' => $score]),
+            $time,
+          ];
+        }
       }
     }
 
@@ -465,11 +464,13 @@ AND gc.gid = :gid",
    *
    * @param \Drupal\group\Entity\GroupInterface $group
    *   Group.
+   * @param mixed $expired_uids
+   *   Users uids with the training expired certification.
    *
    * @return array
    *   Render array.
    */
-  protected function buildUsersResultsLp(GroupInterface $group) {
+  protected function buildUsersResultsLp(GroupInterface $group, $expired_uids = NULL) {
     $query = $this->database->select('users_field_data', 'u');
     $query->innerJoin(
       'group_content_field_data',
@@ -510,16 +511,31 @@ AND gc.gid = :gid",
       '#rows' => [],
     ];
     foreach ($data as $row) {
+      // Expired training certification flag.
+      $expired = FALSE;
+      if (!empty($expired_uids) && in_array($row->uid, $expired_uids)) {
+        $expired = TRUE;
+      }
+
+      if ($expired) {
+        $row->score = 0;
+      }
       $score = isset($row->score) ? $row->score : 0;
       $score = [
         'data' => $this->buildScore($score),
       ];
 
+      if ($expired) {
+        $row->status = 'expired';
+      }
       $status = isset($row->status) ? $row->status : 'pending';
       $status = [
         'data' => $this->buildStatus($status),
       ];
 
+      if ($expired) {
+        $row->time = 0;
+      }
       $time = $row->time > 0
         ? $this->date_formatter->formatInterval($row->time)
         : '-';
@@ -730,57 +746,77 @@ AND gc.gid = :gid",
       ->orderBy('year', 'DESC')
       ->execute()
       ->fetchAll();
-    $years = [];
+    $years = ['none' => '- None -'];
     foreach ($data as $row) {
       $year = $row->year;
       if (!isset($years[$year])) {
         $years[$year] = $year;
       }
     }
+
+    $max_year = !empty($years) ? max(array_keys($years)) : NULL;
     $year_select = [
       '#type' => 'select',
       '#options' => $years,
-      '#default_value' => max(array_keys($years)),
+      '#default_value' => 'none',
       '#ajax' => [
         'event' => 'change',
         'callback' => '::submitFormAjax',
         'wrapper' => 'statistics-trainings-progress',
       ],
     ];
-    $year = $form_state->getValue('year', max(array_keys($years)));
+
+    $year_current = $form_state->getValue('year');
+
+    if ($year_current == NULL || $year_current == 'none') {
+      $year = $max_year;
+    }
+    else {
+      $year = $year_current;
+    }
 
     $query = $this->database
       ->select('opigno_learning_path_achievements', 'a');
     $query->addExpression('MONTH(a.registered)', 'month');
+    $query->addExpression('YEAR(a.registered)', 'year');
     $query->condition('a.gid', $lp_ids, 'IN');
     $data = $query->groupBy('month')
+      ->groupBy('year')
       ->orderBy('month')
       ->execute()
       ->fetchAll();
-    $months = [];
+    $months = ['none' => '- None -'];
     foreach ($data as $row) {
       $month = $row->month;
-      if (!isset($months[$month])) {
+      if (!isset($months[$month]) && $row->year == $year) {
         $timestamp = mktime(0, 0, 0, $month, 1);
         $months[$month] = $this->date_formatter
           ->format($timestamp, 'custom', 'F');
       }
     }
+    $max_month = !empty($months) ? max(array_keys($months)) : NULL;
     $month_select = [
       '#type' => 'select',
       '#options' => $months,
-      '#default_value' => max(array_keys($months)),
+      '#default_value' => 'none',
       '#ajax' => [
         'event' => 'change',
         'callback' => '::submitFormAjax',
         'wrapper' => 'statistics-trainings-progress',
       ],
     ];
-    $month = $form_state->getValue('month', max(array_keys($months)));
+    $month = $form_state->getValue('month', $max_month);
+
+    if ($month == 'none' || $year_current == NULL || $year_current == 'none') {
+      $month = $max_month;
+    }
 
     $timestamp = mktime(0, 0, 0, $month, 1, $year);
     $datetime = DrupalDateTime::createFromTimestamp($timestamp);
     $datetime->add(new \DateInterval('P1M'));
+
+    // Get users with the training expired certification.
+    $expired_uids = $this->getExpiredUsers($group);
 
     $form['trainings_progress'] = [
       '#type' => 'container',
@@ -789,8 +825,13 @@ AND gc.gid = :gid",
       ],
       'year' => $year_select,
       'month' => $month_select,
-      'trainings_progress' => $this->buildTrainingsProgress($group, $datetime),
     ];
+
+    if ($year_current != NULL && $year_current != 'none') {
+      $form['trainings_progress']['month'] = $month_select;
+    }
+
+    $form['trainings_progress']['trainings_progress'] = $this->buildTrainingsProgress($group, $datetime, $expired_uids);
 
     if ($group->bundle() == 'opigno_class') {
       $form[] = [
@@ -808,8 +849,8 @@ AND gc.gid = :gid",
       $form[] = [
         '#type' => 'container',
         'users' => $this->buildUserMetrics($group),
-        'training_content' => $this->buildTrainingContent($group),
-        'user_results' => $this->buildUsersResultsLp($group),
+        'training_content' => $this->buildTrainingContent($group, $expired_uids),
+        'user_results' => $this->buildUsersResultsLp($group, $expired_uids),
       ];
     }
 
@@ -823,6 +864,11 @@ AND gc.gid = :gid",
    * Ajax form submit.
    */
   public function submitFormAjax(array &$form, FormStateInterface $form_state) {
+    $trigger = $form_state->getTriggeringElement();
+    if (isset($trigger['#name']) && $trigger['#name'] == 'year') {
+      $form['trainings_progress']['month']['#value'] = 'none';
+    }
+
     return $form['trainings_progress'];
   }
 

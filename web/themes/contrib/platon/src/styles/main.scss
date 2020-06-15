@@ -1,5 +1,7 @@
 @import "common/variables";
+@import "common/functions";
 @import "common/svg";
+@import "common/fonts";
 @import "common/mixins";
 
 @import "~bootstrap/scss/bootstrap";
@@ -8,6 +10,9 @@
 
 @import "components/buttons";
 @import "components/forms";
+@import "components/form_element/multiselect";
+@import "components/form_element/daterange";
+@import "components/tft/tft";
 @import "components/local_tasks";
 @import "components/local_actions";
 @import "components/headings";
@@ -16,7 +21,6 @@
 @import "components/dropdowns";
 @import "components/vertical_tabs";
 @import "components/messages";
-@import "components/pager";
 @import "components/dashboard";
 @import "components/progression";
 @import "components/calendar";
@@ -24,7 +28,13 @@
 @import "components/moxtra";
 @import "components/tft";
 @import "components/module_result";
-@import "components/views";
+@import "components/views/views";
+@import "components/views/views_exposed_form";
+@import "components/views/views_actions_form";
+@import "components/views/views_search";
+@import "components/bs-tabs";
+@import "components/loader";
+@import "components/file/file-video";
 
 @import "layouts/header";
 @import "layouts/navigation";

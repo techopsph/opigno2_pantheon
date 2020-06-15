@@ -4,6 +4,7 @@ global:
     theme:
       https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,900&subset=latin,latin-ext: { type: external }
       dist/main.css: {}
+      color/color.css: {}
   js:
     dist/vendor.js: {}
     dist/main.js: {}

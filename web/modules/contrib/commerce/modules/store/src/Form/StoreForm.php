@@ -4,8 +4,11 @@ namespace Drupal\commerce_store\Form;
 
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\entity\Form\EntityDuplicateFormTrait;
 
 class StoreForm extends ContentEntityForm {
+
+  use EntityDuplicateFormTrait;
 
   /**
    * {@inheritdoc}
@@ -15,20 +18,34 @@ class StoreForm extends ContentEntityForm {
     /** @var \Drupal\commerce_store\Entity\StoreInterface $store */
     $store = $this->entity;
 
-    /** @var \Drupal\commerce_store\StoreStorageInterface $store_storage */
-    $store_storage = $this->entityTypeManager->getStorage('commerce_store');
-    $default_store = $store_storage->loadDefault();
-    $isDefault = TRUE;
-    if ($default_store && $default_store->uuid() != $store->uuid()) {
-      $isDefault = FALSE;
-    }
-    $form['default'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Default'),
-      '#default_value' => $isDefault,
-      '#disabled' => $isDefault || empty($default_store),
-      '#weight' => 99,
+    $form['path_settings'] = [
+      '#type' => 'details',
+      '#title' => $this->t('URL path settings'),
+      '#open' => !empty($form['path']['widget'][0]['alias']['#default_value']),
+      '#group' => 'advanced',
+      '#access' => !empty($form['path']['#access']) && $store->get('path')->access('edit'),
+      '#attributes' => [
+        'class' => ['path-form'],
+      ],
+      '#attached' => [
+        'library' => ['path/drupal.path'],
+      ],
+      '#weight' => 91,
     ];
+    $form['path']['#group'] = 'path_settings';
+
+    if (isset($form['is_default'])) {
+      $form['is_default']['#group'] = 'footer';
+      $form['is_default']['#disabled'] = $store->isDefault();
+      if (!$store->isDefault()) {
+        /** @var \Drupal\commerce_store\StoreStorageInterface $store_storage */
+        $store_storage = $this->entityTypeManager->getStorage('commerce_store');
+        $default_store = $store_storage->loadDefault();
+        if (!$default_store || $default_store->id() == $store->id()) {
+          $form['is_default']['widget']['value']['#default_value'] = TRUE;
+        }
+      }
+    }
 
     return $form;
   }
@@ -38,11 +55,7 @@ class StoreForm extends ContentEntityForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $this->entity->save();
-    if ($form_state->getValue('default')) {
-      /** @var \Drupal\commerce_store\StoreStorageInterface $store_storage */
-      $store_storage = $this->entityTypeManager->getStorage('commerce_store');
-      $store_storage->markAsDefault($this->entity);
-    }
+    $this->postSave($this->entity, $this->operation);
     $this->messenger()->addMessage($this->t('Saved the %label store.', [
       '%label' => $this->entity->label(),
     ]));

@@ -35,7 +35,8 @@ class PriceTest extends UnitTestCase {
    * ::covers __construct.
    */
   public function testCreateFromInvalidArray() {
-    $this->setExpectedException(\InvalidArgumentException::class);
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('Price::fromArray() called with a malformed array.');
     $price = Price::fromArray([]);
   }
 
@@ -58,7 +59,7 @@ class PriceTest extends UnitTestCase {
    * ::covers __construct.
    */
   public function testInvalidNumber() {
-    $this->setExpectedException(\InvalidArgumentException::class);
+    $this->expectException(\InvalidArgumentException::class);
     $price = new Price('INVALID', 'USD');
   }
 
@@ -68,8 +69,9 @@ class PriceTest extends UnitTestCase {
    * ::covers __construct.
    */
   public function testInvalidCurrencyCode() {
-    $this->setExpectedException(\InvalidArgumentException::class);
-    $price = new Price('10', 'INVALID');
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('Invalid currency code "TEST".');
+    $price = new Price('10', 'TEST');
   }
 
   /**
@@ -85,6 +87,28 @@ class PriceTest extends UnitTestCase {
     $this->assertEquals('USD', $this->price->getCurrencyCode());
     $this->assertEquals('10 USD', $this->price->__toString());
     $this->assertEquals(['number' => '10', 'currency_code' => 'USD'], $this->price->toArray());
+  }
+
+  /**
+   * Tests addition with mismatched currencies.
+   *
+   * ::covers add.
+   */
+  public function testAddWithMismatchedCurrencies() {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('The provided prices have mismatched currencies: 10 USD, 5 EUR.');
+    $this->price->add(new Price('5', 'EUR'));
+  }
+
+  /**
+   * Tests subtraction with mismatched currencies.
+   *
+   * ::covers subtract.
+   */
+  public function testSubtractWithMismatchedCurrencies() {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('The provided prices have mismatched currencies: 10 USD, 4 EUR.');
+    $this->price->subtract(new Price('4', 'EUR'));
   }
 
   /**
@@ -112,6 +136,8 @@ class PriceTest extends UnitTestCase {
   /**
    * Tests the comparison methods.
    *
+   * ::covers isPositive
+   * ::covers isNegative
    * ::covers isZero
    * ::covers equals
    * ::covers greaterThan
@@ -121,9 +147,19 @@ class PriceTest extends UnitTestCase {
    * ::covers compareTo.
    */
   public function testComparison() {
-    $this->assertEmpty($this->price->isZero());
+    $this->assertTrue($this->price->isPositive());
+    $this->assertFalse($this->price->isNegative());
+    $this->assertFalse($this->price->isZero());
+
+    $negative_price = new Price('-10', 'USD');
+    $this->assertFalse($negative_price->isPositive());
+    $this->assertTrue($negative_price->isNegative());
+    $this->assertFalse($negative_price->isZero());
+
     $zero_price = new Price('0', 'USD');
-    $this->assertNotEmpty($zero_price->isZero());
+    $this->assertFalse($zero_price->isPositive());
+    $this->assertFalse($zero_price->isNegative());
+    $this->assertTrue($zero_price->isZero());
 
     $this->assertNotEmpty($this->price->equals(new Price('10', 'USD')));
     $this->assertEmpty($this->price->equals(new Price('15', 'USD')));

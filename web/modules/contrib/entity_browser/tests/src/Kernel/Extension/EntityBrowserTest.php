@@ -13,7 +13,6 @@ use Drupal\entity_browser\WidgetInterface;
 use Drupal\entity_browser\WidgetSelectorInterface;
 use Drupal\entity_browser\SelectionDisplayInterface;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\user\Entity\User;
 use Drupal\views\Entity\View;
 
 /**
@@ -66,7 +65,7 @@ class EntityBrowserTest extends KernelTestBase {
     FileCacheFactory::setPrefix($this->randomString(4));
     parent::setUp();
 
-    $this->controller = $this->container->get('entity.manager')->getStorage('entity_browser');
+    $this->controller = $this->container->get('entity_type.manager')->getStorage('entity_browser');
     $this->widgetUUID = $this->container->get('uuid')->generate();
     $this->routeProvider = $this->container->get('router.route_provider');
 
@@ -128,7 +127,7 @@ class EntityBrowserTest extends KernelTestBase {
         $this->fail('An entity browser without required ' . $plugin_type . ' created with no exception thrown.');
       }
       catch (PluginException $e) {
-        $this->assertEquals('The "" plugin does not exist.', $e->getMessage(), 'An exception was thrown when an entity_browser was created without a ' . $plugin_type . ' plugin.');
+        $this->assertContains('The "" plugin does not exist.', $e->getMessage(), 'An exception was thrown when an entity_browser was created without a ' . $plugin_type . ' plugin.');
       }
     }
 

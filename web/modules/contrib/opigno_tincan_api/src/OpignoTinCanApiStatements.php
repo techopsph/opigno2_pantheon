@@ -266,8 +266,6 @@ class OpignoTinCanApiStatements {
     $password = $config->get('opigno_tincan_api_password');
 
     if (empty($endpoint) || empty($username) || empty($password)) {
-      \Drupal::logger('opigno_tincan_api')
-        ->notice('Tincan statements can not be send. LRS settings are not configured.');
       return FALSE;
     }
 

@@ -10,23 +10,26 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\user\Entity\Role;
 
 /**
  * Creates the collaborative workspace field in a training groups.
  */
 function opigno_moxtra_install() {
-  $config_path = drupal_get_path('module', 'opigno_moxtra')
-    . '/config/install';
-  $storage = new FileStorage($config_path);
+  if (!\Drupal::service('config.installer')->isSyncing()) {
+    $config_path = drupal_get_path('module', 'opigno_moxtra')
+      . '/config/install';
+    $storage = new FileStorage($config_path);
 
-  $data = $storage->read('field.storage.group.field_workspace');
-  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
-    FieldStorageConfig::create($data)->save();
-  }
+    $data = $storage->read('field.storage.group.field_workspace');
+    if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+      FieldStorageConfig::create($data)->save();
+    }
 
-  $data = $storage->read('field.field.group.learning_path.field_workspace');
-  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
-    FieldConfig::create($data)->save();
+    $data = $storage->read('field.field.group.learning_path.field_workspace');
+    if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+      FieldConfig::create($data)->save();
+    }
   }
 }
 
@@ -281,4 +284,14 @@ function opigno_moxtra_update_8011() {
   // Install the new definition.
   $definition_manager = \Drupal::entityDefinitionUpdateManager();
   $definition_manager->installFieldStorageDefinition('training', 'opigno_moxtra_workspace', 'opigno_moxtra_workspace', $field);
+}
+
+/**
+ * Grand permissions for Content manager global role.
+ */
+function opigno_moxtra_update_8012() {
+  // Allow content managers to start meeting.
+  $role = Role::load('content_manager');
+  $role->grantPermission('start meeting');
+  $role->save();
 }

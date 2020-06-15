@@ -1,6 +1,6 @@
 <div class="trigger-btn d-flex">
   <button type="button" class="btn-danger restore-default-all" (click)="appService.restoreToDefaultAll()" *ngIf="!appService.displayRestoreToDefaultButton()">{{locales.restoreToDefaultAll}}</button>
-  <button type="button" class="ml-auto manage-dashboard" (click)="appService.managePanel=true">{{locales.manageYourDashboard}}</button>
+  <button type="button" class="ml-auto manage-dashboard" (click)="appService.managePanel=true" *ngIf="appService.manageDashboardAccess">{{locales.manageYourDashboard}}</button>
 </div>
 
 <app-panel *ngIf="appService.managePanel"></app-panel>

@@ -5,6 +5,8 @@ namespace Drupal\opigno_module\Plugin\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Link;
 use Drupal\opigno_group_manager\OpignoGroupContext;
+use Drupal\opigno_learning_path\Entity\LPStatus;
+
 
 /**
  * Provides a 'LearningPathProgressBlock' block.
@@ -18,6 +20,8 @@ class LearningPathProgressBlock extends BlockBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
    */
   public function build() {
     if (!opigno_module_is_activity_route()) {
@@ -34,8 +38,8 @@ class LearningPathProgressBlock extends BlockBase {
         $home_link = render($home_link);
       }
     }
-
-    $progress = ($user && isset($group)) ? round(opigno_learning_path_progress($group->id(), $user->id()) * 100) : 0 ;
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $user->id());
+    $progress = ($user && isset($group)) ? round(opigno_learning_path_progress($group->id(), $user->id(), $latest_cert_date) * 100) : 0;
 
     $build = [
       'home_link' => render($home_link),
@@ -51,4 +55,5 @@ class LearningPathProgressBlock extends BlockBase {
   public function getCacheMaxAge() {
     return 0;
   }
+
 }

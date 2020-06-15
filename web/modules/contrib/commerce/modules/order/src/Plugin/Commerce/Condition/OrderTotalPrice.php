@@ -14,7 +14,7 @@ use Drupal\commerce_price\Price;
  *   id = "order_total_price",
  *   label = @Translation("Total price"),
  *   display_label = @Translation("Current order total"),
- *   category = @Translation("Order"),
+ *   category = @Translation("Order", context = "Commerce"),
  *   entity_type = "commerce_order",
  * )
  */
@@ -78,6 +78,9 @@ class OrderTotalPrice extends ConditionBase {
     /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
     $order = $entity;
     $total_price = $order->getTotalPrice();
+    if (!$total_price) {
+      return FALSE;
+    }
     $condition_price = Price::fromArray($this->configuration['amount']);
     if ($total_price->getCurrencyCode() != $condition_price->getCurrencyCode()) {
       return FALSE;

@@ -2,17 +2,31 @@
   Drupal.behaviors.opignoModuleActivity = {
     attach: function (context, settings) {
       var that = this;
+      var fullScreen = {
+        show: function () {
+          $('body', context).addClass('fullscreen');
+          that.goInFullscreen(document.querySelector('html'));
+        },
+        hide: function () {
+          $('body', context).removeClass('fullscreen');
+          that.goOutFullscreen();
+        }
+      };
+
+      $(document).on('fullscreenchange', function (e) {
+        if (!this.fullscreen) {
+          fullScreen.hide();
+        }
+      });
 
       $('.fullscreen-link a', context).click(function(e) {
         e.preventDefault();
 
         if ($('body').hasClass('fullscreen')) {
-          $('body', context).removeClass('fullscreen');
-          that.goOutFullscreen();
+          fullScreen.hide();
         }
         else {
-          $('body', context).addClass('fullscreen');
-          that.goInFullscreen(document.querySelector('html'));
+         fullScreen.show();
         }
       });
 

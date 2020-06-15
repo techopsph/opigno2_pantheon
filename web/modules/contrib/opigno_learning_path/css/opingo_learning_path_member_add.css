@@ -83,54 +83,6 @@
   max-width: 250px;
 }
 
-.group-content-learning-path-group-membership-add-form .multiselect-btns ul,
-.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-btns ul {
-  margin: 10px 20px 0 20px !important;
-}
-
-.group-content-learning-path-group-membership-add-form .multiselect-add,
-.group-content-learning-path-group-membership-add-form .multiselect-remove,
-.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add,
-.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-remove {
-  display: block;
-  height: 23px !important;
-  margin: 0 auto;
-  padding: 0;
-  width: 32px !important;
-}
-
-.group-content-learning-path-group-membership-add-form .multiselect-add:hover,
-.group-content-learning-path-group-membership-add-form .multiselect-remove:hover,
-.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add:hover,
-.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-remove:hover {
-  background-position: unset !important;
-}
-
-.group-content-learning-path-group-membership-add-form .multiselect-add,
-.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add {
-  margin-top: 120px !important;
-  background-image: url('../img/add_user.png') !important;
-}
-
-@media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form .multiselect-add,
-  .opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add {
-    margin-top: 1rem;
-  }
-}
-
-.group-content-learning-path-group-membership-add-form .multiselect-remove,
-.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-remove {
-  margin-top: 10px !important;
-  background-image: url('../img/remove_user.png') !important;
-}
-
-@media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form .multiselect-remove {
-    margin-bottom: 2rem;
-  }
-}
-
 .group-content-learning-path-group-membership-add-form #training_users,
 .opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form #training_users {
   background: #fff;

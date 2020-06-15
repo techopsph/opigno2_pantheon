@@ -179,6 +179,7 @@ class PdfDefault extends FormatterBase {
             'height' => $this->getSetting('height'),
             'src' => $iframe_src,
             'data-src' => $file_url,
+            'title' => $item->entity->label(),
           ],
         ];
         $elements[$delta] = $html;

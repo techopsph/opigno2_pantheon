@@ -3,31 +3,33 @@
  * Adds JavaScript functionality to the private message inbox block.
  */
 
-/*global jQuery, Drupal, drupalSettings, window*/
-/*jslint white:true, this, browser:true*/
-
 Drupal.PrivateMessageInbox = {};
 Drupal.PrivateMessageInbox.updateInbox = {};
 
 (function ($, Drupal, drupalSettings, window) {
 
-  "use strict";
+  'use strict';
 
-  var initialized, container, updateInterval, loadingPrev, loadingNew;
+  var initialized;
+  var container;
+  var updateInterval;
+  var loadingPrev;
+  var loadingNew;
 
   /**
    * Used to manually trigger Drupal's JavaScript commands.
+   * @param {Object} data The data.
    */
   function triggerCommands(data) {
     var ajaxObject = Drupal.ajax({
-      url: "",
+      url: '',
       base: false,
       element: false,
       progress: false
     });
 
     // Trigger any any ajax commands in the response.
-    ajaxObject.success(data, "success");
+    ajaxObject.success(data, 'success');
   }
 
   /**
@@ -38,15 +40,15 @@ Drupal.PrivateMessageInbox.updateInbox = {};
       loadingNew = true;
 
       var ids = {};
-      container.find(".private-message-thread-inbox").each(function () {
-        ids[$(this).attr("data-thread-id")] = $(this).attr("data-last-update");
+      container.find('.private-message-thread-inbox').each(function () {
+        ids[$(this).attr('data-thread-id')] = $(this).attr('data-last-update');
       });
 
       $.ajax({
-        url:drupalSettings.privateMessageInboxBlock.loadNewUrl,
-        method:"POST",
-        data:{ids:ids},
-        success:function (data) {
+        url: drupalSettings.privateMessageInboxBlock.loadNewUrl,
+        method: 'POST',
+        data: {ids: ids},
+        success: function (data) {
           loadingNew = false;
           triggerCommands(data);
           if (updateInterval) {
@@ -59,13 +61,15 @@ Drupal.PrivateMessageInbox.updateInbox = {};
 
   /**
    * Reorders the inbox after an Ajax Load, to show newest threads first.
+   * @param {Array} threadIds The threads IDs.
+   * @param {Array} newThreads The new Threads.
    */
   function reorderInbox(threadIds, newThreads) {
     var map = {};
 
-    container.children(".private-message-thread-inbox").each(function () {
+    container.children('.private-message-thread-inbox').each(function () {
       var element = $(this);
-      map[element.attr("data-thread-id")] = element;
+      map[element.attr('data-thread-id')] = element;
     });
 
     $.each(threadIds, function (index) {
@@ -76,7 +80,7 @@ Drupal.PrivateMessageInbox.updateInbox = {};
           map[threadId].remove();
         }
 
-        $("<div/>").html(newThreads[threadId]).contents().appendTo(container);
+        $('<div/>').html(newThreads[threadId]).contents().appendTo(container);
       }
       else if (map[threadId]) {
         container.append(map[threadId]);
@@ -88,24 +92,27 @@ Drupal.PrivateMessageInbox.updateInbox = {};
 
   /**
    * Inserts older threads into the inbox after an Ajax load.
+   * @param {string} threads The threads HTML.
    */
   function insertPreviousThreads(threads) {
-    var contents = $("<div/>").html(threads).contents();
+    var contents = $('<div/>').html(threads).contents();
 
-    contents.css("display", "none").appendTo(container).slideDown(300);
+    contents.css('display', 'none').appendTo(container).slideDown(300);
     Drupal.attachBehaviors(contents[0]);
   }
 
   /**
    * Adds CSS classes to the currently selected thread.
+   * @param {string} threadId The thread id.
    */
   function setActiveThread(threadId) {
-    container.find(".active-thread:first").removeClass("active-thread");
-    container.find(".private-message-thread[data-thread-id='" + threadId + "']:first").removeClass("unread-thread").addClass("active-thread");
+    container.find('.active-thread:first').removeClass('active-thread');
+    container.find('.private-message-thread[data-thread-id="' + threadId + '"]:first').removeClass('unread-thread').addClass('active-thread');
   }
 
   /**
    * Click handler for the button that loads older threads into the inbox.
+   * @param {Object} e The event.
    */
   function loadOldThreadWatcherHandler(e) {
     e.preventDefault();
@@ -114,16 +121,16 @@ Drupal.PrivateMessageInbox.updateInbox = {};
       loadingPrev = true;
 
       var oldestTimestamp;
-       container.find(".private-message-thread").each(function () {
-        if (!oldestTimestamp || Number($(this).attr("data-last-update")) < oldestTimestamp) {
-          oldestTimestamp = Number($(this).attr("data-last-update"));
+      container.find('.private-message-thread').each(function () {
+        if (!oldestTimestamp || Number($(this).attr('data-last-update')) < oldestTimestamp) {
+          oldestTimestamp = Number($(this).attr('data-last-update'));
         }
       });
 
       $.ajax({
-        url:drupalSettings.privateMessageInboxBlock.loadPrevUrl,
-        data:{timestamp:oldestTimestamp, count:drupalSettings.privateMessageInboxBlock.threadCount},
-        success:function (data) {
+        url: drupalSettings.privateMessageInboxBlock.loadPrevUrl,
+        data: {timestamp: oldestTimestamp, count: drupalSettings.privateMessageInboxBlock.threadCount},
+        success: function (data) {
           loadingPrev = false;
           triggerCommands(data);
         }
@@ -133,10 +140,11 @@ Drupal.PrivateMessageInbox.updateInbox = {};
 
   /**
    * Watches the button that loads previous threads into the inbox.
+   * @param {Object} context The context.
    */
   function loadOlderThreadWatcher(context) {
-    $(context).find("#load-previous-threads-button").once("load-loder-threads-watcher").each(function () {
-      $(this).click(loadOldThreadWatcherHandler);
+    $(context).find('#load-previous-threads-button').once('load-loder-threads-watcher').each(function () {
+      $(this).on('click', loadOldThreadWatcherHandler);
     });
   }
 
@@ -144,20 +152,22 @@ Drupal.PrivateMessageInbox.updateInbox = {};
    * Click Handler executed when private message threads are clicked.
    *
    * Loads the thread into the private message window.
+   * @param {Object} e The event.
    */
   var inboxThreadLinkListenerHandler = function (e) {
     if (Drupal.PrivateMessages) {
       e.preventDefault();
 
-      Drupal.PrivateMessages.loadThread($(this).attr("data-thread-id"));
+      Drupal.PrivateMessages.loadThread($(this).attr('data-thread-id'));
     }
   };
 
   /**
    * Watches private message threads for clicks, so new threads can be loaded.
+   * @param {Object} context The context.
    */
   function inboxThreadLinkListener(context) {
-    $(context).find(".private-message-inbox-thread-link").once("inbox-thread-link-listener").each(function () {
+    $(context).find('.private-message-inbox-thread-link').once('inbox-thread-link-listener').each(function () {
       $(this).click(inboxThreadLinkListenerHandler);
     });
   }
@@ -168,8 +178,11 @@ Drupal.PrivateMessageInbox.updateInbox = {};
   function init() {
     if (!initialized) {
       initialized = true;
-      container = $(".block-private-message-inbox-block:first .content:first");
-      $("<div/>", {id:"load-previous-threads-button-wrapper"}).append($("<a/>", {href:"#", id:"load-previous-threads-button"}).text(Drupal.t("Load Previous"))).insertAfter(container);
+      container = $('.block-private-message-inbox-block:first .content:first');
+      if (drupalSettings.privateMessageInboxBlock.totalThreads > drupalSettings.privateMessageInboxBlock.itemsToShow) {
+        $('<div/>', {id: 'load-previous-threads-button-wrapper'}).append($('<a/>', {href: '#', id: 'load-previous-threads-button'}).text(Drupal.t('Load Previous'))).insertAfter(container);
+        loadOlderThreadWatcher(document);
+      }
       updateInterval = drupalSettings.privateMessageInboxBlock.ajaxRefreshRate * 1000;
       if (updateInterval) {
         window.setTimeout(updateInbox, updateInterval);
@@ -178,29 +191,23 @@ Drupal.PrivateMessageInbox.updateInbox = {};
   }
 
   Drupal.behaviors.privateMessageInboxBlock = {
-    attach:function (context) {
+    attach: function (context) {
       window.setTimeout(init, 500);
       loadOlderThreadWatcher(context);
       inboxThreadLinkListener(context);
 
       Drupal.AjaxCommands.prototype.insertInboxOldPrivateMessageThreads = function (ajax, response) {
-        // For jSlint compatibility.
-        ajax = ajax;
-
-        if (!response.threads) {
-          $("#load-previous-threads-button").parent().slideUp(300, function () {
+        if (response.threads) {
+          insertPreviousThreads(response.threads);
+        }
+        if (!response.threads || !response.hasNext) {
+          $('#load-previous-threads-button').parent().slideUp(300, function () {
             $(this).remove();
           });
-        }
-        else {
-          insertPreviousThreads(response.threads);
         }
       };
 
       Drupal.AjaxCommands.prototype.privateMessageInboxUpdate = function (ajax, response) {
-        // For jSlint compatibility.
-        ajax = ajax;
-
         reorderInbox(response.threadIds, response.newThreads);
       };
 
@@ -216,9 +223,9 @@ Drupal.PrivateMessageInbox.updateInbox = {};
         updateInbox();
       };
     },
-    detatch:function (context) {
-      $(context).find("#load-previous-threads-button").unbind("click", loadOldThreadWatcherHandler);
-      $(context).find(".private-message-inbox-thread-link").unbind("click", inboxThreadLinkListenerHandler);
+    detatch: function (context) {
+      $(context).find('#load-previous-threads-button').unbind('click', loadOldThreadWatcherHandler);
+      $(context).find('.private-message-inbox-thread-link').unbind('click', inboxThreadLinkListenerHandler);
     }
   };
 

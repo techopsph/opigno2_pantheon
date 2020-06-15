@@ -13,17 +13,19 @@ use Drupal\user\Entity\Role;
  * Implements hook_install().
  */
 function opigno_skills_system_install() {
-  // Give an access to manage skills vocabulary.
-  $role = Role::load('content_manager');
-  $issueAccessPermissions = [
-    'create terms in skills',
-    'delete terms in skills',
-    'edit terms in skills'
-  ];
-  foreach ($issueAccessPermissions as $permission) {
-    $role->grantPermission($permission);
+  if (!\Drupal::service('config.installer')->isSyncing()) {
+    // Give an access to manage skills vocabulary.
+    $role = Role::load('content_manager');
+    $issueAccessPermissions = [
+      'create terms in skills',
+      'delete terms in skills',
+      'edit terms in skills'
+    ];
+    foreach ($issueAccessPermissions as $permission) {
+      $role->grantPermission($permission);
+    }
+    $role->save();
   }
-  $role->save();
 }
 
 /**

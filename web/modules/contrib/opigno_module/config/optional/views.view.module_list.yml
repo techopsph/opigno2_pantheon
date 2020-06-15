@@ -183,8 +183,8 @@ display:
           label: Name
           exclude: false
           alter:
-            alter_text: false
-            text: ''
+            alter_text: true
+            text: '<a href="{{ url(''<front>'') }}/admin/structure/opigno-modules/preview/{{ id }}" class="edit-button use-ajax" data-dialog-type="dialog" data-dialog-renderer="off_canvas" data-dialog-options="{&quot;width&quot;:850}">{{ name }}</a>'
             make_link: false
             path: ''
             absolute: false
@@ -320,6 +320,8 @@ display:
               content_manager: '0'
               administrator: '0'
             placeholder: ''
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''

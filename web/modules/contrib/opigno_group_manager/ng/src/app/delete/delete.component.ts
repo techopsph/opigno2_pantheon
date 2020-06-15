@@ -27,6 +27,9 @@ export class DeleteComponent implements OnInit {
   errorMessage: string = '';
   mainId: any;
   removeEntityUrl: string;
+  text_confirm_delete: string;
+  text_cancel: string;
+  text_confirm: string;
 
   constructor(
     private http: HttpClient,
@@ -35,6 +38,9 @@ export class DeleteComponent implements OnInit {
     private route: ActivatedRoute
   ) {
     this.removeEntityUrl = window['appConfig'].removeEntityUrl;
+    this.text_confirm_delete = window['appConfig'].text_confirm_delete;
+    this.text_cancel = window['appConfig'].text_cancel;
+    this.text_confirm = window['appConfig'].text_confirm;
   }
 
   ngOnInit(): void {
@@ -59,6 +65,7 @@ export class DeleteComponent implements OnInit {
           this.updateEntitiesPositionsEvent.emit(this.entitiesPositions);
 
           /** @TODO: remove link? */
+          this.appService.updateLinks(!this.appService.linksStatus);
 
           /** Close panel */
           this.close();

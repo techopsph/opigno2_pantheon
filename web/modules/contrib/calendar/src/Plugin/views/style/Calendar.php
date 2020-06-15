@@ -164,7 +164,6 @@ class Calendar extends StylePluginBase {
 
     $options['calendar_type'] = ['default' => 'month'];
     $options['name_size'] = ['default' => 3];
-    $options['month_name_size'] = ['default' => 99];
     $options['mini'] = ['default' => 0];
     $options['with_weekno'] = ['default' => 0];
     $options['multiday_theme'] = ['default' => 1];
@@ -211,21 +210,6 @@ class Calendar extends StylePluginBase {
       '#states' => [
         'visible' => [
           ':input[name="style_options[calendar_type]"]' => ['value' => 'month'],
-        ],
-      ],
-    ];
-    $form['month_name_size'] = [
-      '#title' => $this->t('Calendar month names'),
-      '#default_value' => $this->options['month_name_size'],
-      '#type' => 'radios',
-      '#options' => [
-        1 => $this->t('Abbreviated name'),
-        99 => $this->t('Full name'),
-      ],
-      '#description' => $this->t('The way month names should be displayed in a year calendar.'),
-      '#states' => [
-        'visible' => [
-          ':input[name="style_options[calendar_type]"]' => ['value' => 'year'],
         ],
       ],
     ];
@@ -509,7 +493,6 @@ class Calendar extends StylePluginBase {
 
     // Add calendar style information to the view.
     $this->styleInfo->setCalendarPopup($this->displayHandler->getOption('calendar_popup'));
-    $this->styleInfo->setMonthNameSize($this->options['month_name_size']);
     $this->styleInfo->setNameSize($this->options['name_size']);
     $this->styleInfo->setMini($this->options['mini']);
     $this->styleInfo->setShowWeekNumbers($this->options['with_weekno']);
@@ -555,9 +538,9 @@ class Calendar extends StylePluginBase {
       /** @var \Drupal\calendar\CalendarEvent $event_info */
       foreach ($events as $event_info) {
 //        $event->granularity = $this->dateInfo->granularity;
-        $item_start = $event_info->calendar_start_date->format('Y-m-d');
-        $item_end = $event_info->calendar_end_date->format('Y-m-d');
-        $time_start = $event_info->calendar_start_date->format('H:i:s');
+        $item_start = $event_info->getStartDate()->format('Y-m-d');
+        $item_end = $event_info->getEndDate()->format('Y-m-d');
+        $time_start = $event_info->getStartDate()->format('H:i:s');
         $event_info->setRenderedFields($this->rendered_fields[$row_index]);
         $items[$item_start][$time_start][] = $event_info;
       }
@@ -1151,7 +1134,7 @@ class Calendar extends StylePluginBase {
                     // future events
                     for ( $j = 0; $j < $row_diff; $j++) {
                       $bucket[($bucket_row_count + $j) ] = [
-                        'entry' => '',
+                        'entry' => '&nbsp;',
                         'colspan' => 1,
                         'rowspan' => 1,
                         'filled' => TRUE,

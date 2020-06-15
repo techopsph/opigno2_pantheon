@@ -1,34 +1,32 @@
 <?php
-/**
- * @file
- * Contains \Drupal\views_templates\Controller\ViewsBuilderController.
- */
-
 
 namespace Drupal\views_templates\Controller;
-
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * ViewBuilderController class.
+ */
 class ViewsBuilderController extends ControllerBase {
 
   /**
+   * The plugin builder servive.
+   *
    * @var \Drupal\Component\Plugin\PluginManagerInterface
    */
-  protected $builder_manager;
+  protected $builderManager;
 
   /**
-   * Constructs a new \Drupal\views_templates\Controller\ViewsBuilderController
-   * object.
+   * Constructs a new ViewsBuilderController object.
    *
-   * @param \Drupal\Component\Plugin\PluginManagerInterface
+   * @param \Drupal\Component\Plugin\PluginManagerInterface $builderManager
    *   The Views Builder Plugin Interface.
    */
-  public function __construct(PluginManagerInterface $builder_manager) {
-    $this->builder_manager = $builder_manager;
+  public function __construct(PluginManagerInterface $builderManager) {
+    $this->builderManager = $builderManager;
   }
 
   /**
@@ -44,24 +42,24 @@ class ViewsBuilderController extends ControllerBase {
    * Create template list table.
    *
    * @return array
-   *  Render array of template list.
+   *   Render array of template list.
    */
   public function templateList() {
-    $table = array(
+    $table = [
       '#type' => 'table',
-      '#header' => array(
+      '#header' => [
         $this->t('Name'),
         $this->t('Description'),
         $this->t('Add'),
-      ),
+      ],
       '#empty' => $this->t('There are no available Views Templates'),
-    );
+    ];
 
     /** @var \Drupal\views_templates\Plugin\ViewsBuilderPluginInterface $definition */
-    foreach ($this->builder_manager->getDefinitions() as $definition) {
+    foreach ($this->builderManager->getDefinitions() as $definition) {
 
       /** @var \Drupal\views_templates\Plugin\ViewsBuilderPluginInterface $builder */
-      $builder = $this->builder_manager->createInstance($definition['id']);
+      $builder = $this->builderManager->createInstance($definition['id']);
       if ($builder->templateExists()) {
         $plugin_id = $builder->getPluginId();
         $row = [
@@ -83,4 +81,5 @@ class ViewsBuilderController extends ControllerBase {
 
     return $table;
   }
+
 }

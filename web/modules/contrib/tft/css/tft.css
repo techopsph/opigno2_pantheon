@@ -32,7 +32,6 @@
 #folder-content-container {
   background-position: center center;
   background-repeat: no-repeat;
-  min-height: 400px;
 }
 
 #folder-content-container .folder-wrapper {
@@ -88,6 +87,11 @@ th.headerSortUp span {
   display: block;
   background-repeat: no-repeat;
   padding-left: 20px;
+}
+
+#folder-content-container a img {
+  margin-left: -20px;
+  min-width: 220px;
 }
 
 #folder-content-container a.file {

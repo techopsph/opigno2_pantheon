@@ -243,10 +243,7 @@ class Highlight extends ProcessorPluginBase implements PluginFormInterface {
 
     $excerpt_fulltext_fields = $this->index->getFulltextFields();
     if (!empty($this->configuration['exclude_fields'])) {
-      $excerpt_fulltext_fields = array_combine($excerpt_fulltext_fields, $excerpt_fulltext_fields);
-      foreach ($this->configuration['exclude_fields'] as $field) {
-        unset($excerpt_fulltext_fields[$field]);
-      }
+      $excerpt_fulltext_fields = array_diff($excerpt_fulltext_fields, $this->configuration['exclude_fields']);
     }
 
     $result_items = $results->getResultItems();
@@ -275,15 +272,29 @@ class Highlight extends ProcessorPluginBase implements PluginFormInterface {
   protected function addExcerpts(array $results, array $fulltext_fields, array $keys) {
     $items = $this->getFulltextFields($results, $fulltext_fields);
     foreach ($items as $item_id => $item) {
-      $text = [];
-      foreach ($item as $values) {
-        $text = array_merge($text, $values);
+      if (!$item) {
+        continue;
       }
+      // We call array_merge() using call_user_func_array() to prevent having to
+      // use it in a loop because it is a resource greedy construction.
+      // @see https://github.com/kalessil/phpinspectionsea/blob/master/docs/performance.md#slow-array-function-used-in-loop
+      $text = call_user_func_array('array_merge', $item);
+      $item_keys = $keys;
+
+      // If the backend already did highlighting and told us the exact keys it
+      // found in the item's text values, we can use those for our own
+      // highlighting. This will help us take stemming, transliteration, etc.
+      // into account properly.
+      $highlighted_keys = $results[$item_id]->getExtraData('highlighted_keys');
+      if ($highlighted_keys) {
+        $item_keys = array_unique(array_merge($keys, $highlighted_keys));
+      }
+
       // @todo This is pretty poor handling for the borders between different
       //   values/fields. Better would be to pass an array and have proper
       //   handling of this in createExcerpt(), ensuring that no snippet goes
       //   across multiple values/fields.
-      $results[$item_id]->setExcerpt($this->createExcerpt(implode($this->getEllipses()[1], $text), $keys));
+      $results[$item_id]->setExcerpt($this->createExcerpt(implode($this->getEllipses()[1], $text), $item_keys));
     }
   }
 
@@ -380,6 +391,9 @@ class Highlight extends ProcessorPluginBase implements PluginFormInterface {
     }
 
     $keywords_in = preg_split(static::$split, $keys);
+    if (!$keywords_in) {
+      return [];
+    }
     // Assure there are no duplicates. (This is actually faster than
     // array_unique() by a factor of 3 to 4.)
     // Remove quotes from keywords.
@@ -438,6 +452,9 @@ class Highlight extends ProcessorPluginBase implements PluginFormInterface {
    *   created.
    */
   protected function createExcerpt($text, array $keys) {
+    // Remove HTML tags <script> and <style> with all of their contents.
+    $text = preg_replace('#<(style|script).*?>.*?</\1>#is', ' ', $text);
+
     // Prepare text by stripping HTML tags and decoding HTML entities.
     $text = strip_tags(str_replace(['<', '>'], [' <', '> '], $text));
     $text = Html::decodeEntities($text);
@@ -481,7 +498,13 @@ class Highlight extends ProcessorPluginBase implements PluginFormInterface {
         if (!$this->configuration['highlight_partial']) {
           $found_position = FALSE;
           $regex = '/' . static::$boundary . preg_quote($key, '/') . static::$boundary . '/iu';
-          if (preg_match($regex, ' ' . $text . ' ', $matches, PREG_OFFSET_CAPTURE, $look_start[$key])) {
+          // $look_start contains the position as character offset, while
+          // preg_match() takes a byte offset.
+          $offset = $look_start[$key];
+          if ($offset > 0) {
+            $offset = strlen(mb_substr(' ' . $text, 0, $offset));
+          }
+          if (preg_match($regex, ' ' . $text . ' ', $matches, PREG_OFFSET_CAPTURE, $offset)) {
             $found_position = $matches[0][1];
             // Convert the byte position into a multi-byte character position.
             $found_position = mb_strlen(substr(" $text", 0, $found_position));
@@ -502,6 +525,11 @@ class Highlight extends ProcessorPluginBase implements PluginFormInterface {
             $before = mb_strpos($text, ' ', $found_position - $context_length);
             if ($before !== FALSE) {
               ++$before;
+            }
+            // If we can’t find a space anywhere within the context length, just
+            // settle for a non-space.
+            if ($before === FALSE || $before > $found_position) {
+              $before = $found_position - $context_length;
             }
           }
           else {
@@ -597,7 +625,8 @@ class Highlight extends ProcessorPluginBase implements PluginFormInterface {
   protected function highlightField($text, array $keys, $html = TRUE) {
     if ($html) {
       $texts = preg_split('#((?:</?[[:alpha:]](?:[^>"\']*|"[^"]*"|\'[^\']\')*>)+)#i', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
-      for ($i = 0; $i < count($texts); $i += 2) {
+      $textsCount = count($texts);
+      for ($i = 0; $i < $textsCount; $i += 2) {
         $texts[$i] = $this->highlightField($texts[$i], $keys, FALSE);
       }
       return implode('', $texts);

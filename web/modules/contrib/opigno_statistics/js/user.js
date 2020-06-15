@@ -8,13 +8,9 @@
         const $this = $(this);
         const user_id = $this.attr('data-user');
         const training_id = $this.attr('data-training');
-
-        const training_selector = '.training[data-training="' + training_id + '"][data-user="' + user_id + '"]';
         const active_selector = '.training-active[data-training="' + training_id + '"][data-user="' + user_id + '"]';
         const details_selector = '.training-details[data-training="' + training_id + '"][data-user="' + user_id + '"]';
-
         const $table = $this.parents('.trainings-list');
-        const $training = $table.find(training_selector);
         const $training_active = $table.find(active_selector);
         const $training_details = $table.find(details_selector);
         if ($training_details.length === 0) {
@@ -33,7 +29,6 @@
                     $parent.replaceWith($parent.contents());
                   }
 
-                  $training.hide();
                   $training_active.show();
                   $training_details.show();
                 })
@@ -43,7 +38,6 @@
           }
         }
         else {
-          $training.hide();
           $training_active.show();
           $training_details.show();
         }
@@ -57,17 +51,12 @@
 
         const $this = $(this);
         const training_id = $this.attr('data-training');
-
-        const training_selector = '.training[data-training="' + training_id + '"]';
         const active_selector = '.training-active[data-training="' + training_id + '"]';
         const details_selector = '.training-details[data-training="' + training_id + '"]';
-
         const $table = $this.parents('.trainings-list');
-        const $training = $table.find(training_selector);
         const $training_active = $table.find(active_selector);
         const $training_details = $table.find(details_selector);
 
-        $training.show();
         $training_active.hide();
         $training_details.hide();
 
@@ -158,7 +147,7 @@
         const user = $this.attr('data-user');
         const training = $this.attr('data-training');
         const module = $this.attr('data-id');
-        const panelSelector = `#module_panel_${training}_${module}[data-ajax-loaded]`;
+        const panelSelector = `#module_panel_${user}_${training}_${module}[data-ajax-loaded]`;
         const $panel = $wrapper.find(panelSelector);
         if ($panel.length === 0) {
           if (!$this.attr('data-ajax-loading')) {
@@ -193,7 +182,7 @@
         const training = $this.attr('data-training');
         const course = $this.attr('data-course');
         const module = $this.attr('data-id');
-        const panelSelector = `#module_panel_${training}_${course}_${module}[data-ajax-loaded]`;
+        const panelSelector = `#module_panel_${user}_${training}_${course}_${module}[data-ajax-loaded]`;
         const $panel = $wrapper.find(panelSelector);
         if ($panel.length === 0) {
           if (!$this.attr('data-ajax-loading')) {

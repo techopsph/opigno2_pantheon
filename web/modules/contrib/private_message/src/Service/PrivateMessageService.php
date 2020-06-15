@@ -167,6 +167,15 @@ class PrivateMessageService implements PrivateMessageServiceInterface {
   /**
    * {@inheritdoc}
    */
+  public function getCountThreadsForUser() {
+    $user = $this->userManager->load($this->currentUser->id());
+    $thread_ids = $this->mapper->getThreadIdsForUser($user);
+    return count($thread_ids);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getNewMessages($threadId, $messageId) {
     $response = [];
 
@@ -193,7 +202,10 @@ class PrivateMessageService implements PrivateMessageServiceInterface {
    * {@inheritdoc}
    */
   public function getPreviousMessages($threadId, $messageId) {
-    $return = [];
+    $return = [
+      'messages' => [],
+      'next_exists' => FALSE,
+    ];
 
     $private_message_thread = $this->pmThreadManager->load($threadId);
     if ($private_message_thread && $private_message_thread->isMember($this->currentUser->id())) {
@@ -202,11 +214,12 @@ class PrivateMessageService implements PrivateMessageServiceInterface {
       $start_index = FALSE;
       $settings = $this->configFactory->get('core.entity_view_display.private_message_thread.private_message_thread.default')->get('content.private_messages.settings');
       $count = $settings['ajax_previous_load_count'];
+
+      $total = count($messages);
       foreach ($messages as $index => $message) {
         if ($message->id() >= $messageId) {
           $start_index = $index - $count >= 0 ? $index - $count : 0;
           $slice_count = $index > $count ? $count : $index;
-
           break;
         }
       }
@@ -219,7 +232,9 @@ class PrivateMessageService implements PrivateMessageServiceInterface {
             $messages = array_reverse($messages);
           }
 
-          $return = $messages;
+          $return['messages'] = $messages;
+          $old_messages = $total - ($start_index + $slice_count);
+          $return['next_exists'] = ($old_messages + count($messages)) < $total;
         }
       }
     }
@@ -320,7 +335,12 @@ class PrivateMessageService implements PrivateMessageServiceInterface {
    */
   public function createRenderablePrivateMessageThreadLink(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
     if ($display->getComponent('private_message_link')) {
-      $author = $entity->getOwner();
+      if ($entity instanceof UserInterface) {
+        $author = $entity;
+      }
+      else {
+        $author = $entity->getOwner();
+      }
       $current_user = \Drupal::currentUser();
       if ($current_user->isAuthenticated()) {
         if ($current_user->hasPermission('use private messaging system') && $current_user->id() != $author->id()) {

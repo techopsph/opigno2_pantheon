@@ -2,15 +2,53 @@
 
 namespace Drupal\commerce_order\Form;
 
+use Drupal\commerce\EntityHelper;
+use Drupal\commerce\EntityTraitManagerInterface;
 use Drupal\commerce_order\Entity\OrderType;
 use Drupal\commerce\Form\CommerceBundleEntityFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\entity\Form\EntityDuplicateFormTrait;
+use Drupal\state_machine\WorkflowManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides an order type form.
  */
 class OrderTypeForm extends CommerceBundleEntityFormBase {
+
+  use EntityDuplicateFormTrait;
+
+  /**
+   * The workflow manager.
+   *
+   * @var \Drupal\state_machine\WorkflowManagerInterface
+   */
+  protected $workflowManager;
+
+  /**
+   * Constructs a new OrderTypeForm object.
+   *
+   * @param \Drupal\commerce\EntityTraitManagerInterface $trait_manager
+   *   The entity trait manager.
+   * @param \Drupal\state_machine\WorkflowManagerInterface $workflow_manager
+   *   The workflow manager.
+   */
+  public function __construct(EntityTraitManagerInterface $trait_manager, WorkflowManagerInterface $workflow_manager) {
+    parent::__construct($trait_manager);
+
+    $this->workflowManager = $workflow_manager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('plugin.manager.commerce_entity_trait'),
+      $container->get('plugin.manager.workflow')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -19,8 +57,9 @@ class OrderTypeForm extends CommerceBundleEntityFormBase {
     $form = parent::form($form, $form_state);
     /** @var \Drupal\commerce_order\Entity\OrderTypeInterface $order_type */
     $order_type = $this->entity;
-    $workflow_manager = \Drupal::service('plugin.manager.workflow');
-    $workflows = $workflow_manager->getGroupedLabels('commerce_order');
+    $workflows = $this->workflowManager->getGroupedLabels('commerce_order');
+    $number_pattern_storage = $this->entityTypeManager->getStorage('commerce_number_pattern');
+    $number_patterns = $number_pattern_storage->loadByProperties(['targetEntityType' => 'commerce_order']);
 
     $form['#tree'] = TRUE;
     $form['label'] = [
@@ -38,6 +77,7 @@ class OrderTypeForm extends CommerceBundleEntityFormBase {
         'source' => ['label'],
       ],
       '#maxlength' => EntityTypeInterface::BUNDLE_MAX_LENGTH,
+      '#disabled' => !$order_type->isNew(),
     ];
     $form['workflow'] = [
       '#type' => 'select',
@@ -46,6 +86,22 @@ class OrderTypeForm extends CommerceBundleEntityFormBase {
       '#default_value' => $order_type->getWorkflowId(),
       '#description' => $this->t('Used by all orders of this type.'),
     ];
+    $form['generate_number'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Generate a sequential order number when the order is placed'),
+      '#default_value' => (bool) $order_type->getNumberPatternId(),
+    ];
+    $form['numberPattern'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Number pattern'),
+      '#default_value' => $order_type->getNumberPatternId(),
+      '#options' => EntityHelper::extractLabels($number_patterns),
+      '#states' => [
+        'visible' => [
+          ':input[name="generate_number"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
     $form = $this->buildTraitForm($form, $form_state);
 
     $form['refresh'] = [
@@ -53,7 +109,6 @@ class OrderTypeForm extends CommerceBundleEntityFormBase {
       '#title' => $this->t('Order refresh'),
       '#weight' => 5,
       '#open' => TRUE,
-      '#collapsible' => TRUE,
       '#tree' => FALSE,
     ];
     $form['refresh']['refresh_intro'] = [
@@ -106,17 +161,15 @@ class OrderTypeForm extends CommerceBundleEntityFormBase {
       ],
     ];
 
-    return $this->protectBundleIdElement($form);
+    return $form;
   }
 
   /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    /** @var \Drupal\state_machine\WorkflowManager $workflow_manager */
-    $workflow_manager = \Drupal::service('plugin.manager.workflow');
     /** @var \Drupal\state_machine\Plugin\Workflow\WorkflowInterface $workflow */
-    $workflow = $workflow_manager->createInstance($form_state->getValue('workflow'));
+    $workflow = $this->workflowManager->createInstance($form_state->getValue('workflow'));
     // Verify "Place" transition.
     if (!$workflow->getTransition('place')) {
       $form_state->setError($form['workflow'], $this->t('The @workflow workflow does not have a "Place" transition.', [
@@ -129,6 +182,10 @@ class OrderTypeForm extends CommerceBundleEntityFormBase {
         '@workflow' => $workflow->getLabel(),
       ]));
     }
+    // Remove the number pattern if the checkbox was unchecked.
+    if (!$form_state->getValue('generate_number')) {
+      $form_state->setValue('numberPattern', NULL);
+    }
     $this->validateTraitForm($form, $form_state);
   }
 
@@ -136,15 +193,12 @@ class OrderTypeForm extends CommerceBundleEntityFormBase {
    * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
-    $status = $this->entity->save();
+    $this->entity->save();
+    $this->postSave($this->entity, $this->operation);
     $this->submitTraitForm($form, $form_state);
 
     $this->messenger()->addMessage($this->t('Saved the %label order type.', ['%label' => $this->entity->label()]));
     $form_state->setRedirect('entity.commerce_order_type.collection');
-
-    if ($status == SAVED_NEW) {
-      commerce_order_add_order_items_field($this->entity);
-    }
   }
 
 }

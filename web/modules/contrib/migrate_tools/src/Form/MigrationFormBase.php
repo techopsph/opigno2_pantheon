@@ -3,10 +3,8 @@
 namespace Drupal\migrate_tools\Form;
 
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\migrate_plus\Entity\MigrationGroup;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class MigrationFormBase.
@@ -16,35 +14,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @ingroup migrate_tools
  */
 class MigrationFormBase extends EntityForm {
-
-  /**
-   * The entity query factory.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $entityQueryFactory;
-
-  /**
-   * Construct the MigrationGroupFormBase.
-   *
-   * For simple entity forms, there's no need for a constructor. Our migration
-   * form base, however, requires an entity query factory to be injected into it
-   * from the container. We later use this query factory to build an entity
-   * query for the exists() method.
-   *
-   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
-   *   An entity query factory for the migration group entity type.
-   */
-  public function __construct(QueryFactory $query_factory) {
-    $this->entityQueryFactory = $query_factory;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static($container->get('entity.query'));
-  }
 
   /**
    * Overrides Drupal\Core\Entity\EntityFormController::form().
@@ -97,7 +66,7 @@ class MigrationFormBase extends EntityForm {
     foreach ($groups as $group) {
       $group_options[$group->id()] = $group->label();
     }
-    if (!$migration->get('migration_group') && isset($group_options['default'])) {
+    if (!$migration->migration_group && isset($group_options['default'])) {
       $migration->set('migration_group', 'default');
     }
 
@@ -105,7 +74,7 @@ class MigrationFormBase extends EntityForm {
       '#type' => 'select',
       '#title' => $this->t('Migration Group'),
       '#empty_value' => '',
-      '#default_value' => $migration->get('migration_group'),
+      '#default_value' => $migration->migration_group,
       '#options' => $group_options,
       '#description' => $this->t('Assign this migration to an existing group.'),
     ];
@@ -127,8 +96,7 @@ class MigrationFormBase extends EntityForm {
    *   TRUE if this format already exists, FALSE otherwise.
    */
   public function exists($entity_id, array $element, FormStateInterface $form_state) {
-    // Use the query factory to build a new migration entity query.
-    $query = $this->entityQueryFactory->get('migration');
+    $query = $this->entityTypeManager->getStorage('migration')->getQuery();
 
     // Query the entity ID to see if its in use.
     $result = $query->condition('id', $element['#field_prefix'] . $entity_id)
@@ -150,7 +118,7 @@ class MigrationFormBase extends EntityForm {
    *   An array of supported actions for the current entity form.
    */
   protected function actions(array $form, FormStateInterface $form_state) {
-    // Get the basic actins from the base class.
+    // Get the basic actions from the base class.
     $actions = parent::actions($form, $form_state);
 
     // Change the submit button text.
@@ -169,11 +137,11 @@ class MigrationFormBase extends EntityForm {
 
     if ($status == SAVED_UPDATED) {
       // If we edited an existing entity...
-      drupal_set_message($this->t('Migration %label has been updated.', ['%label' => $migration->label()]));
+      $this->messenger()->addStatus($this->t('Migration %label has been updated.', ['%label' => $migration->label()]));
     }
     else {
       // If we created a new entity...
-      drupal_set_message($this->t('Migration %label has been added.', ['%label' => $migration->label()]));
+      $this->messenger()->addStatus($this->t('Migration %label has been added.', ['%label' => $migration->label()]));
     }
 
     // Redirect the user back to the listing route after the save operation.

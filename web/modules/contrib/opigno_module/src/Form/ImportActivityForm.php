@@ -65,7 +65,7 @@ class ImportActivityForm extends FormBase {
       // Only need to validate if the field actually has a file.
       $form_state->setError(
         $form['activity_opi'],
-        $this->t("Files isn't uploaded.")
+        $this->t("The file was not uploaded.")
       );
     }
   }

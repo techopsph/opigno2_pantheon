@@ -25,6 +25,7 @@ export class MeetingsListComponent implements OnInit {
   entityForm: any;
   mainId: any;
   getEntityFormUrl: string;
+  text_score: string;
   form = {
     bundle: null,
     existingEntity: null,
@@ -37,7 +38,7 @@ export class MeetingsListComponent implements OnInit {
     private route: ActivatedRoute
   ) {
     this.getEntityFormUrl = window['appConfig'].getEntityFormUrl;
-
+    this.text_score = window['appConfig'].text_score;
   }
 
   ngOnInit(): void {

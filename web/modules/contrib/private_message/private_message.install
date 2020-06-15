@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Holds install and update hooks for the Private Messsage module.
+ * Holds install and update hooks for the Private Message module.
  */
 
 /**
@@ -36,5 +36,15 @@ function private_message_update_8001() {
 
   $config_factory->getEditable('private_message.mail')
     ->set('message_notification', $message_notifcation_mail_map)
+    ->save(TRUE);
+}
+
+/**
+ * Add the create private message label.
+ */
+function private_message_update_8002() {
+  $config_factory = \Drupal::configFactory();
+  $config_factory->getEditable('private_message.settings')
+    ->set('create_message_label', 'Create Private Message')
     ->save(TRUE);
 }

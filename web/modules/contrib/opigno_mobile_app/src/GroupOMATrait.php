@@ -30,10 +30,9 @@ trait GroupOMATrait {
     ];
 
     $visibility = $group->field_learning_path_visibility->value;
-    $validation = $group->field_requires_validation->value;
 
-    $member_pending = $visibility === 'semiprivate' && $validation
-      && !LearningPathAccess::statusGroupValidation($group, $account);
+    // Check if we need to wait validation.
+    $member_pending = !LearningPathAccess::statusGroupValidation($group, $account);
     $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
     $required_trainings = LearningPathAccess::hasUncompletedRequiredTrainings($group, $account);
 

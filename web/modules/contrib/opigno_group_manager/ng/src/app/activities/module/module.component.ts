@@ -25,12 +25,27 @@ export class ModuleComponent implements OnInit {
   showAddModal: boolean;
   seletedActivity: Activity;
   dragging = false;
+  text_activity_id_table: string;
+  text_max_score_table: string;
+  text_edit_table: string;
+  text_remove_table: string;
+  text_confirm_delete: string;
+  text_cancel: string;
+  text_confirm: string;
 
   constructor(
     private activityService: ActivitiesService,
     private moduleService: ModuleService,
     private dragulaService: DragulaService
   ) {
+    this.text_activity_id_table = window['appConfig'].text_activity_id_table;
+    this.text_max_score_table = window['appConfig'].text_max_score_table;
+    this.text_edit_table = window['appConfig'].text_edit_table;
+    this.text_remove_table = window['appConfig'].text_remove_table;
+    this.text_confirm_delete = window['appConfig'].text_confirm_delete;
+    this.text_cancel = window['appConfig'].text_cancel;
+    this.text_confirm = window['appConfig'].text_confirm;
+
     try {
       dragulaService.setOptions('nested-bag', {
         revertOnSpill: true,

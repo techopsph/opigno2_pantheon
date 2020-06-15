@@ -19,6 +19,7 @@ export class UpdateActivityComponent implements OnInit {
   activityForm: any;
   apiBaseUrl: string;
   getActivityFormUrl: string;
+  text_property_of: string;
 
   constructor(
     private http: HttpClient,
@@ -27,6 +28,7 @@ export class UpdateActivityComponent implements OnInit {
   ) {
       this.apiBaseUrl = window['appConfig'].apiBaseUrl;
       this.getActivityFormUrl = window['appConfig'].getActivityFormUrl;
+      this.text_property_of = window['appConfig'].text_property_of;
   }
 
   ngOnInit() {

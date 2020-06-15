@@ -75,6 +75,9 @@ commerce_order.commerce_order_type.*:
     workflow:
       type: string
       label: 'Workflow'
+    numberPattern:
+      type: string
+      label: 'Number pattern'
     refresh_mode:
       type: string
       label: 'Order refresh mode'
@@ -117,3 +120,11 @@ field.widget.settings.commerce_unit_price:
     require_confirmation:
       type: boolean
       label: 'Require confirmation before overriding the unit price'
+
+profile.type.*.third_party.commerce_order:
+  type: mapping
+  label: 'Commerce settings'
+  mapping:
+    customer_profile_type:
+      type: boolean
+      label: 'Profiles of this type represent Commerce customer profiles'

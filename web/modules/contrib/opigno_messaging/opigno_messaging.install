@@ -13,32 +13,34 @@ use Drupal\Core\Config\FileStorage;
  * On module install.
  */
 function opigno_messaging_install() {
-  // private_message_thread.
-  $config = \Drupal::configFactory()->getEditable('core.entity_view_display.private_message_thread.private_message_thread.default');
-  $cfg = $config->get();
-  $cfg['content']['field_pm_subject'] = [
-    'label' => 'above',
-    'region' => 'content',
-    'weight' => -99,
-    'type' => 'string',
-    'third_party_settings' => [],
-    'settings' => [
-      'link_to_entity' => FALSE,
-    ],
-  ];
-  unset($cfg['hidden']['field_pm_subject']);
-  $cfg['content']['delete_link']['weight'] = -100;
-  $cfg['content']['members']['label'] = 'hidden';
-  $cfg['content']['private_messages']['label'] = 'hidden';
-  $config->setData($cfg)->save();
+  if (!\Drupal::service('config.installer')->isSyncing()) {
+    // private_message_thread.
+    $config = \Drupal::configFactory()->getEditable('core.entity_view_display.private_message_thread.private_message_thread.default');
+    $cfg = $config->get();
+    $cfg['content']['field_pm_subject'] = [
+      'label' => 'above',
+      'region' => 'content',
+      'weight' => -99,
+      'type' => 'string',
+      'third_party_settings' => [],
+      'settings' => [
+        'link_to_entity' => FALSE,
+      ],
+    ];
+    unset($cfg['hidden']['field_pm_subject']);
+    $cfg['content']['delete_link']['weight'] = -100;
+    $cfg['content']['members']['label'] = 'hidden';
+    $cfg['content']['private_messages']['label'] = 'hidden';
+    $config->setData($cfg)->save();
 
-  // private_message.
-  $config = \Drupal::configFactory()->getEditable('core.entity_view_display.private_message.private_message.default');
-  $cfg = $config->get();
-  $cfg['content']['owner']['label'] = 'hidden';
-  $cfg['hidden']['created'] = TRUE;
-  unset($cfg['content']['created']);
-  $config->setData($cfg)->save();
+    // private_message.
+    $config = \Drupal::configFactory()->getEditable('core.entity_view_display.private_message.private_message.default');
+    $cfg = $config->get();
+    $cfg['content']['owner']['label'] = 'hidden';
+    $cfg['hidden']['created'] = TRUE;
+    unset($cfg['content']['created']);
+    $config->setData($cfg)->save();
+  }
 }
 
 /**
@@ -53,16 +55,54 @@ function opigno_messaging_update_8001 () {
 }
 
 /**
+ * Update private messages block all.
+ */
+function opigno_messaging_update_8003 () {
+  $config_path = drupal_get_path('profile', 'opigno_lms') . '/config/optional';
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('block.block.views_block__private_message_block_all');
+  $config_storage->write('block.block.views_block__private_message_block_all', $data);
+}
+
+/**
+ * Update private messages main menu link.
+ */
+function opigno_messaging_update_8004 () {
+  $menu_name = 'main';
+  $storage = \Drupal::entityTypeManager()->getStorage('menu_link_content');
+  $menu_links = $storage->loadByProperties(['menu_name' => $menu_name]);
+  foreach ($menu_links as $menu_link) {
+    if ($menu_link->getTitle() == 'Messages') {
+      $menu_link->set('link', ['uri' => 'internal:/private-messages']);
+      $menu_link->save();
+      break;
+    }
+  }
+}
+
+/**
+ * Update new private message link on private-messages page.
+ */
+function opigno_messaging_update_8005 () {
+  $config_path = drupal_get_path('module', 'opigno_messaging') . '/config/optional';
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('views.view.private_message');
+  $config_storage->write('views.view.private_message', $data);
+}
+
+/**
  * Update private messages views header link with base path.
  */
-function opigno_messaging_update_8002 () {
+function opigno_messaging_update_8007 () {
   $config_path = drupal_get_path('module', 'opigno_messaging') . '/config/optional';
   $storage = new FileStorage($config_path);
   $config_storage = \Drupal::service('config.storage');
   $data = $storage->read('views.view.private_message');
 
   $data['display']['default']['display_options']['header']['area_text_custom']['content'] =
-    '<a class="new-message" href="[site:url]/private_message/create">New message</a><p class="messages">Messages</p>';
+    '<a class="new-message" href="[opigno:url-with-slash]private-message/create">New message</a><p class="messages">Messages</p>';
 
   $config_storage->write('views.view.private_message', $data);
 }

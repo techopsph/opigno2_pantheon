@@ -5,10 +5,10 @@ package : Fields
 dependencies:
   - field_group:field_group
 
-# core: '8.x'
-
-# Information added by Drupal.org packaging script on 2018-07-19
-version: '8.x-1.3'
 core: '8.x'
+core_version_requirement: ^8 || ^9
+
+# Information added by Drupal.org packaging script on 2020-04-10
+version: '8.x-1.5'
 project: 'popup_field_group'
-datestamp: 1532001511
+datestamp: 1586500424

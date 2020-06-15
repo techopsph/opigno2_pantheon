@@ -43,6 +43,9 @@ function commerce_checkout_theme() {
     'commerce_checkout_pane' => [
       'render element' => 'elements',
     ],
+    'commerce_checkout_completion_register' => [
+      'render element' => 'form',
+    ],
   ];
 
   return $theme;
@@ -84,6 +87,7 @@ function commerce_checkout_preprocess_commerce_checkout_order_summary(&$variable
   $variables['totals'] = $order_total_summary->buildTotals($order);
   $variables['rendered_totals'] = [
     '#theme' => 'commerce_order_total_summary',
+    '#order_entity' => $order,
     '#totals' => $variables['totals'],
   ];
 }
@@ -131,7 +135,6 @@ function commerce_checkout_form_commerce_order_type_form_alter(array &$form, For
     '#title' => t('Checkout settings'),
     '#weight' => 5,
     '#open' => TRUE,
-    '#collapsible' => TRUE,
   ];
   $form['commerce_checkout']['checkout_flow'] = [
     '#type' => 'select',

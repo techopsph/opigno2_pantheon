@@ -10,6 +10,7 @@ use Drupal\entity_print\Event\PrintEvents;
 use Drupal\entity_print\PrintEngineException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 /**
  * Entity print plugin manager.
@@ -38,6 +39,13 @@ class EntityPrintPluginManager extends DefaultPluginManager implements EntityPri
   protected $configFactory;
 
   /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
    * Constructs a EntityPrintPluginManager object.
    *
    * @param \Traversable $namespaces
@@ -51,13 +59,16 @@ class EntityPrintPluginManager extends DefaultPluginManager implements EntityPri
    *   The event dispatcher.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    */
-  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, EventDispatcherInterface $dispatcher, ConfigFactoryInterface $config_factory) {
+  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, EventDispatcherInterface $dispatcher, ConfigFactoryInterface $config_factory, EntityTypeManagerInterface $entity_type_manager) {
     parent::__construct('Plugin/EntityPrint/PrintEngine', $namespaces, $module_handler, 'Drupal\entity_print\Plugin\PrintEngineInterface', 'Drupal\entity_print\Annotation\PrintEngine');
     $this->alterInfo('entity_print_print_engine');
     $this->setCacheBackend($cache_backend, 'entity_print_print_engines');
     $this->dispatcher = $dispatcher;
     $this->configFactory = $config_factory;
+    $this->entityTypeManager = $entity_type_manager;
   }
 
   /**
@@ -142,7 +153,7 @@ class EntityPrintPluginManager extends DefaultPluginManager implements EntityPri
    */
   protected function getPrintEngineSettings($plugin_id) {
     /** @var \Drupal\entity_print\Entity\PrintEngineStorageInterface $storage */
-    $storage = \Drupal::entityTypeManager()->getStorage('print_engine');
+    $storage = $this->entityTypeManager->getStorage('print_engine');
     if (!$entity = $storage->load($plugin_id)) {
       $entity = $storage->create(['id' => $plugin_id]);
     }

@@ -46,6 +46,12 @@ export class AddComponent implements OnInit {
   step = 1;
   filterEntity: string;
   results: any[];
+  text_add_a_step: string;
+  text_add_a: string;
+  text_close: string;
+  text_create_a_new: string;
+  text_or_add_from_existing_catalogue: string;
+  text_search: string;
 
   constructor(
     private http: HttpClient,
@@ -60,6 +66,12 @@ export class AddComponent implements OnInit {
     this.addEntityUrl = window['appConfig'].addEntityUrl;
     this.getEntityFormUrl = window['appConfig'].getEntityFormUrl;
     this.submitAddEntityFormUrl = window['appConfig'].submitAddEntityFormUrl;
+    this.text_add_a_step = window['appConfig'].text_add_a_step;
+    this.text_add_a = window['appConfig'].text_add_a;
+    this.text_close = window['appConfig'].text_close;
+    this.text_create_a_new = window['appConfig'].text_create_a_new;
+    this.text_or_add_from_existing_catalogue = window['appConfig'].text_or_add_from_existing_catalogue;
+    this.text_search = window['appConfig'].text_search;
   }
 
   ngOnInit(): void {
@@ -205,6 +217,7 @@ export class AddComponent implements OnInit {
           console.error(error);
         });
     });
+    this.appService.updateLinks(!this.appService.linksStatus);
   }
 
   getAddForm(): void {

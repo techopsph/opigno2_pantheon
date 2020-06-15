@@ -406,3 +406,10 @@ function opigno_scorm_entity_bundle_field_info_alter(&$fields, \Drupal\Core\Enti
     }
   }
 }
+
+/**
+ * Implements hook_page_attachments().
+ */
+function opigno_scorm_page_attachments(array &$attachments) {
+  $attachments['#attached']['library'][] = 'opigno_scorm/opigno-scorm-ios-13';
+}

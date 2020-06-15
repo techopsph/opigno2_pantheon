@@ -4,13 +4,11 @@ namespace Drupal\commerce_tax\Plugin\Commerce\TaxType;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
-use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\commerce_tax\Event\TaxEvents;
 use Drupal\commerce_tax\Event\CustomerProfileEvent;
 use Drupal\commerce_tax\TaxableType;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginBase;
@@ -37,20 +35,30 @@ abstract class TaxTypeBase extends PluginBase implements TaxTypeInterface, Conta
   protected $eventDispatcher;
 
   /**
-   * The ID of the parent config entity.
+   * The parent config entity.
    *
    * Not available while the plugin is being configured.
+   *
+   * @var \Drupal\commerce_tax\Entity\TaxTypeInterface
+   */
+  protected $parentEntity;
+
+  /**
+   * The ID of the parent config entity.
+   *
+   * @deprecated in commerce:8.x-2.16 and is removed from commerce:3.x.
+   *   Use $this->parentEntity->id() instead.
    *
    * @var string
    */
   protected $entityId;
 
   /**
-   * A cache of instantiated store profiles.
+   * A cache of prepared customer profiles, keyed by order ID.
    *
    * @var \Drupal\profile\Entity\ProfileInterface
    */
-  protected $storeProfiles = [];
+  protected $profiles = [];
 
   /**
    * Constructs a new TaxTypeBase object.
@@ -71,9 +79,10 @@ abstract class TaxTypeBase extends PluginBase implements TaxTypeInterface, Conta
 
     $this->entityTypeManager = $entity_type_manager;
     $this->eventDispatcher = $event_dispatcher;
-    if (array_key_exists('_entity_id', $configuration)) {
-      $this->entityId = $configuration['_entity_id'];
-      unset($configuration['_entity_id']);
+    if (array_key_exists('_entity', $configuration)) {
+      $this->parentEntity = $configuration['_entity'];
+      $this->entityId = $this->parentEntity->id();
+      unset($configuration['_entity']);
     }
     $this->setConfiguration($configuration);
   }
@@ -89,6 +98,32 @@ abstract class TaxTypeBase extends PluginBase implements TaxTypeInterface, Conta
       $container->get('entity_type.manager'),
       $container->get('event_dispatcher')
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __sleep() {
+    if (!empty($this->parentEntity)) {
+      $this->_parentEntityId = $this->parentEntity->id();
+      unset($this->parentEntity);
+    }
+    unset($this->profiles);
+
+    return parent::__sleep();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __wakeup() {
+    parent::__wakeup();
+
+    if (!empty($this->_parentEntityId)) {
+      $tax_type_storage = $this->entityTypeManager->getStorage('commerce_tax_type');
+      $this->parentEntity = $tax_type_storage->load($this->_parentEntityId);
+      unset($this->_parentEntityId);
+    }
   }
 
   /**
@@ -160,6 +195,13 @@ abstract class TaxTypeBase extends PluginBase implements TaxTypeInterface, Conta
   /**
    * {@inheritdoc}
    */
+  public function getWeight() {
+    return $this->pluginDefinition['weight'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isDisplayInclusive() {
     return !empty($this->configuration['display_inclusive']);
   }
@@ -169,28 +211,6 @@ abstract class TaxTypeBase extends PluginBase implements TaxTypeInterface, Conta
    */
   public function applies(OrderInterface $order) {
     return TRUE;
-  }
-
-  /**
-   * Gets the calculation date for the given order.
-   *
-   * Uses the placed timestamp, if the order has been placed.
-   * Falls back to the current date otherwise.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   *
-   * @return \Drupal\Core\Datetime\DrupalDateTime
-   *   The calculation date.
-   */
-  protected function getCalculationDate(OrderInterface $order) {
-    if ($timestamp = $order->getPlacedTime()) {
-      $date = DrupalDateTime::createFromTimestamp($timestamp);
-    }
-    else {
-      $date = new DrupalDateTime();
-    }
-    return $date;
   }
 
   /**
@@ -222,41 +242,69 @@ abstract class TaxTypeBase extends PluginBase implements TaxTypeInterface, Conta
    */
   protected function resolveCustomerProfile(OrderItemInterface $order_item) {
     $order = $order_item->getOrder();
-    $customer_profile = $order->getBillingProfile();
-    // A shipping profile is preferred, when available.
+    $customer_profile = $this->buildCustomerProfile($order);
+    // Allow the customer profile to be altered, per order item.
     $event = new CustomerProfileEvent($customer_profile, $order_item);
     $this->eventDispatcher->dispatch(TaxEvents::CUSTOMER_PROFILE, $event);
     $customer_profile = $event->getCustomerProfile();
-    if (!$customer_profile && $this->isDisplayInclusive()) {
-      // The customer is still unknown, but prices are displayed tax-inclusive
-      // (VAT scenario), better to show the store's default tax than nothing.
-      $customer_profile = $this->buildStoreProfile($order->getStore());
-    }
 
     return $customer_profile;
   }
 
   /**
-   * Builds a customer profile for the given store.
+   * Builds a customer profile for the given order.
    *
-   * @param \Drupal\commerce_store\Entity\StoreInterface $store
-   *   The store.
+   * Constructed only for the purposes of tax calculation, never saved.
+   * The address comes one of the saved profiles, with the following priority:
+   * - Shipping profile
+   * - Billing profile
+   * - Store profile (if the tax type is display inclusive)
+   * The tax number comes from the billing profile, if present.
    *
-   * @return \Drupal\profile\Entity\ProfileInterface
-   *   The customer profile.
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   *
+   * @return \Drupal\profile\Entity\ProfileInterface|null
+   *   The customer profile, or NULL if not available yet.
    */
-  protected function buildStoreProfile(StoreInterface $store) {
-    $store_id = $store->id();
-    if (!isset($this->storeProfiles[$store_id])) {
+  protected function buildCustomerProfile(OrderInterface $order) {
+    $order_id = $order->id();
+    if (!isset($this->profiles[$order_id])) {
+      $order_profiles = $order->collectProfiles();
+      $address = NULL;
+      foreach (['shipping', 'billing'] as $scope) {
+        if (isset($order_profiles[$scope])) {
+          $address_field = $order_profiles[$scope]->get('address');
+          if (!$address_field->isEmpty()) {
+            $address = $address_field->getValue();
+            break;
+          }
+        }
+      }
+      if (!$address && $this->isDisplayInclusive()) {
+        // Customer is still unknown, but prices are displayed tax-inclusive
+        // (VAT scenario), better to show the store's default tax than nothing.
+        $address = $order->getStore()->getAddress();
+      }
+      if (!$address) {
+        // A customer profile isn't usable without an address. Stop here.
+        return NULL;
+      }
+
+      $tax_number = NULL;
+      if (isset($order_profiles['billing'])) {
+        $tax_number = $order_profiles['billing']->get('tax_number')->getValue();
+      }
       $profile_storage = $this->entityTypeManager->getStorage('profile');
-      $this->storeProfiles[$store_id] = $profile_storage->create([
+      $this->profiles[$order_id] = $profile_storage->create([
         'type' => 'customer',
-        'uid' => $store->getOwnerId(),
-        'address' => $store->getAddress(),
+        'uid' => 0,
+        'address' => $address,
+        'tax_number' => $tax_number,
       ]);
     }
 
-    return $this->storeProfiles[$store_id];
+    return $this->profiles[$order_id];
   }
 
 }

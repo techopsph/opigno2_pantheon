@@ -44,3 +44,14 @@ menu_icon:
   css:
     theme:
       css/opigno_module.css: {}
+
+opigno_module_preview:
+  version: VERSION
+  css:
+    theme:
+      css/opigno_module_preview.css: {}
+
+opigno_module_results_view:
+  version: VERSION
+  js:
+    js/opigno_module_results_view.js: {}

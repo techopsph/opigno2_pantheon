@@ -21,6 +21,8 @@ class CalendarEventForm extends ContentEntityForm {
     $calendar_event = $this->entity;
     $insert = $calendar_event->isNew();
 
+    $calendar_event->setValidationRequired(FALSE);
+
     parent::save($form, $form_state);
 
     try {

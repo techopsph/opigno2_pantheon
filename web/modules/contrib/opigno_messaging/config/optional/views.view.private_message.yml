@@ -151,7 +151,7 @@ display:
           admin_label: ''
           empty: true
           tokenize: false
-          content: "<a class=\"new-message\" href=\"[site:url]/private_message/create\">New message</a>\n<p class=\"messages\">Messages</p>"
+          content: "<a class=\"new-message\" href=\"[opigno:url-with-slash]/private-message/create\">New message</a>\n<p class=\"messages\">Messages</p>"
           plugin_id: text_custom
       footer: {  }
       empty: {  }

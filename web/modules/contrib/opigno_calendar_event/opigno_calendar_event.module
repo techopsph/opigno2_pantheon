@@ -17,6 +17,8 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views\ViewExecutable;
 
 /**
  * Implements hook_entity_field_storage_info().
@@ -149,5 +151,44 @@ function opigno_calendar_event_entity_view(array &$build, EntityInterface $entit
       $build += $calendar_event_manager->getEmbeddedDisplay()
         ->build($field_definition, $calendar_events);
     }
+  }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * @param \Drupal\views\ViewExecutable $view
+ *   View object.
+ * @param \Drupal\views\Plugin\views\query\QueryPluginBase $query
+ *   Query object.
+ *
+ * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+ * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+ */
+function opigno_calendar_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
+  if ($view->id() === 'opigno_calendar') {
+    $current_user = \Drupal::currentUser()->id();
+    $table_mapping = \Drupal::entityTypeManager()->getStorage('opigno_calendar_event')->getTableMapping();
+    $table = $table_mapping->getFieldTableName('field_calendar_event_members');
+
+    $definition = [
+      'table' => $table,
+      'field' => 'entity_id',
+      'left_table' => 'opigno_calendar_event_field_data',
+      'left_field' => 'id',
+    ];
+    $join = Drupal::service('plugin.manager.views.join')
+      ->createInstance('standard', $definition);
+    $query->addRelationship($table, $join, $table);
+    $query->where[] = [
+      'conditions' => [
+        [
+          'field' => $table . ' . field_calendar_event_members_target_id',
+          'value' => $current_user,
+          'operator' => '=',
+        ],
+      ],
+      'type' => 'AND',
+    ];
   }
 }

@@ -35,6 +35,14 @@ export class AddActivityComponent implements OnInit {
   getExtPackageFormUrl: string;
   getExtPackagePptFormUrl: string;
   module: any;
+  text_choose_an_activity_type: string;
+  text_choose_an_activity: string;
+  text_close: string;
+  text_help: string;
+  text_add_activity: string;
+  text_create_a_new_activity: string;
+  text_or_add_from_existing_catalogue: string;
+  text_search_for_an_activity: string;
 
   constructor(
     private activityService: ActivitiesService,
@@ -45,6 +53,14 @@ export class AddActivityComponent implements OnInit {
     this.getActivityFormUrl = window['appConfig'].getActivityFormUrl;
     this.getExtPackageFormUrl = window['appConfig'].getExtPackageFormUrl;
     this.getExtPackagePptFormUrl = window['appConfig'].getExtPackagePptFormUrl;
+    this.text_choose_an_activity_type = window['appConfig'].text_choose_an_activity_type;
+    this.text_choose_an_activity = window['appConfig'].text_choose_an_activity;
+    this.text_close = window['appConfig'].text_close;
+    this.text_help = window['appConfig'].text_help;
+    this.text_add_activity = window['appConfig'].text_add_activity;
+    this.text_create_a_new_activity = window['appConfig'].text_create_a_new_activity;
+    this.text_or_add_from_existing_catalogue = window['appConfig'].text_or_add_from_existing_catalogue;
+    this.text_search_for_an_activity = window['appConfig'].text_search_for_an_activity;
   }
 
   ngOnInit() {

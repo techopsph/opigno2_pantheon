@@ -165,20 +165,25 @@
         if (!achievementsAjaxLoading) {
           if ($window.scrollTop() >= that.getDocHeight() - (2 * $window.height())) {
             achievementsAjaxLoading = true;
+            Drupal.platon.ajaxFullScreenLoader.show();
+
             Drupal.ajax({
               url: 'ajax/achievements/' + (achievementsPage + 1),
             }).execute()
                 .done(function () {
                   achievementsPage += 1;
+                  Drupal.platon.ajaxFullScreenLoader.hide();
                 })
                 .always(function () {
                   achievementsAjaxLoading = false;
+                  Drupal.platon.ajaxFullScreenLoader.hide();
                 });
           }
         }
       });
 
       this.donutsCharts(context);
+      this.timeLineSlider(context);
     },
 
     getDocHeight: function () {
@@ -213,5 +218,49 @@
         context.stroke();
       });
     },
+    timeLineSlider: function (context) {
+      $(context).find('.lp_timeline').once('timeLineSlider').each(function () {
+        var $timeLine = $(this);
+        var $timeLineSlider = $timeLine.clone().addClass('cloned');
+        var $step = $timeLine.find('.lp_timeline_step');
+        var itemsWidth;
+        var resize;
+
+        // Wrap to initial slick slider only for step items.
+        $timeLineSlider.find('.lp_timeline_step').wrapAll('<div class="lp_timeline_steps" />');
+        $timeLineSlider.find('.lp_timeline_steps').slick({
+          dots: true,
+          arrows: false,
+          infinite: false,
+          variableWidth: true,
+        });
+
+        $timeLine.after($timeLineSlider);
+
+        $(window).on('resize.timeline', function () {
+          // Use setTimeout to perform window resize.
+          clearTimeout(resize);
+          resize = setTimeout(function () {
+            itemsWidth = 126; // start & end items width.
+
+            $step.each(function () {
+              itemsWidth += $(this).width();
+            });
+
+            // Use zero height in CSS to save origin element width.
+            if (itemsWidth > $timeLine.width() && $step.length > 1) {
+              $timeLineSlider.show();
+              $timeLine.addClass('lp_timeline_step-hide');
+            }
+            else {
+              $timeLineSlider.hide();
+              $timeLine.removeClass('lp_timeline_step-hide');
+            }
+
+            $timeLineSlider.trigger('setPosition');
+          }, 100);
+        }).trigger('resize.timeline');
+      });
+    }
   };
 }(jQuery, Drupal, drupalSettings));

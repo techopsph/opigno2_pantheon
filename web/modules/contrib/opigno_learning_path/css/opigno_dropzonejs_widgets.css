@@ -39,10 +39,16 @@
   width: 100%;
 }
 
-#entity-browser-media-entity-browser-badge-images-form .form-actions,
-#entity-browser-media-entity-browser-groups-form .form-actions,
-#entity-browser-media-entity-browser-file-pdf-form .form-actions {
+#entity-browser-media-entity-browser-badge-images-form>.form-actions,
+#entity-browser-media-entity-browser-groups-form>.form-actions,
+#entity-browser-media-entity-browser-file-pdf-form>.form-actions {
   display: none;
+}
+
+#entity-browser-media-entity-browser-badge-images-form .view-media-entity-browser-view~.form-actions,
+#entity-browser-media-entity-browser-groups-form .view-media-entity-browser-view~.form-actions,
+#entity-browser-media-entity-browser-file-pdf-form .view-media-entity-browser-view~.form-actions {
+  display: block;
 }
 
 #entity-browser-media-entity-browser-badge-images-form .dialog-off-canvas-main-canvas,

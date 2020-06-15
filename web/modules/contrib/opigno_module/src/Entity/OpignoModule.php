@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\group\Entity\Group;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\opigno_learning_path\Entity\LPModuleAvailability;
 use Drupal\user\UserInterface;
@@ -76,6 +77,13 @@ class OpignoModule extends RevisionableContentEntityBase implements OpignoModule
    * Static cache of user active attempt.
    */
   protected $userActiveAttempt = [];
+
+  /**
+   * Static cache of user training active attempt.
+   *
+   * @var mixed
+   */
+  protected $userTrainingActiveAttempt = [];
 
   /**
    * {@inheritdoc}
@@ -380,11 +388,11 @@ class OpignoModule extends RevisionableContentEntityBase implements OpignoModule
   /**
    * Get loaded statuses for specified user.
    */
-  public function getModuleAttempts(AccountInterface $user, $range = NULL) {
+  public function getModuleAttempts(AccountInterface $user, $range = NULL, $latest_cert_date = NULL) {
     $key = $this->id() . '_' . $user->id();
 
     if (isset($range)) {
-      $key .=  '_' . $range;
+      $key .= '_' . $range;
     }
 
     if (array_key_exists($key, $this->userAttempts)) {
@@ -395,6 +403,10 @@ class OpignoModule extends RevisionableContentEntityBase implements OpignoModule
     $query = $status_storage->getQuery();
     $query->condition('module', $this->id())
       ->condition('user_id', $user->id());
+
+    if ($latest_cert_date) {
+      $query->condition('started', $latest_cert_date, '>=');
+    }
 
     if (!is_null($range)) {
       if ($range == 'last') {
@@ -443,6 +455,40 @@ class OpignoModule extends RevisionableContentEntityBase implements OpignoModule
 
     $this->userActiveAttempt[$key] = !empty($module_statuses) ? $status_storage->load(key($module_statuses)) : NULL;
     return $this->userActiveAttempt[$key];
+  }
+
+  /**
+   * Get training attempt if user didn't finish training.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $user
+   *   User entity object.
+   * @param \Drupal\group\Entity\Group $group
+   *   Group object.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface|null
+   *   Entity interface.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  public function getTrainingActiveAttempt(AccountInterface $user, Group $group) {
+    $key = $group->id() . '_' . $user->id();
+
+    if (array_key_exists($key, $this->userTrainingActiveAttempt)) {
+      return $this->userTrainingActiveAttempt[$key];
+    }
+
+    $status_storage = static::entityTypeManager()->getStorage('user_lp_status');
+    $query = $status_storage->getQuery();
+    $training_statuses = $query
+      ->condition('gid', $group->id())
+      ->condition('uid', $user->id())
+      ->condition('finished', 0)
+      ->range(0, 1)
+      ->execute();
+
+    $this->userTrainingActiveAttempt[$key] = !empty($training_statuses) ? $status_storage->load(key($training_statuses)) : NULL;
+    return $this->userTrainingActiveAttempt[$key];
   }
 
   /**
@@ -547,7 +593,7 @@ class OpignoModule extends RevisionableContentEntityBase implements OpignoModule
       ->condition('user_id', $user->id())
       ->condition('user_module_status', $attempt->id())
       ->execute();
-    return !empty($answers) ? $answers_storage->loadMultiple(array_keys($answers)) : [];
+    return !empty($answers) ? $answers_storage->loadMultiple($answers) : [];
   }
 
   /**

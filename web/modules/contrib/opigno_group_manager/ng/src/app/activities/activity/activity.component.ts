@@ -12,7 +12,19 @@ export class ActivityComponent implements OnInit {
   @Output() updateActivityEvent = new EventEmitter();
   @Output() showDeleteEvent = new EventEmitter();
 
-  constructor() { }
+  text_move: string;
+  text_preview: string;
+  text_max_score: string;
+  text_edit: string;
+  text_delete: string;
+
+  constructor() {
+    this.text_move = window['appConfig'].text_move;
+    this.text_preview = window['appConfig'].text_preview;
+    this.text_max_score = window['appConfig'].text_max_score;
+    this.text_edit = window['appConfig'].text_edit;
+    this.text_delete = window['appConfig'].text_delete;
+  }
 
   ngOnInit() { }
 

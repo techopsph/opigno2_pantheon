@@ -169,8 +169,13 @@
   background: url('../img/state_failed.png');
 }
 
+.lp_progress_summary_expired {
+  background: url(../img/state-expired.png);
+}
+
 .lp_progress_summary_passed,
-.lp_progress_summary_failed {
+.lp_progress_summary_failed,
+.lp_progress_summary_expired {
   background-repeat: no-repeat;
   background-position: center;
   background-size: 43px;

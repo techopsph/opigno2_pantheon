@@ -18,6 +18,7 @@ export class PreviewActivityComponent implements OnInit {
   activityPreview: any;
   apiBaseUrl: string;
   getActivityPreviewUrl: string;
+  text_preview_of_activity: string;
 
   constructor(
     private http: HttpClient,
@@ -26,6 +27,7 @@ export class PreviewActivityComponent implements OnInit {
   ) {
       this.apiBaseUrl = window['appConfig'].apiBaseUrl;
       this.getActivityPreviewUrl = window['appConfig'].getActivityPreviewUrl;
+      this.text_preview_of_activity = window['appConfig'].text_preview_of_activity;
   }
 
   ngOnInit() {

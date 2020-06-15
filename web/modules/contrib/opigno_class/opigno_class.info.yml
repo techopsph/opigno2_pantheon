@@ -7,8 +7,8 @@ dependencies:
   - group:group
   - drupal:image
   - config_rewrite:config_rewrite
-
-# Information added by Drupal.org packaging script on 2020-01-30
-version: '8.x-1.5'
+  - userprotect:userprotect
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.6'
 project: 'opigno_class'
-datestamp: 1580375844
+datestamp: 1591089571

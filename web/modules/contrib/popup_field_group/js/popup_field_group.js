@@ -3,14 +3,14 @@
  * Open popup with requested settings.
  */
 
-(function ($) {
+(function ($, Drupal) {
 
   'use strict';
 
   /**
    * Behaviors.
    */
-  Drupal.behaviors.fieldGroup = {
+  Drupal.behaviors.popupFieldGroup = {
     attach: function (context, settings) {
 
       $('.' + settings.popupFieldGroup.linkCssClass, context).once('popup-field-group').each(function () {
@@ -22,10 +22,19 @@
           var popupSettings = settings.popupFieldGroup.popups[targetId];
 
           if (popupContent.length > 0) {
-            // Ensure form elements are not moved outside the form.
-            popupSettings.dialog.appendTo = link.parent();
+            if (typeof popupSettings.appendTo === "undefined") {
+              // Nothing to do.
+            }
+            else if (popupSettings.appendTo.length > 0) {
+              popupSettings.dialog.appendTo = popupSettings.appendTo;
+            }
+            else {
+              // Ensure form elements are not moved outside the form.
+              popupSettings.dialog.appendTo = link.parent();
+            }
 
             var dialog = Drupal.dialog(popupContent, popupSettings.dialog);
+            popupContent.data('drupalDialog', dialog);
 
             link.click(function () {
               if (popupSettings.modal) {
@@ -43,4 +52,4 @@
     }
   };
 
-})(jQuery);
+})(jQuery, Drupal);

@@ -43,8 +43,6 @@ export class EntityService {
   }
 
   traceLinks(entities, links, entityPositions): void {
-    let that = this;
-
     entities.forEach((entity) => {
       entity.parents.forEach((_parent) => {
         if (!_parent.cid) {

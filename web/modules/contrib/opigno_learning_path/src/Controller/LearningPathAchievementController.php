@@ -13,6 +13,7 @@ use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
+use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -209,8 +210,11 @@ class LearningPathAchievementController extends ControllerBase {
     $user = $this->currentUser();
     $moduleHandler = \Drupal::service('module_handler');
 
+    // Get training latest certification timestamp.
+    $latest_cert_date = LPStatus::getTrainingStartDate($training, $user->id());
+
     $parent = isset($course) ? $course : $training;
-    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module);
+    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module, $latest_cert_date);
     $completed_on = $step['completed on'];
     $completed_on = $completed_on > 0
       ? $date_formatter->format($completed_on, 'custom', 'F d, Y')
@@ -219,7 +223,7 @@ class LearningPathAchievementController extends ControllerBase {
     /** @var \Drupal\opigno_module\Entity\OpignoModule $module */
     $module = OpignoModule::load($step['id']);
     /** @var \Drupal\opigno_module\Entity\UserModuleStatus[] $attempts */
-    $attempts = $module->getModuleAttempts($user);
+    $attempts = $module->getModuleAttempts($user, NULL, $latest_cert_date);
 
     if ($moduleHandler->moduleExists('opigno_skills_system') && $module->getSkillsActive() && $module->getModuleSkillsGlobal() && !empty($attempts)) {
       $activities_from_module = $module->getModuleActivities();
@@ -421,19 +425,19 @@ class LearningPathAchievementController extends ControllerBase {
    * @return int
    *   Approved activities.
    */
-  protected function module_approved_activities($parent, $module) {
+  protected function module_approved_activities($parent, $module, $latest_cert_date = NULL) {
     $approved = 0;
     $user = $this->currentUser();
     $parent = Group::load($parent);
     $module = OpignoModule::load($module);
     $moduleHandler = \Drupal::service('module_handler');
 
-    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module);
+    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module, $latest_cert_date);
 
     /** @var \Drupal\opigno_module\Entity\OpignoModule $module */
     $module = OpignoModule::load($step['id']);
     /** @var \Drupal\opigno_module\Entity\UserModuleStatus[] $attempts */
-    $attempts = $module->getModuleAttempts($user);
+    $attempts = $module->getModuleAttempts($user, NULL, $latest_cert_date);
 
     if ($moduleHandler->moduleExists('opigno_skills_system') && $module->getSkillsActive() && $module->getModuleSkillsGlobal() && !empty($attempts)) {
       $activities_from_module = $module->getModuleActivities();
@@ -606,13 +610,13 @@ class LearningPathAchievementController extends ControllerBase {
    * @return array
    *   Course passed steps.
    */
-  protected function course_steps_passed(GroupInterface $training, GroupInterface $course) {
+  protected function course_steps_passed(GroupInterface $training, GroupInterface $course, $latest_cert_date = NULL) {
     $user = $this->currentUser();
-    $steps = opigno_learning_path_get_steps($course->id(), $user->id());
+    $steps = opigno_learning_path_get_steps($course->id(), $user->id(), NULL, $latest_cert_date);
 
     $passed = 0;
     foreach ($steps as $step) {
-      $status = opigno_learning_path_get_step_status($step, $user->id());
+      $status = opigno_learning_path_get_step_status($step, $user->id(), FALSE, $latest_cert_date);
       if ($status == 'passed') {
         $passed++;
       }
@@ -637,15 +641,18 @@ class LearningPathAchievementController extends ControllerBase {
     $user = $this->currentUser();
     $uid = $user->id();
 
+    // Get training latest certification timestamp.
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $uid);
+
     // Get training guided navigation option.
     $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
     if ($freeNavigation) {
       // Get all steps for LP.
-      $steps = opigno_learning_path_get_all_steps($group->id(), $uid);
+      $steps = opigno_learning_path_get_all_steps($group->id(), $uid, NULL, $latest_cert_date);
     }
     else {
       // Get guided steps.
-      $steps = opigno_learning_path_get_steps($group->id(), $uid);
+      $steps = opigno_learning_path_get_steps($group->id(), $uid, NULL, $latest_cert_date);
     }
 
     $steps = array_filter($steps, function ($step) use ($user) {
@@ -677,10 +684,10 @@ class LearningPathAchievementController extends ControllerBase {
 
       return TRUE;
     });
-    $steps = array_map(function ($step) use ($uid) {
-      $step['status'] = opigno_learning_path_get_step_status($step, $uid, TRUE);
+    $steps = array_map(function ($step) use ($uid, $latest_cert_date) {
+      $step['status'] = opigno_learning_path_get_step_status($step, $uid, TRUE, $latest_cert_date);
       $step['attempted'] = opigno_learning_path_is_attempted($step, $uid);
-      $step['progress'] = opigno_learning_path_get_step_progress($step, $uid);
+      $step['progress'] = opigno_learning_path_get_step_progress($step, $uid, FALSE, $latest_cert_date);
       return $step;
     }, $steps);
 
@@ -708,7 +715,7 @@ class LearningPathAchievementController extends ControllerBase {
         'id' => 'training_steps_' . $group->id(),
         'class' => ['lp_details'],
       ],
-      array_map(function ($step) use ($group, $uid, $date_formatter, $status, $user) {
+      array_map(function ($step) use ($group, $uid, $date_formatter, $status, $user, $latest_cert_date) {
         $is_module = $step['typology'] === 'Module';
         $is_course = $step['typology'] === 'Course';
 
@@ -720,7 +727,7 @@ class LearningPathAchievementController extends ControllerBase {
           $moduleHandler = \Drupal::service('module_handler');
 
           if ($moduleHandler->moduleExists('opigno_skills_system') && $module->getSkillsActive()) {
-            $attempts = $module->getModuleAttempts($user);
+            $attempts = $module->getModuleAttempts($user, NULL, $latest_cert_date);
             $attempt = $this->getTargetAttempt($attempts, $module);
 
             $account = \Drupal\user\Entity\user::load($attempt->getOwnerId());
@@ -733,14 +740,14 @@ class LearningPathAchievementController extends ControllerBase {
             $step['progress'] = 1;
           }
           else {
-            $approved_activities = $this->module_approved_activities($group->id(), $step['id']);
+            $approved_activities = $this->module_approved_activities($group->id(), $step['id'], $latest_cert_date);
             $approved = $approved_activities . '/' . $step['activities'];
             $approved_percent = $approved_activities / $step['activities'] * 100;
           }
         }
 
         if ($is_course) {
-          $course_steps = $this->course_steps_passed($group, Group::load($step['id']));
+          $course_steps = $this->course_steps_passed($group, Group::load($step['id']), $latest_cert_date);
           $passed = $course_steps['passed'] . '/' . $course_steps['total'];
           $passed_percent = ($course_steps['passed'] / $course_steps['total']) * 100;
           $score = $step['best score'];
@@ -824,8 +831,10 @@ class LearningPathAchievementController extends ControllerBase {
                         'd-sm-flex',
                         'd-md-block',
                         'd-lg-flex',
+                        'align-items-center',
                         'mb-4',
                         'mb-md-0',
+                        'col-step-item',
                       ],
                     ], [
                       '#type' => 'html_tag',
@@ -838,6 +847,7 @@ class LearningPathAchievementController extends ControllerBase {
                           'mb-md-3',
                           'mb-lg-0',
                           'text-uppercase',
+                          'lp-step-title',
                         ],
                       ],
                       '#value' => isset($status[$step['status']])
@@ -852,20 +862,21 @@ class LearningPathAchievementController extends ControllerBase {
                           'ml-3',
                           'ml-md-0',
                           'ml-lg-3',
+                          'lp-step-icon'
                         ],
                       ],
                     ],
                   ], [
                     '#type' => 'container',
                     '#attributes' => [
-                      'class' => ['col-lg-4', 'col-md-5', 'mb-4', 'mb-md-0'],
+                      'class' => ['col-lg-4', 'col-md-5', 'mb-4', 'mb-md-0', 'col-step-item',],
                     ], [
                       '#type' => 'html_tag',
                       '#tag' => 'div',
                       '#attributes' => [
-                        'class' => ['ml-0', 'ml-md-5', 'mr-3', 'pull-left'],
+                        'class' => ['ml-0', 'ml-md-5', 'mr-3', 'pull-left', 'lp-step-title'],
                       ],
-                      '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
+                      '#value' => '<div class="h4 color-blue mb-0"> ' . round(100 * $step['progress']) . '%</div><div> ' . t('Completion') . '</div>',
                     ], [
                       '#type' => 'container',
                       '#attributes' => [
@@ -873,6 +884,7 @@ class LearningPathAchievementController extends ControllerBase {
                           'lp_step_summary_completion_chart',
                           'donut-wrapper',
                           'ml-3',
+                          'lp-step-icon',
                         ],
                       ], [
                         '#type' => 'html_tag',
@@ -892,7 +904,7 @@ class LearningPathAchievementController extends ControllerBase {
                   ], [
                     '#type' => 'container',
                     '#attributes' => [
-                      'class' => ['col-lg-4', 'col-md-5'],
+                      'class' => ['col-lg-4', 'col-md-5', 'col-step-item'],
                     ], [
                       '#type' => 'html_tag',
                       '#tag' => 'div',
@@ -903,9 +915,10 @@ class LearningPathAchievementController extends ControllerBase {
                           'lp_step_summary_approved',
                           'mr-3',
                           'pull-left',
+                          'lp-step-title'
                         ],
                       ],
-                      '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div>' . t('Activities') . '<br />' . t('done') . '</div>',
+                      '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div> ' . t('Activities') . ' <br />' . t('done') . '</div>',
                     ], [
                       '#type' => 'container',
                       '#attributes' => [
@@ -914,6 +927,7 @@ class LearningPathAchievementController extends ControllerBase {
                           'donut-wrapper',
                           'ml-3',
                           'mr-auto',
+                          'lp-step-icon'
                         ],
                       ], [
                         '#type' => 'html_tag',
@@ -1201,6 +1215,8 @@ class LearningPathAchievementController extends ControllerBase {
     $date_formatter = \Drupal::service('date.formatter');
     $user = $this->currentUser();
 
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $user->id());
+
     $result = (int) $this->database
       ->select('opigno_learning_path_achievements', 'a')
       ->fields('a')
@@ -1210,9 +1226,9 @@ class LearningPathAchievementController extends ControllerBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    if ($result === 0) {
+    if ($latest_cert_date || $result === 0) {
       // If training is not completed, generate steps.
-      $steps = opigno_learning_path_get_steps($group->id(), $user->id());
+      $steps = opigno_learning_path_get_steps($group->id(), $user->id(), NULL, $latest_cert_date);
       $steps = array_filter($steps, function ($step) {
         return $step['mandatory'];
       });
@@ -1245,8 +1261,8 @@ class LearningPathAchievementController extends ControllerBase {
 
         return TRUE;
       });
-      $steps = array_map(function ($step) use ($user) {
-        $status = opigno_learning_path_get_step_status($step, $user->id(), TRUE);
+      $steps = array_map(function ($step) use ($user, $latest_cert_date) {
+        $status = opigno_learning_path_get_step_status($step, $user->id(), TRUE, $latest_cert_date);
         if ($status == 'passed') {
           $step['passed'] = opigno_learning_path_is_passed($step, $user->id());
         }
@@ -1301,7 +1317,7 @@ class LearningPathAchievementController extends ControllerBase {
         ? $date_formatter->format($step['completed on'], 'custom', 'F d, Y')
         : '';
 
-      $status = opigno_learning_path_get_step_status($step, $user->id(), TRUE);
+      $status = opigno_learning_path_get_step_status($step, $user->id(), TRUE, $latest_cert_date);
       $timeline[] = [
         '#type' => 'container',
         '#attributes' => [
@@ -1318,7 +1334,7 @@ class LearningPathAchievementController extends ControllerBase {
             '#attributes' => [
               'class' => ['lp_timeline_step_label_title'],
             ],
-            '#value' => $step['name'],
+            '#value' => mb_strimwidth($step['name'], 0, 42, '...'),
           ],
           [
             '#type' => 'html_tag',
@@ -1329,6 +1345,12 @@ class LearningPathAchievementController extends ControllerBase {
             '#value' => $completed_on,
           ],
         ],
+        [
+          '#type' => 'container',
+          '#attributes' => [
+            'class' => ['lp_status', $status],
+          ],
+        ]
       ];
     }
 
@@ -1376,8 +1398,12 @@ class LearningPathAchievementController extends ControllerBase {
     $gid = $group->id();
     $user = $this->currentUser();
     $uid = $user->id();
-    $score = round(opigno_learning_path_get_score($gid, $uid));
-    $progress = round(100 * opigno_learning_path_progress($gid, $uid));
+
+    // Get training latest certification timestamp.
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $user->id());
+
+    $score = round(opigno_learning_path_get_score($gid, $uid, FALSE, $latest_cert_date));
+    $progress = round(100 * opigno_learning_path_progress($gid, $uid, $latest_cert_date));
 
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
@@ -1395,13 +1421,32 @@ class LearningPathAchievementController extends ControllerBase {
     $time_spent = opigno_learning_path_get_time_spent($gid, $uid);
     $time_spent = $date_formatter->formatInterval($time_spent);
 
-    $result = $this->database
-      ->select('opigno_learning_path_achievements', 'a')
-      ->fields('a', ['status'])
-      ->condition('uid', $user->id())
-      ->condition('gid', $group->id())
-      ->execute()
-      ->fetchField();
+    $result = FALSE;
+    $expiration_message = '';
+    $expiration_set = LPStatus::isCertificateExpireSet($group);
+    $expired = FALSE;
+    if ($expiration_set) {
+      if ($expiration_timestamp = LPStatus::getCertificateExpireTimestamp($group->id(), $uid)) {
+        if (!LPStatus::isCertificateExpired($group, $uid)) {
+          $expiration_message = $this->t('Valid until');
+        }
+        else {
+          $expired = TRUE;
+          $expiration_message = $this->t('Expired on');
+        }
+
+        $expiration_message = $expiration_message . ' ' . $date_formatter->format($expiration_timestamp, 'custom', 'F d, Y');
+      }
+    }
+    else {
+      $result = $this->database
+        ->select('opigno_learning_path_achievements', 'a')
+        ->fields('a', ['status'])
+        ->condition('uid', $user->id())
+        ->condition('gid', $group->id())
+        ->execute()
+        ->fetchField();
+    }
 
     if ($result !== FALSE) {
       // Use cached result.
@@ -1480,6 +1525,9 @@ class LearningPathAchievementController extends ControllerBase {
     elseif ($is_attempted) {
       $state_class = 'lp_summary_step_state_in_progress';
     }
+    elseif ($expired) {
+      $state_class = 'lp_summary_step_state_expired';
+    }
     else {
       $state_class = 'lp_summary_step_state_not_started';
     }
@@ -1514,6 +1562,8 @@ class LearningPathAchievementController extends ControllerBase {
         '#value' => '',
       ];
     }
+
+    $validation_message = !empty($validation) ? t('Validation date: @date<br />', ['@date' => $validation]) : '';
 
     return [
       '#type' => 'container',
@@ -1550,7 +1600,7 @@ class LearningPathAchievementController extends ControllerBase {
       [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['lp_summary_content'],
+          'class' => ['lp_summary_content', "mobile--{$state_class}"],
         ],
         [
           '#type' => 'html_tag',
@@ -1594,7 +1644,7 @@ class LearningPathAchievementController extends ControllerBase {
       [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['mt-4', 'w-100', 'd-flex', 'justify-content-center'],
+          'class' => ['mt-4', 'w-100', 'd-flex', 'justify-content-center', 'lp-step-summary'],
         ],
         [
           '#type' => 'html_tag',
@@ -1615,7 +1665,7 @@ class LearningPathAchievementController extends ControllerBase {
               'font-italic',
             ],
           ],
-          '#value' => t('Validation date: @date', ['@date' => $validation]),
+          '#value' => $validation_message . $expiration_message,
         ],
         [
           '#type' => 'html_tag',
@@ -1861,6 +1911,7 @@ class LearningPathAchievementController extends ControllerBase {
       ->execute()
       ->fetchCol();
     $groups = Group::loadMultiple($gids);
+
     return array_map([$this, 'build_training'], $groups);
   }
 
@@ -1906,12 +1957,11 @@ class LearningPathAchievementController extends ControllerBase {
     $selector = '#achievements-wrapper';
 
     $content = $this->build_page($page);
-    if (empty($content)) {
-      throw new NotFoundHttpException();
-    }
 
     $response = new AjaxResponse();
-    $response->addCommand(new AppendCommand($selector, $content));
+    if (!empty($content)) {
+      $response->addCommand(new AppendCommand($selector, $content));
+    }
     return $response;
   }
 
@@ -1925,6 +1975,7 @@ class LearningPathAchievementController extends ControllerBase {
    *   Index array.
    */
   public function index($page = 0) {
+    $profile = file_exists('profiles/opigno_lms/libraries/slick/slick/slick.css') ? '_profile' : '';
     $content = [
       '#type' => 'container',
       '#attributes' => [
@@ -1955,6 +2006,7 @@ class LearningPathAchievementController extends ControllerBase {
       '#attached' => [
         'library' => [
           'opigno_learning_path/achievements',
+          'opigno_learning_path/achievements_slick' . $profile,
         ],
       ],
     ];

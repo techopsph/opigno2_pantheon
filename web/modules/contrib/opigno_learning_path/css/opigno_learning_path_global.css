@@ -22,3 +22,19 @@ html.inIframe .container {
   /* padding-right: 0;
   padding-left: 0; */
 }
+
+html.inIframe,
+html.inIframe body,
+html.inIframe .dialog-off-canvas-main-canvas {
+  min-height: 1px !important;
+  display: block !important;
+}
+
+html.inIframe #main {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html.inIframe body #main #main-content {
+  flex: 0 0 auto;
+}

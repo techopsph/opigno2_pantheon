@@ -158,6 +158,7 @@ class TrainingAccessTest extends LearningPathBrowserTestBase {
     $this->drupalGet($subscribe_path);
     $this->assertSession()->statusCodeEquals(403, 'Anonymous user can not subscribe to a semi-private training.');
     // Anonymous user can't start a semi-private training.
+    $this->resetAll();
     $this->drupalGet($start_path);
     $this->assertSession()->statusCodeEquals(403, 'Anonymous user can not start a semi-private training.');
 
@@ -177,8 +178,8 @@ class TrainingAccessTest extends LearningPathBrowserTestBase {
 
     // Test access if a training is private.
     $group->set('field_learning_path_visibility', 'private');
-    $group->save();
     LearningPathAccess::setVisibilityFields($group);
+    $group->save();
 
     // Create authenticated user to check a training access.
     $user_three = $this->drupalCreateUser();

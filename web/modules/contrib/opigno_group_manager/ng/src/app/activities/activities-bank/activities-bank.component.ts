@@ -4,6 +4,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 
 import * as globals from '../../app.globals';
 import { AppService } from '../../app.service';
+import {subscriptionLogsToBeFn} from "rxjs/testing/TestScheduler";
 
 @Component({
   selector: 'activities-bank',
@@ -20,6 +21,9 @@ export class AddActivitiesBankComponent implements OnInit {
   activitiesBank: any;
   apiBaseUrl: string;
   addActivitiesBankUrl: string;
+  text_add_activity: string;
+  text_add_activities_to_the_module: string;
+  text_close: string;
 
   constructor(
       private http: HttpClient,
@@ -28,6 +32,9 @@ export class AddActivitiesBankComponent implements OnInit {
   ) {
     this.apiBaseUrl = window['appConfig'].apiBaseUrl;
     this.addActivitiesBankUrl = window['appConfig'].addActivitiesBankUrl;
+    this.text_add_activity  = window['appConfig'].text_add_activity;
+    this.text_add_activities_to_the_module = window['appConfig'].text_add_activities_to_the_module;
+    this.text_close = window['appConfig'].text_close;
   }
 
   ngOnInit() {

@@ -3,18 +3,17 @@
 namespace Drupal\Tests\commerce_log\Kernel;
 
 use Drupal\commerce_order\Entity\OrderItem;
-use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_product\Entity\ProductVariationType;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\Tests\commerce_cart\Kernel\CartKernelTestBase;
 
 /**
  * Tests integration with cart events.
  *
  * @group commerce
  */
-class CartIntegrationTest extends CommerceKernelTestBase {
+class CartIntegrationTest extends CartKernelTestBase {
 
   /**
    * A sample user.
@@ -29,20 +28,6 @@ class CartIntegrationTest extends CommerceKernelTestBase {
    * @var \Drupal\commerce_product\Entity\ProductVariation
    */
   protected $variation;
-
-  /**
-   * The cart manager.
-   *
-   * @var \Drupal\commerce_cart\CartManagerInterface
-   */
-  protected $cartManager;
-
-  /**
-   * The cart provider.
-   *
-   * @var \Drupal\commerce_cart\CartProviderInterface
-   */
-  protected $cartProvider;
 
   /**
    * The log storage.
@@ -64,13 +49,7 @@ class CartIntegrationTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'entity_reference_revisions',
-    'path',
-    'profile',
-    'state_machine',
     'commerce_log',
-    'commerce_product',
-    'commerce_order',
   ];
 
   /**
@@ -79,13 +58,7 @@ class CartIntegrationTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
     $this->installEntitySchema('commerce_log');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
-    $this->installEntitySchema('commerce_product');
-    $this->installEntitySchema('commerce_product_variation');
-    $this->installConfig(['commerce_product', 'commerce_order']);
     $this->user = $this->createUser();
     $this->logStorage = $this->container->get('entity_type.manager')->getStorage('commerce_log');
     $this->logViewBuilder = $this->container->get('entity_type.manager')->getViewBuilder('commerce_log');
@@ -102,20 +75,12 @@ class CartIntegrationTest extends CommerceKernelTestBase {
       'status' => 1,
       'price' => new Price('12.00', 'USD'),
     ]);
-
-    // An order item type that doesn't need a purchasable entity.
-    OrderItemType::create([
-      'id' => 'test',
-      'label' => 'Test',
-      'orderType' => 'default',
-    ])->save();
   }
 
   /**
    * Tests that a log is generated when an order is placed.
    */
   public function testAddedToCart() {
-    $this->enableCommerceCart();
     $cart = $this->cartProvider->createCart('default', $this->store, $this->user);
     $this->cartManager->addEntity($cart, $this->variation);
 
@@ -134,7 +99,6 @@ class CartIntegrationTest extends CommerceKernelTestBase {
    * unless there is a purchasable entity.
    */
   public function testAddedToCartNoPurchasableEntity() {
-    $this->enableCommerceCart();
     $cart = $this->cartProvider->createCart('default', $this->store, $this->user);
     $order_item = OrderItem::create([
       'title' => 'Membership subscription',
@@ -156,7 +120,6 @@ class CartIntegrationTest extends CommerceKernelTestBase {
    * Tests that a log is generated when an order is placed.
    */
   public function testRemovedFromCart() {
-    $this->enableCommerceCart();
     $cart = $this->cartProvider->createCart('default', $this->store, $this->user);
     $order_item = $this->cartManager->addEntity($cart, $this->variation);
     $this->cartManager->removeOrderItem($cart, $order_item);
@@ -174,7 +137,6 @@ class CartIntegrationTest extends CommerceKernelTestBase {
    * Tests that a log generated when a non-purchasable entity removed.
    */
   public function testRemovedFromCartNoPurchasableEntity() {
-    $this->enableCommerceCart();
     $cart = $this->cartProvider->createCart('default', $this->store, $this->user);
     $order_item = OrderItem::create([
       'title' => 'Membership subscription',
@@ -196,25 +158,6 @@ class CartIntegrationTest extends CommerceKernelTestBase {
     $this->render($build);
 
     $this->assertText("{$order_item->label()} removed from the cart.");
-  }
-
-  /**
-   * Enables commerce_cart for tests.
-   *
-   * Due to issues with hook_entity_bundle_create, we need to run this here
-   * and can't put commerce_cart in $modules.
-   *
-   * See https://www.drupal.org/node/2711645
-   *
-   * @todo patch core so it doesn't explode in Kernel tests.
-   * @todo remove Cart dependency in Checkout
-   */
-  protected function enableCommerceCart() {
-    $this->enableModules(['commerce_cart']);
-    $this->installConfig('commerce_cart');
-    $this->container->get('entity.definition_update_manager')->applyUpdates();
-    $this->cartManager = $this->container->get('commerce_cart.cart_manager');
-    $this->cartProvider = $this->container->get('commerce_cart.cart_provider');
   }
 
 }

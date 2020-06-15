@@ -8,6 +8,7 @@ use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\opigno_module\Entity\OpignoActivity;
+use Drupal\opigno_learning_path\LearningPathContent;
 
 /**
  * Form controller for Answer edit forms.
@@ -99,6 +100,7 @@ class OpignoAnswerForm extends ContentEntityForm {
     $module = $entity->getModule();
     $attempt = $module->getModuleActiveAttempt($this->currentUser());
     $moduleHandler = \Drupal::service('module_handler');
+    $activities = $module->getModuleActivities();
 
     if ($attempt !== NULL) {
       $attempt->setLastActivity($activity);
@@ -157,8 +159,6 @@ class OpignoAnswerForm extends ContentEntityForm {
 
     switch ($status) {
       case SAVED_NEW:
-        break;
-
       case SAVED_UPDATED:
         break;
 
@@ -307,7 +307,8 @@ class OpignoAnswerForm extends ContentEntityForm {
 
         // Check if the user is ready to level-up the skill.
         if (!empty($user_skills) || $minimum_answers == 1) {
-          if ($answer_count_for_levels[$stage]['access'] == TRUE
+          if (!empty($answer_count_for_levels[$stage])
+            && $answer_count_for_levels[$stage]['access'] == TRUE
             && $answer_count_for_levels[$stage]['avg_score'] >= $minimum_score) {
             $stage--;
           }
@@ -369,25 +370,8 @@ class OpignoAnswerForm extends ContentEntityForm {
         $gid = OpignoGroupContext::getCurrentGroupId();
 
         $uid = $this->currentUser()->id();
-        $group_steps = opigno_learning_path_get_steps($gid, $uid);
 
-        // Load courses substeps.
-        array_walk($group_steps, function ($step, $key) use ($uid, &$steps) {
-          $step['position'] = $key;
-          if ($step['typology'] === 'Course') {
-            $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-            // Save parent course and position.
-            $course_steps = array_map(function ($course_step, $key) use ($step) {
-              $course_step['parent'] = $step;
-              $course_step['position'] = $key;
-              return $course_step;
-            }, $course_steps, array_keys($course_steps));
-            $steps = array_merge($steps, $course_steps);
-          }
-          else {
-            $steps[] = $step;
-          }
-        });
+        $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid);
 
         // Search for parent.
         $current_step = [];

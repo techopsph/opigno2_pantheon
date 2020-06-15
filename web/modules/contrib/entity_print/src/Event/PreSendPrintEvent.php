@@ -30,10 +30,10 @@ class PreSendPrintEvent extends PrintEventBase {
   }
 
   /**
-   * Gets the entity that is being printed to Print.
+   * Gets the entities that is being printed to Print.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
-   *   The content entity.
+   * @return \Drupal\Core\Entity\EntityInterface[]
+   *   The content entities.
    */
   public function getEntities() {
     return $this->entities;

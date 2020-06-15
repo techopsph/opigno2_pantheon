@@ -62,7 +62,7 @@ class ImportModuleForm extends FormBase {
       // Only need to validate if the field actually has a file.
       $form_state->setError(
         $form['module_opi'],
-        $this->t("Files isn't uploaded.")
+        $this->t("The file was not uploaded.")
       );
     }
   }

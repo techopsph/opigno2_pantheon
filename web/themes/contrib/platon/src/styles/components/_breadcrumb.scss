@@ -7,13 +7,13 @@
     li {
       + li {
         &::before {
-          content: '';
+          content: '\e904';
           display: inline-block;
-          width: 7px;
-          height: 11px;
+          font-family: icomoon !important;
           margin-right: 5px;
           vertical-align: middle;
-          @extend .picto-breadcrumb;
+          font-size: 9px;
+          color: #5bb4d8;
         }
       }
 

@@ -8,6 +8,7 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
+use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_module\Entity\OpignoModule;
 
@@ -116,20 +117,40 @@ class LearningPathController extends ControllerBase {
     $id = $group->id();
     $uid = $user->id();
 
-    $progress = opigno_learning_path_progress($id, $uid);
+    $date_formatter = \Drupal::service('date.formatter');
+
+    $expiration_message = '';
+    $expiration_set = LPStatus::isCertificateExpireSet($group);
+    if ($expiration_set) {
+      if ($expiration_message = LPStatus::getCertificateExpireTimestamp($group->id(), $uid)) {
+        $expiration_message = ' ' . $date_formatter->format($expiration_message, 'custom', 'F d, Y');
+      }
+    }
+
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $uid);
+
+    // If training certification not expired
+    // or expiration not set.
+    $progress = opigno_learning_path_progress($id, $uid, $latest_cert_date);
     $progress = round(100 * $progress);
 
     $is_passed = opigno_learning_path_is_passed($group, $uid);
     if ($is_passed || $progress == 100) {
       $score = opigno_learning_path_get_score($id, $uid);
 
-      /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
-      $date_formatter = \Drupal::service('date.formatter');
-
       $completed = opigno_learning_path_completed_on($id, $uid);
       $completed = $completed > 0
         ? $date_formatter->format($completed, 'custom', 'F d, Y')
         : '';
+
+      $state = $is_passed ? $this->t('Passed') : $this->t('Failed');
+      // Expire message if necessary.
+      if ($expiration_set) {
+        // Expiration set, create expiration message.
+        if ($expiration_message) {
+          $expiration_message = ' - ' . $this->t('Valid until') . $expiration_message;
+        }
+      }
 
       $summary = [
         '#type' => 'container',
@@ -150,7 +171,7 @@ class LearningPathController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_progress_summary_title'],
           ],
-          '#value' => $is_passed ? $this->t('Passed') : $this->t('Failed'),
+          '#value' => $state . $expiration_message,
         ],
         [
           '#type' => 'html_tag',
@@ -172,6 +193,38 @@ class LearningPathController extends ControllerBase {
             '@date' => $completed,
           ]),
         ] : [],
+      ];
+    }
+    elseif ($expiration_set && LPStatus::isCertificateExpired($group, $uid)) {
+      $summary = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['lp_progress_summary'],
+        ],
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => [
+            'class' => ['lp_progress_summary_expired'],
+          ],
+          '#value' => '',
+        ],
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#attributes' => [
+            'class' => ['lp_progress_summary_title'],
+          ],
+          '#value' => $this->t('Expired on') . ' ' . $expiration_message,
+        ],
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => [
+            'class' => ['lp_progress_summary_score'],
+          ],
+          '#value' => $this->t('Please start this training again to get new certification'),
+        ],
       ];
     }
 
@@ -280,6 +333,10 @@ class LearningPathController extends ControllerBase {
     /** @var \Drupal\group\Entity\Group $group */
     $group = \Drupal::routeMatch()->getParameter('group');
     $user = \Drupal::currentUser();
+
+    // Get training certificate expiration flag.
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $user->id());
+
     $content = [
       '#attached' => [
         'library' => [
@@ -296,11 +353,7 @@ class LearningPathController extends ControllerBase {
     }
 
     // Check if membership has status 'pending'.
-    $visibility = $group->field_learning_path_visibility->value;
-    $validation = $group->field_requires_validation->value;
-    $member_pending = $visibility === 'semiprivate' && $validation
-      && !LearningPathAccess::statusGroupValidation($group, $user);
-    if ($member_pending) {
+    if (!LearningPathAccess::statusGroupValidation($group, $user)) {
       return $content;
     }
 
@@ -309,11 +362,11 @@ class LearningPathController extends ControllerBase {
 
     if ($freeNavigation) {
       // Get all steps for LP.
-      $steps = opigno_learning_path_get_all_steps($group->id(), $user->id());
+      $steps = opigno_learning_path_get_all_steps($group->id(), $user->id(), NULL, $latest_cert_date);
     }
     else {
       // Get guided steps.
-      $steps = opigno_learning_path_get_steps($group->id(), $user->id());
+      $steps = opigno_learning_path_get_steps($group->id(), $user->id(), NULL, $latest_cert_date);
     }
 
     $steps = array_filter($steps, function ($step) use ($user) {
@@ -358,15 +411,12 @@ class LearningPathController extends ControllerBase {
         if ($step['typology'] === 'Course') {
           if ($freeNavigation) {
             // Get all steps for LP.
-            $course_steps = opigno_learning_path_get_all_steps($step['id'], $user->id());
+            $course_steps = opigno_learning_path_get_all_steps($step['id'], $user->id(), NULL, $latest_cert_date);
           }
           else {
             // Get guided steps.
-            $course_steps = opigno_learning_path_get_steps($step['id'], $user->id());
+            $course_steps = opigno_learning_path_get_steps($step['id'], $user->id(), NULL, $latest_cert_date);
           }
-//          $sub_title = $this->t('@count Modules', [
-//            '@count' => count($course_steps),
-//          ]);
 
           foreach ($course_steps as $course_step_key => &$course_step) {
             if ($course_step_key == 0) {
@@ -457,8 +507,10 @@ class LearningPathController extends ControllerBase {
           ]);
         }
 
+        $keys = array_keys($steps);
+
         // Build link for first step.
-        if ($key == 0) {
+        if ($key == $keys[0]) {
           if ($step['typology'] == 'Course') {
             $link = NULL;
           }
@@ -479,12 +531,14 @@ class LearningPathController extends ControllerBase {
           }
           else {
             // Get link to module.
-            $parent_content_id = $steps[$key - 1]['cid'];
-            $link = Link::createFromRoute($title, 'opigno_learning_path.steps.next', [
-              'group' => $group->id(),
-              'parent_content' => $parent_content_id,
-            ])
-              ->toString();
+            if (!empty($steps[$key - 1]['cid'])) {
+              $parent_content_id = $steps[$key - 1]['cid'];
+              $link = Link::createFromRoute($title, 'opigno_learning_path.steps.next', [
+                'group' => $group->id(),
+                'parent_content' => $parent_content_id,
+              ])
+                ->toString();
+            }
           }
         }
 

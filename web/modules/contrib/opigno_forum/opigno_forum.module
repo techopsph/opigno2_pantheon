@@ -132,9 +132,13 @@ function _opigno_forum_access($tid, AccountInterface $account) {
       if (!empty($enable_forum_field)
         && !empty($forum_field)) {
         $is_forum_enabled = $enable_forum_field[0]['value'];
-        $forum_tid = $forum_field[0]['target_id'];
-        if ($is_forum_enabled
-          && (int) $forum_tid === (int) $tid) {
+        $forum_tids = array_map(
+          function ($item) {
+            return $item['target_id'];
+          },
+          $forum_field
+        );
+        if ($is_forum_enabled && in_array($tid, $forum_tids)) {
           return TRUE;
         }
       }

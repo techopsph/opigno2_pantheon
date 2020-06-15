@@ -46,6 +46,8 @@ export class AppComponent implements OnInit {
     let entities = this.appService.getPositioning();
     let contents = this.appService.getBlocksContents();
 
+    this.appService.manageDashboardAccess = window['drupalSettings'].manageDashboardAccess;
+
     Observable.forkJoin([entities, contents]).subscribe(results => {
       this.appService.positions = results[0]['positions'];
       this.appService.columns = parseInt(results[0]['columns']);

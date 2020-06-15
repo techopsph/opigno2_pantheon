@@ -1,20 +1,40 @@
-POPUP FIELD GROUP
+Popup field group
 =================
 
-Extends field_group module with an option to make a 'Popup' group.
+Contents:
+ * About
+ * Features
+ * How to use
 
-This module does not mess around with the structure of the form or the DOM
-particularly. Rather the children of the group are surrounded in a <div>, which
-is then styled as a very simple position-fixed popup.
+About
+-----
 
-A button is then rendered on the form which toggles the popup open/closed.
+Adds ability to display field group children in a popup.
 
+Features
+--------
 
-THEMING THE POPUP
------------------
+"Open popup" link:
+ * Show or hide link
+ * Set link text and CSS classes
 
-For convenience this module allows you to choose arbitrary additional CSS files
-to be included on the page. This allows you to easily customize the styling of
-the popup, even though it may be being viewed in an admin theme.
+Set Popup title and close button caption
 
-The system_stream_wrapper module must be installed to use this feature.
+Setup popup:
+ * Is it modal
+ * Set dialog holder CSS class
+ * Set height and width of a popup
+ * Set popup position
+ * Choose to which dom element append a popup
+
+How to use
+----------
+
+1. Go to entity "Manage display" or "Manage form display" page
+2. Click "+ Add group" button
+3. In a "Add a new group" dropdown choose "Popup" value, add some label and
+click "Save and continue" button
+4. Setup your popup and click "Create group" button
+5. Move added field group to needed position (among fields)
+6. Move fields to added field group
+7. Click "Save" button

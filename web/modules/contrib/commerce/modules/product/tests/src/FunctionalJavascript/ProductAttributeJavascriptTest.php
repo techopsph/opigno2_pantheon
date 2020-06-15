@@ -2,17 +2,12 @@
 
 namespace Drupal\Tests\commerce_product\FunctionalJavascript;
 
-use Drupal\Tests\commerce\FunctionalJavascript\JavascriptTestTrait;
-use Drupal\Tests\commerce_product\Functional\ProductBrowserTestBase;
-
 /**
  * Create, edit, delete, and change product attributes.
  *
  * @group commerce
  */
-class ProductAttributeJavascriptTest extends ProductBrowserTestBase {
-
-  use JavascriptTestTrait;
+class ProductAttributeJavascriptTest extends ProductWebDriverTestBase {
 
   /**
    * {@inheritdoc}
@@ -35,13 +30,13 @@ class ProductAttributeJavascriptTest extends ProductBrowserTestBase {
     // Add three extra options.
     $this->getSession()->getPage()->fillField('values[0][entity][name][0][value]', 'Cyan');
     $this->getSession()->getPage()->pressButton('Add value');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->getSession()->getPage()->fillField('values[1][entity][name][0][value]', 'Yellow');
     $this->getSession()->getPage()->pressButton('Add value');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->getSession()->getPage()->fillField('values[2][entity][name][0][value]', 'Magenta');
     $this->getSession()->getPage()->pressButton('Add value');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->getSession()->getPage()->fillField('values[3][entity][name][0][value]', 'Black');
     $this->getSession()->getPage()->pressButton('Save');
     $this->assertSession()->pageTextContains('Updated the Color product attribute.');
@@ -56,11 +51,11 @@ class ProductAttributeJavascriptTest extends ProductBrowserTestBase {
 
     $this->drupalGet('admin/commerce/product-attributes/manage/color');
     $this->getSession()->getPage()->pressButton('remove_value1');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->getSession()->getPage()->pressButton('remove_value3');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->getSession()->getPage()->pressButton('Add value');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->getSession()->getPage()->fillField('values[3][entity][name][0][value]', 'Cornflower Blue');
     $this->getSession()->getPage()->pressButton('Save');
     $this->assertSession()->pageTextContains('Updated the Color product attribute.');
@@ -74,7 +69,7 @@ class ProductAttributeJavascriptTest extends ProductBrowserTestBase {
 
     $this->drupalGet('admin/commerce/product-attributes/manage/color');
     $this->getSession()->getPage()->pressButton('Reset to alphabetical');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->getSession()->getPage()->pressButton('Save');
 
     // Assert order by weights.

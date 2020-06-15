@@ -104,4 +104,14 @@ class ActivitiesBrowserController extends ControllerBase {
     return $build;
   }
 
+  /**
+   * Preview activity.
+   */
+  public function previewActivity($opigno_activity) {
+    $build = [];
+    $build[] = \Drupal::entityTypeManager()->getViewBuilder('opigno_activity')->view($opigno_activity, 'activity');
+
+    return $build;
+  }
+
 }

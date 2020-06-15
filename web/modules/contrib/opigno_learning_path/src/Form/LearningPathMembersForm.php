@@ -280,10 +280,7 @@ class LearningPathMembersForm extends FormBase {
         $member_pending = FALSE;
 
         if ($group->hasField('field_learning_path_visibility')) {
-          $visibility = $group->field_learning_path_visibility->value;
-          $validation = $group->field_requires_validation->value;
-          $member_pending = $visibility === 'semiprivate' && $validation
-            && !LearningPathAccess::statusGroupValidation($group, $user_entity);
+          $member_pending = !LearningPathAccess::statusGroupValidation($group, $user_entity);
         }
 
         if ($member_pending) {

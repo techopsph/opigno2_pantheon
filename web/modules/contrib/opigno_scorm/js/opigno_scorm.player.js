@@ -71,18 +71,46 @@
           // Listen on commit event, and send the data to the server.
           scormAPIobject.bind(eventName, function(value, data, scoId) {
             var baseUrl = drupalSettings.path.baseUrl ? drupalSettings.path.baseUrl : '/';
-            $.ajax({
-              url: baseUrl + 'opigno-scorm/scorm/' + $element.data('scorm-id') + '/' + scoId + '/commit',
-              data: { data: JSON.stringify(data) },
-              async:   false,
-              dataType: 'json',
-              type: 'post',
-              success: function(json) {
-                if (alertDataStored) {
-                  console.log(Drupal.t('We successfully stored your results. You can now proceed further.'));
+
+            if (navigator.sendBeacon) {
+              let url = baseUrl + 'opigno-scorm/scorm/' + $element.data('scorm-id') + '/' + scoId + '/commit';
+              let json = JSON.stringify(data);
+              navigator.sendBeacon(url, json);
+            }
+            else {
+              $.ajax({
+                url: baseUrl + 'opigno-scorm/scorm/' + $element.data('scorm-id') + '/' + scoId + '/commit',
+                data: { data: JSON.stringify(data) },
+                async:   false,
+                dataType: 'json',
+                type: 'post',
+                success: function(json) {
+                  if (alertDataStored) {
+                    console.log(Drupal.t('We successfully stored your results. You can now proceed further.'));
+                  }
                 }
-              }
-            });
+              });
+            }
+          });
+
+          $("#edit-submit").bind("click", function () {
+              var $el = $(document),
+              $iframe = $el.find('.scorm-ui-player-iframe-wrapper iframe'),
+              iframe = $iframe[0];
+              var scoId = iframe.src.split('opigno-scorm/player/sco/').pop();
+              var baseUrl = drupalSettings.path.baseUrl ? drupalSettings.path.baseUrl : '/';
+              $.ajax({
+                  url: baseUrl + 'opigno-scorm/scorm/' + $element.data('scorm-id') + '/' + scoId + '/commit',
+                  data: { data: JSON.stringify(scormAPIobject.data) },
+                  async: false,
+                  dataType: 'json',
+                  type: 'post',
+                  success: function (json) {
+                      if (alertDataStored) {
+                          console.log(Drupal.t('We successfully stored your results. You can now proceed further.'));
+                      }
+                  }
+             });
           });
 
           // Listen to the unload event. Some users click "Next" or go to a different page, expecting

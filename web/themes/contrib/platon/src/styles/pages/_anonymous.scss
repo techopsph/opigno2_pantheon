@@ -171,6 +171,8 @@ body.anonymous-slider {
         $size: 3rem;
         padding-left: 0;
         padding-right: 0;
+        background: transparent;
+
 
         ul {
           text-align: left;
@@ -189,6 +191,7 @@ body.anonymous-slider {
             margin-left: 0;
 
             a {
+              position: relative;
               font-size: 0;
               padding: 0;
               min-width: 0;
@@ -197,16 +200,16 @@ body.anonymous-slider {
               border: 0;
               background-position: center;
               background-size: 45%;
+              color: $white;
 
-              @each $path, $picto in $menu-pictos {
-                &[data-drupal-link-system-path="#{$path}"] {
-                  @include svg-picto(unquote($picto + '-white'), true, false);
+              &:before {
+                top: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 22px;
+              }
 
-                  &.is-active,
-                  &:hover {
-                    @include svg-picto(unquote($picto + '-darkblue'), true, false);
-                  }
-                }
+              &:hover {
+                color: $deeper-blue;
               }
             }
           }

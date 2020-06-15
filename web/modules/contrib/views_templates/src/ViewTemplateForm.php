@@ -1,15 +1,10 @@
 <?php
-/**
- * @file
- * Contains \Drupal\views_templates\ViewTemplateForm.
- */
 
 namespace Drupal\views_templates;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\views_templates\Plugin\ViewsBuilderPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -18,21 +13,25 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ViewTemplateForm extends FormBase {
 
   /**
+   * The plugin manager interface.
+   *
    * @var \Drupal\Component\Plugin\PluginManagerInterface
    */
-  protected $builder_manager;
+  protected $builderManager;
 
   /**
-   * Constructs a new \Drupal\views_templates\Controller\ViewsBuilderController
-   * object.
+   * Constructs a new ViewsBuilderController object.
    *
-   * @param \Drupal\Component\Plugin\PluginManagerInterface
+   * @param \Drupal\Component\Plugin\PluginManagerInterface $builderManager
    *   The Views Builder Plugin Interface.
    */
-  public function __construct(PluginManagerInterface $builder_manager) {
-    $this->builder_manager = $builder_manager;
+  public function __construct(PluginManagerInterface $builderManager) {
+    $this->builderManager = $builderManager;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('plugin.manager.views_templates.builder')
@@ -52,28 +51,31 @@ class ViewTemplateForm extends FormBase {
     $form_state->setRedirectUrl($view->toUrl('edit-form'));
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public function buildForm(array $form, FormStateInterface $form_state, $view_template = NULL) {
     $builder = $this->createBuilder($view_template);
-    $form['#title'] = $this->t('Duplicate of @label', array('@label' => $builder->getAdminLabel()));
+    $form['#title'] = $this->t('Duplicate of @label', ['@label' => $builder->getAdminLabel()]);
 
-    $form['label'] = array(
+    $form['label'] = [
       '#type' => 'textfield',
       '#title' => $this->t('View name'),
       '#required' => TRUE,
       '#size' => 32,
       '#maxlength' => 255,
       '#default_value' => $builder->getAdminLabel(),
-    );
-    $form['id'] = array(
+    ];
+    $form['id'] = [
       '#type' => 'machine_name',
       '#maxlength' => 128,
-      '#machine_name' => array(
+      '#machine_name' => [
         'exists' => '\Drupal\views\Views::getView',
-        'source' => array('label'),
-      ),
+        'source' => ['label'],
+      ],
       '#default_value' => '',
       '#description' => $this->t('A unique machine-readable name for this View. It must only contain lowercase letters, numbers, and underscores.'),
-    );
+    ];
 
     $form['description'] = [
       '#type' => 'textfield',
@@ -95,18 +97,24 @@ class ViewTemplateForm extends FormBase {
     return $form;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public function getFormId() {
     return 'views_templates_add';
   }
 
   /**
-   * @param $plugin_id
+   * Function to create builder.
    *
-   * @return ViewsBuilderPluginInterface;
+   * @param mixed $plugin_id
+   *   The plugin it to create builder.
+   *
+   * @return \Drupal\views_templates\Plugin\ViewsBuilderPluginInterface
+   *   Returns a builder.
    */
   public function createBuilder($plugin_id) {
-    return $this->builder_manager->createInstance($plugin_id);
+    return $this->builderManager->createInstance($plugin_id);
   }
-
 
 }

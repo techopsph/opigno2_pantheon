@@ -139,7 +139,7 @@ class OrderItem extends CommerceContentEntityBase implements OrderItemInterface 
    * {@inheritdoc}
    */
   public function isUnitPriceOverridden() {
-    return $this->get('overridden_unit_price')->value;
+    return (bool) $this->get('overridden_unit_price')->value;
   }
 
   /**
@@ -154,8 +154,20 @@ class OrderItem extends CommerceContentEntityBase implements OrderItemInterface 
   /**
    * {@inheritdoc}
    */
-  public function getAdjustments() {
-    return $this->get('adjustments')->getAdjustments();
+  public function getAdjustments(array $adjustment_types = []) {
+    /** @var \Drupal\commerce_order\Adjustment[] $adjustments */
+    $adjustments = $this->get('adjustments')->getAdjustments();
+    // Filter adjustments by type, if needed.
+    if ($adjustment_types) {
+      foreach ($adjustments as $index => $adjustment) {
+        if (!in_array($adjustment->getType(), $adjustment_types)) {
+          unset($adjustments[$index]);
+        }
+      }
+      $adjustments = array_values($adjustments);
+    }
+
+    return $adjustments;
   }
 
   /**
@@ -186,7 +198,7 @@ class OrderItem extends CommerceContentEntityBase implements OrderItemInterface 
    * {@inheritdoc}
    */
   public function usesLegacyAdjustments() {
-    return $this->get('uses_legacy_adjustments')->value;
+    return (bool) $this->get('uses_legacy_adjustments')->value;
   }
 
   /**
@@ -249,17 +261,11 @@ class OrderItem extends CommerceContentEntityBase implements OrderItemInterface 
    */
   protected function applyAdjustments(Price $price, array $adjustment_types = []) {
     $adjusted_price = $price;
-    foreach ($this->getAdjustments() as $adjustment) {
-      if ($adjustment_types && !in_array($adjustment->getType(), $adjustment_types)) {
-        continue;
+    foreach ($this->getAdjustments($adjustment_types) as $adjustment) {
+      if (!$adjustment->isIncluded()) {
+        $adjusted_price = $adjusted_price->add($adjustment->getAmount());
       }
-      if ($adjustment->isIncluded()) {
-        continue;
-      }
-
-      $adjusted_price = $adjusted_price->add($adjustment->getAmount());
     }
-
     return $adjusted_price;
   }
 
@@ -279,6 +285,18 @@ class OrderItem extends CommerceContentEntityBase implements OrderItemInterface 
    */
   public function setData($key, $value) {
     $this->get('data')->__set($key, $value);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function unsetData($key) {
+    if (!$this->get('data')->isEmpty()) {
+      $data = $this->get('data')->first()->getValue();
+      unset($data[$key]);
+      $this->set('data', $data);
+    }
     return $this;
   }
 
@@ -333,6 +351,7 @@ class OrderItem extends CommerceContentEntityBase implements OrderItemInterface 
       ->setLabel(t('Purchased entity'))
       ->setDescription(t('The purchased entity.'))
       ->setRequired(TRUE)
+      ->addConstraint('PurchasedEntityAvailable')
       ->setDisplayOptions('form', [
         'type' => 'entity_reference_autocomplete',
         'weight' => -1,
@@ -438,7 +457,11 @@ class OrderItem extends CommerceContentEntityBase implements OrderItemInterface 
   public static function bundleFieldDefinitions(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
     /** @var \Drupal\commerce_order\Entity\OrderItemTypeInterface $order_item_type */
     $order_item_type = OrderItemType::load($bundle);
+    if (!$order_item_type) {
+      throw new \RuntimeException(sprintf('Could not load the "%s" order item type.', $bundle));
+    }
     $purchasable_entity_type = $order_item_type->getPurchasableEntityTypeId();
+
     $fields = [];
     $fields['purchased_entity'] = clone $base_field_definitions['purchased_entity'];
     if ($purchasable_entity_type) {

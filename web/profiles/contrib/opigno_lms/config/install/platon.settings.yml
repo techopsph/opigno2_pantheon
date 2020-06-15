@@ -3,7 +3,7 @@ platon_home_page_settings:
   platon_home_page_slides:
     1:
       platon_home_page_markup_wrapper:
-        value: "<h2><br />\r\n<span><span>Welcome to your Opigno&nbsp;LMS 2.11 platform !<br />\r\nThe Drupal 8 LMS</span></span></h2>\r\n"
+        value: "<h2><br />\r\n<span><span>Welcome to your Opigno&nbsp;LMS 2.12 platform !<br />\r\nThe Drupal 8 LMS</span></span></h2>\r\n"
         format: full_html
       platon_home_page_image_path: Opigno_Image_connexion_1600-829_2.jpg
       platon_home_page_image_upload: {  }

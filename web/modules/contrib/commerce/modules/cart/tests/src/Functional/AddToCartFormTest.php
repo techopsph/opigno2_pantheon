@@ -17,6 +17,15 @@ use Drupal\field\Entity\FieldConfig;
 class AddToCartFormTest extends CartBrowserTestBase {
 
   /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = [
+    'commerce_test',
+  ];
+
+  /**
    * Test adding a product to the cart.
    */
   public function testProductAddToCartForm() {
@@ -38,6 +47,20 @@ class AddToCartFormTest extends CartBrowserTestBase {
   }
 
   /**
+   * Test adding an unavailable product to the cart.
+   */
+  public function testProductAddToCartFormValidations() {
+    $this->variation->setSku('TEST_SKU1234')->save();
+    // Confirm that the initial add to cart submit works.
+    $this->postAddToCart($this->variation->getProduct());
+    $this->cart = Order::load($this->cart->id());
+    $order_items = $this->cart->getItems();
+    $this->assertCount(0, $order_items);
+    $this->assertSession()->pageTextContains(sprintf('%s is not available with a quantity of %s.', $this->variation->label(), 1
+    ));
+  }
+
+  /**
    * Test assigning an anonymous cart to a logged in user.
    */
   public function testCartAssignment() {
@@ -46,7 +69,8 @@ class AddToCartFormTest extends CartBrowserTestBase {
     // Find the newly created anonymous cart.
     $query = \Drupal::entityQuery('commerce_order')
       ->condition('cart', TRUE)
-      ->condition('uid', 0);
+      ->condition('uid', 0)
+      ->accessCheck(FALSE);
     $result = $query->execute();
     $cart_id = reset($result);
     $cart = Order::load($cart_id);
@@ -130,59 +154,6 @@ class AddToCartFormTest extends CartBrowserTestBase {
       'quantity[0][value]' => 0,
     ]);
     $this->assertSession()->pageTextContains('Quantity must be higher than or equal to 1.');
-  }
-
-  /**
-   * Tests that an attribute field is disabled if there's only one value.
-   */
-  public function testProductAttributeDisabledIfOne() {
-    /** @var \Drupal\commerce_product\Entity\ProductVariationTypeInterface $variation_type */
-    $variation_type = ProductVariationType::load($this->variation->bundle());
-
-    $size_attributes = $this->createAttributeSet($variation_type, 'size', [
-      'small' => 'Small',
-      'medium' => 'Medium',
-      'large' => 'Large',
-    ]);
-    $color_attributes = $this->createAttributeSet($variation_type, 'color', [
-      'red' => 'Red',
-    ]);
-
-    // Reload the variation since we have new fields.
-    $this->variation = ProductVariation::load($this->variation->id());
-    $product = $this->variation->getProduct();
-
-    // Update first variation to have the attribute's value.
-    $this->variation->attribute_size = $size_attributes['small']->id();
-    $this->variation->attribute_color = $color_attributes['red']->id();
-    $this->variation->save();
-
-    $attribute_values_matrix = [
-      ['medium', 'red'],
-      ['large', 'red'],
-    ];
-    $variations = [
-      $this->variation,
-    ];
-    // Generate variations off of the attributes values matrix.
-    foreach ($attribute_values_matrix as $key => $value) {
-      $variation = $this->createEntity('commerce_product_variation', [
-        'type' => $variation_type->id(),
-        'sku' => $this->randomMachineName(),
-        'price' => [
-          'number' => 999,
-          'currency_code' => 'USD',
-        ],
-        'attribute_size' => $size_attributes[$value[0]]->id(),
-        'attribute_color' => $color_attributes[$value[1]]->id(),
-      ]);
-      $variations[] = $variation;
-      $product->variations->appendItem($variation);
-    }
-    $product->save();
-
-    $this->drupalGet($product->toUrl());
-    $this->assertSession()->elementExists('xpath', '//select[@id="edit-purchased-entity-0-attributes-attribute-color" and @disabled]');
   }
 
   /**

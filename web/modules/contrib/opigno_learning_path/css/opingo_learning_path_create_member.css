@@ -144,59 +144,6 @@
   margin-bottom: 3rem !important;
 }
 
-.learning-path-create-class-form .multiselect-wrapper select.form-multiselect {
-  margin: 0;
-  padding: 0;
-  width: 395px !important;
-  height: 100px;
-}
-
-.learning-path-create-class-form .multiselect-wrapper label {
-  margin-bottom: 0;
-}
-
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-available,
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-selected,
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-btns {
-  clear: both;
-}
-
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-btns {
-  display: block;
-  float: left;
-  width: 100%;
-}
-
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-btns ul {
-  width: 100%;
-  max-width: 395px;
-  margin: 10px 0;
-}
-
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-btns .multiselect-add,
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-btns .multiselect-remove {
-  background: url('../img/arrow.png');
-  background-repeat: no-repeat;
-  background-size: 100%;
-  width: 20px;
-  background-position: 50% 50%;
-  height: 20px;
-  cursor: pointer;
-  margin: 0;
-}
-
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-btns .multiselect-add {
-  transform: rotate(90deg);
-  float: left;
-  margin-left: 35%;
-}
-
-.learning-path-create-class-form .multiselect-wrapper div.multiselect-btns .multiselect-remove {
-  transform: rotate(-90deg);
-  float: right;
-  margin-right: 35%;
-}
-
 .learning-path-create-class-form .btn_create {
   bottom: 0;
 }

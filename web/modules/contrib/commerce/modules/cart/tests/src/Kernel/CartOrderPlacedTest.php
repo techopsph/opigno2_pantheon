@@ -3,7 +3,6 @@
 namespace Drupal\Tests\commerce_cart\Kernel;
 
 use Drupal\Component\Render\FormattableMarkup;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
 
 /**
  * Tests the unsetting of the cart flag when order is placed.
@@ -11,9 +10,7 @@ use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
  * @covers \Drupal\commerce_cart\CartProvider::finalizeCart()
  * @group commerce
  */
-class CartOrderPlacedTest extends CommerceKernelTestBase {
-
-  use CartManagerTestTrait;
+class CartOrderPlacedTest extends CartKernelTestBase {
 
   /**
    * The variation to test against.
@@ -23,39 +20,11 @@ class CartOrderPlacedTest extends CommerceKernelTestBase {
   protected $variation;
 
   /**
-   * The cart manager.
-   *
-   * @var \Drupal\commerce_cart\CartManagerInterface
-   */
-  protected $cartManager;
-
-  /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = [
-    'entity_reference_revisions',
-    'path',
-    'profile',
-    'state_machine',
-    'commerce_product',
-    'commerce_order',
-  ];
-
-  /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_product');
-    $this->installEntitySchema('commerce_product_variation');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
-    $this->installConfig('commerce_order');
-    $this->installConfig('commerce_product');
     $this->createUser();
 
     // Create a product variation.
@@ -87,8 +56,6 @@ class CartOrderPlacedTest extends CommerceKernelTestBase {
    * Tests that a draft order is no longer a cart once placed.
    */
   public function testCartOrderPlaced() {
-    $this->installCommerceCart();
-
     $this->store = $this->createStore();
     $cart_order = $this->container->get('commerce_cart.cart_provider')->createCart('default', $this->store, $this->user);
     $this->cartManager = $this->container->get('commerce_cart.cart_manager');
@@ -96,8 +63,7 @@ class CartOrderPlacedTest extends CommerceKernelTestBase {
 
     $this->assertNotEmpty($cart_order->cart->value);
 
-    $workflow = $cart_order->getState()->getWorkflow();
-    $cart_order->getState()->applyTransition($workflow->getTransition('place'));
+    $cart_order->getState()->applyTransitionById('place');
     $cart_order->save();
 
     $cart_order = $this->reloadEntity($cart_order);
@@ -122,7 +88,7 @@ class CartOrderPlacedTest extends CommerceKernelTestBase {
    */
   protected function createEntity($entity_type, array $values) {
     /** @var \Drupal\Core\Entity\EntityStorageInterface $storage */
-    $storage = \Drupal::service('entity_type.manager')->getStorage($entity_type);
+    $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
     $entity = $storage->create($values);
     $status = $entity->save();
     $this->assertEquals(SAVED_NEW, $status, new FormattableMarkup('Created %label entity %type.', [

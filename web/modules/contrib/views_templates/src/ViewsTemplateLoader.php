@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\views_templates\ViewsTemplateLoader.
- */
 
 namespace Drupal\views_templates;
 
@@ -10,11 +6,8 @@ use Drupal\Component\Serialization\Yaml;
 use Drupal\views_templates\Plugin\ViewsDuplicateBuilderPluginInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 
-
 /**
  * Service class to load templates from the file system.
- *
- *
  */
 class ViewsTemplateLoader implements ViewsTemplateLoaderInterface {
 
@@ -22,7 +15,7 @@ class ViewsTemplateLoader implements ViewsTemplateLoaderInterface {
    * {@inheritdoc}
    */
   public function load(ViewsDuplicateBuilderPluginInterface $builder) {
-    $templates = &drupal_static(__FUNCTION__, array());
+    $templates = &drupal_static(__FUNCTION__, []);
 
     $template_id = $builder->getViewTemplateId();
     if (!isset($templates[$template_id])) {

@@ -26,6 +26,10 @@ class RouteSubscriber extends RouteSubscriberBase {
     if ($route = $collection->get('entity.group.collection')) {
       $route->setPath('/admin/structure/groups');
     }
+
+    if ($route = $collection->get('private_message.private_message_page')) {
+      $route->setDefault('_title', 'Discussion threads');
+    }
   }
 
 }

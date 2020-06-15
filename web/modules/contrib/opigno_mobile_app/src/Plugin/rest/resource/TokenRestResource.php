@@ -13,6 +13,7 @@ use Psr\Log\LoggerInterface;
 use Drupal\rest\ResourceResponse;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a resource to get a JWT token.
@@ -41,7 +42,6 @@ class TokenRestResource extends ResourceBase {
    * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
-
 
   /**
    * Constructs a Drupal\rest\Plugin\rest\resource\EntityResource object.
@@ -73,6 +73,16 @@ class TokenRestResource extends ResourceBase {
 
     $this->eventDispatcher = \Drupal::service('event_dispatcher');
     $this->transcoder = new JwtTranscoder(new \Firebase\JWT\JWT(), \Drupal::configFactory(), \Drupal::service('key.repository'));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static($configuration, $plugin_id, $plugin_definition, $container
+      ->getParameter('serializer.formats'), $container
+      ->get('logger.factory')
+      ->get('rest'));
   }
 
   /**

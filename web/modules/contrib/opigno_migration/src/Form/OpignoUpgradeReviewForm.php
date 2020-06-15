@@ -279,7 +279,7 @@ class OpignoUpgradeReviewForm extends MigrateUpgradeFormBase {
     batch_set($batch);
     $form_state->setRedirect('<front>');
     $this->store->set('step', 'overview');
-    $this->state->set('migrate_drupal_ui.performed', REQUEST_TIME);
+    $this->state->set('migrate_drupal_ui.performed', \Drupal::time()->getRequestTime());
   }
 
   /**

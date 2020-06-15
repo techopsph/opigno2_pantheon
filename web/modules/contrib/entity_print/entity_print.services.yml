@@ -1,7 +1,7 @@
 services:
   plugin.manager.entity_print.print_engine:
     class: Drupal\entity_print\Plugin\EntityPrintPluginManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@event_dispatcher', '@config.factory']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@event_dispatcher', '@config.factory', '@entity_type.manager']
 
   plugin.manager.entity_print.export_type:
     class: Drupal\entity_print\Plugin\ExportTypeManager

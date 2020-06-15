@@ -4,13 +4,8 @@ namespace Drupal\popup_field_group\Plugin\field_group\FieldGroupFormatter;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
-use Drupal\Core\Template\Attribute;
-use Drupal\Core\Url;
 use Drupal\field_group\FieldGroupFormatterBase;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Plugin implementation of the 'popup' formatter.
@@ -25,7 +20,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *   }
  * )
  */
-class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInterface {
+class Popup extends FieldGroupFormatterBase {
 
   /**
    * Current popup identifier.
@@ -42,52 +37,10 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
   protected $openPopupCssClass = 'popup-field-group-open-popup';
 
   /**
-   * The request stack.
-   *
-   * @var \Symfony\Component\HttpFoundation\RequestStack
-   */
-  protected $requestStack;
-
-  /**
-   * Constructs a Popup object.
-   *
-   * @param string $plugin_id
-   *   The plugin_id for the formatter.
-   * @param mixed $plugin_definition
-   *   The plugin implementation definition.
-   * @param $group
-   *   The group object.
-   * @param array $settings
-   *   The formatter settings.
-   * @param string $label
-   *   The formatter label.
-   * @param RequestStack $request_stack
-   *   The request stack.
-   */
-  public function __construct($plugin_id, $plugin_definition, $group, array $settings, $label, RequestStack $request_stack) {
-    parent::__construct($plugin_id, $plugin_definition, $group, $settings, $label);
-    $this->requestStack = $request_stack;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $plugin_id,
-      $plugin_definition,
-      $configuration['group'],
-      $configuration['settings'],
-      $configuration['label'],
-      $container->get('request_stack')
-    );
-  }
-
-  /**
    * {@inheritdoc}
    */
   public static function defaultContextSettings($context) {
-    $defaults = [
+    return [
       'popup_link' => [
         'show' => 1,
         'text' => 'Show popup',
@@ -109,11 +62,10 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
         'max_width' => '',
         'position_horizontal' => 'center',
         'position_vertical' => 'center',
+        'append_to' => '',
       ],
       'extra_css' => '',
     ] + parent::defaultSettings($context);
-
-    return $defaults;
   }
 
   /**
@@ -123,7 +75,8 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
     $form = parent::settingsForm();
 
     $form['popup_link'] = [
-      '#type' => 'fieldset',
+      '#type' => 'details',
+      '#open' => TRUE,
       '#title' => $this->t('Display popup link settings:'),
     ];
     $form['popup_link']['show'] = [
@@ -164,16 +117,16 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
       ],
       'message' => [
         '#markup' => $this->t(
-          'To open this popup use: @link<br>WARNING: On usage in content lists (f.e.: view with nodes) "--[NUMBER]" will be added (to the "data-target") to prevent IDs duplication.',
+          'To open this popup use: @link<br>WARNING: On usage in content lists (f.e.: view with nodes) "--[NUMBER]" will be added (to the end of "data-target" value) to prevent IDs duplication.',
           [
-            '@link' => '<a href="#open-popup" class="' . $this->openPopupCssClass . '" data-target="' . $this->getGroupId() . '">' . $this->t('Open popup') . '</a>',
+            '@link' => $this->generateOpenPopupHtml(),
           ]
         ),
       ],
     ];
 
     $form['popup_labels'] = [
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => $this->t('Popup labels:'),
     ];
     $form['popup_labels']['title'] = [
@@ -188,7 +141,7 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
     ];
 
     $form['popup_settings'] = [
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => $this->t('Popup settings:'),
     ];
     $form['popup_settings']['modal'] = [
@@ -263,6 +216,12 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
       '#description' => $this->t('top, center, bottom'),
       '#default_value' => $this->getSettingValue('popup_settings', 'position_vertical'),
     ];
+    $form['popup_settings']['append_to'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Append to'),
+      '#description' => $this->t('Provide CSS selector to define to which HTML element (in page structure) popup HTML code will be appended. Leave blank to have default behavior.'),
+      '#default_value' => $this->getSettingValue('popup_settings', 'append_to'),
+    ];
 
     if (\Drupal::moduleHandler()->moduleExists('system_stream_wrapper')) {
       $form['extra_css'] = [
@@ -309,13 +268,18 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
     parent::preRender($element, $rendering_object);
 
     $element = [
+      '#type' => 'container',
+      '#id' => $this->getGroupId(),
+      '#attributes' => [
+        'id' => $this->getGroupId(),
+        'title' => $this->getSettingValue('popup_labels', 'title'),
+        'style' => 'display:none;',
+        'class' => array_merge(explode(' ', $this->getSetting('classes')), ['popup-field-group']),
+      ],
       '#weight' => isset($element['#weight']) ? $element['#weight'] : 0,
-      'popup' => $this->appendPopupWrapper($element),
+      '#prefix' => $this->generateOpenPopupHtml(),
+      'popup' => $element,
     ];
-
-    if ($this->getSettingValue('popup_link', 'show')) {
-      $element['link'] = $this->generateOpenPopupLink();
-    }
 
     $element['#attached']['library'][] = 'popup_field_group/core';
     $element['#attached']['drupalSettings']['popupFieldGroup']['linkCssClass'] = $this->openPopupCssClass;
@@ -419,6 +383,9 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
     if ($max_width = $this->getSettingValue('popup_settings', 'max_width')) {
       $settings['dialog']['maxWidth'] = $max_width;
     }
+    if (($append_to = $this->getSettingValue('popup_settings', 'append_to')) || $this->context === 'form') {
+      $settings['appendTo'] = $append_to;
+    }
 
     return $settings;
   }
@@ -459,60 +426,24 @@ class Popup extends FieldGroupFormatterBase implements ContainerFactoryPluginInt
    * @return mixed
    *   Requested item value.
    */
-  protected function getSettingValue($setting, $key, $default = NULL) {
+  protected function getSettingValue($setting, $key, $default = '') {
     $storage = $this->getSetting($setting);
     return isset($storage[$key]) ? $storage[$key] : $default;
   }
 
   /**
-   * Wrap popup element.
+   * Generate HTML element markup to open popup.
    *
-   * @param array $element
-   *   Element to wrap.
-   *
-   * @return array
-   *   Wrapped popup element render array.
+   * @return string
+   *   HTML element markup.
    */
-  protected function appendPopupWrapper(array $element) {
-    $element['#theme_wrappers']['container']['#attributes'] = new Attribute([
-      'id' => $this->getGroupId(),
-      'title' => $this->getSettingValue('popup_labels', 'title'),
-      'style' => 'display:none;',
-      'class' => array_merge(explode(
-        ' ',
-        $this->getSetting('classes')),
-        ['popup-field-group']
-      ),
-    ]);
+  protected function generateOpenPopupHtml() {
+    $class = $this->openPopupCssClass . ' ' . $this->getSettingValue('popup_link', 'classes');
+    $label = $this->getSettingValue('popup_link', 'text', $this->t('Open popup'));
+    $target = $this->getGroupId();
 
-    return $element;
-  }
+    return '<span class="' . $class . '" data-target="' . $target . '">' . $label . '</span>';
 
-  /**
-   * Generate link for open popup.
-   *
-   * @return array
-   *   Link for open popup render array.
-   */
-  protected function generateOpenPopupLink() {
-    return [
-      '#type' => 'link',
-      '#title' => $this->getSettingValue('popup_link', 'text'),
-      '#url' => Url::fromRoute('<current>', [], [
-        'fragment' => 'open-popup',
-        'query' => $this->requestStack->getCurrentRequest()->query->all(),
-        'attributes' => [
-          'data-target' => $this->getGroupId(),
-          'class' => array_merge(
-            [$this->openPopupCssClass],
-            explode(
-              ' ',
-              $this->getSettingValue('popup_link', 'classes')
-            )
-          ),
-        ],
-      ]),
-    ];
   }
 
 }

@@ -5,6 +5,7 @@
  * Contains tft.module.
  */
 
+use Drupal\Component\Utility\Html;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\file\Entity\File;
 use Drupal\Core\Access\AccessResult;
@@ -701,4 +702,49 @@ function tft_preprocess_field(&$variables) {
       }
     }
   }
+}
+
+/**
+ * Implements hook_preprocess_media().
+ */
+function tft_preprocess_media(&$variables) {
+  $media = $variables['media'];
+
+  if ($media->hasField('tft_file')) {
+    $file = $media->get('tft_file');
+
+    if (!$file->isEmpty()) {
+      $file = File::load($file->getValue()[0]['target_id']);
+
+      if ($ext = _mimetype_mapping($file->getMimeType())) {
+        $variables['attributes']['class'][] = "file-ext-{$ext}";
+        $variables['attributes']['class'][] = 'media-with-icon';
+      }
+    }
+  }
+}
+
+/**
+ * Help function to return file extension.
+ */
+function _mimetype_mapping($index) {
+  $mime_type = [
+    'application/vnd.oasis.opendocument.presentation' => 'odp',
+    'application/vnd.oasis.opendocument.spreadsheet' => 'ods',
+    'application/vnd.oasis.opendocument.text' => 'odt',
+    'application/vnd.ms-powerpoint' => 'ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+    'application/pdf' => 'pdf',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+    'application/vnd.ms-excel' => 'xls',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+    'application/msword' => 'doc',
+    'text/plain' => 'txt',
+  ];
+
+  if (isset($mime_type[$index])) {
+    return $mime_type[$index];
+  }
+
+  return false;
 }

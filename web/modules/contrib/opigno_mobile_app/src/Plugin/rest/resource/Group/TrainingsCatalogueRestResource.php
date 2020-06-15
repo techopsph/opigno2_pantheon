@@ -6,6 +6,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\Core\Render\RenderContext;
 use Drupal\group\Entity\Group;
 use Drupal\opigno_mobile_app\GroupOMATrait;
 use Drupal\rest\Plugin\ResourceBase;
@@ -172,7 +173,9 @@ class TrainingsCatalogueRestResource extends ResourceBase {
         // Default sorting.
         $query->sort('created', strtoupper($created_sort));
       }
-      $result = $query->execute();
+      $result = \Drupal::service('renderer')->executeInRenderContext(new RenderContext(), function () use ($query) {
+        return $query->execute();
+      });
       $trainings = $this->entityTypeManager
         ->getStorage('group')
         ->loadMultiple($result);

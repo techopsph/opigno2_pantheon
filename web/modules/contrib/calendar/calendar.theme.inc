@@ -100,10 +100,6 @@ function template_preprocess_calendar_year(&$vars) {
   $rows = $vars['rows'];
   $months = [];
   foreach ($rows as $month => $month_rows) {
-    // Set the month name.
-    $month_format = ($vars['options']['month_name_size'] == 1) ? "M" : "F";
-    $vars['options']['month_name'] = t(date($month_format, mktime(0, 0, 0, $month, 10)));
-    
     $view->dateInfo->setMinMonth($month);
     $view->dateInfo->setGranularity('month');
     $view->styleInfo->setMini(TRUE);
@@ -575,7 +571,7 @@ function template_preprocess_calendar_item(&$vars) {
 
   $multiday_hidden = !empty($vars['view']->style_options['multiday_hidden']) ? $vars['view']->style_options['multiday_hidden'] : [];
 
-  if (!empty($item->getRenderedFields())) {
+  if (!empty($item->getRenderedFields()) && empty($item->getIsMultiDay())) {
     $vars['rendered_fields'] = [$item->getRenderedFields()];
   }
   foreach ($vars['view']->field as $id => $field) {

@@ -13,19 +13,21 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 
 /**
  * Defines the promotion entity class.
  *
  * @ContentEntityType(
  *   id = "commerce_promotion",
- *   label = @Translation("Promotion"),
- *   label_collection = @Translation("Promotions"),
- *   label_singular = @Translation("promotion"),
- *   label_plural = @Translation("promotions"),
+ *   label = @Translation("Promotion", context = "Commerce"),
+ *   label_collection = @Translation("Promotions", context = "Commerce"),
+ *   label_singular = @Translation("promotion", context = "Commerce"),
+ *   label_plural = @Translation("promotions", context = "Commerce"),
  *   label_count = @PluralTranslation(
  *     singular = "@count promotion",
  *     plural = "@count promotions",
+ *     context = "Commerce",
  *   ),
  *   handlers = {
  *     "event" = "Drupal\commerce_promotion\Event\PromotionEvent",
@@ -34,23 +36,32 @@ use Drupal\Core\Field\BaseFieldDefinition;
  *     "permission_provider" = "Drupal\entity\EntityPermissionProvider",
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
  *     "list_builder" = "Drupal\commerce_promotion\PromotionListBuilder",
- *     "views_data" = "Drupal\commerce\CommerceEntityViewsData",
+ *     "views_data" = "Drupal\commerce_promotion\PromotionViewsData",
  *     "form" = {
  *       "default" = "Drupal\commerce_promotion\Form\PromotionForm",
  *       "add" = "Drupal\commerce_promotion\Form\PromotionForm",
  *       "edit" = "Drupal\commerce_promotion\Form\PromotionForm",
+ *       "duplicate" = "Drupal\commerce_promotion\Form\PromotionForm",
  *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm"
+ *     },
+ *     "local_task_provider" = {
+ *       "default" = "Drupal\entity\Menu\DefaultEntityLocalTaskProvider",
  *     },
  *     "route_provider" = {
  *       "default" = "Drupal\entity\Routing\AdminHtmlRouteProvider",
  *       "delete-multiple" = "Drupal\entity\Routing\DeleteMultipleRouteProvider",
  *     },
- *     "translation" = "Drupal\content_translation\ContentTranslationHandler"
+ *     "translation" = "Drupal\commerce_promotion\PromotionTranslationHandler",
  *   },
  *   base_table = "commerce_promotion",
  *   data_table = "commerce_promotion_field_data",
  *   admin_permission = "administer commerce_promotion",
  *   translatable = TRUE,
+ *   translation = {
+ *     "content_translation" = {
+ *       "access_callback" = "content_translation_translate_access"
+ *     },
+ *   },
  *   entity_keys = {
  *     "id" = "promotion_id",
  *     "label" = "name",
@@ -61,13 +72,39 @@ use Drupal\Core\Field\BaseFieldDefinition;
  *   links = {
  *     "add-form" = "/promotion/add",
  *     "edit-form" = "/promotion/{commerce_promotion}/edit",
+ *     "duplicate-form" = "/promotion/{commerce_promotion}/duplicate",
  *     "delete-form" = "/promotion/{commerce_promotion}/delete",
  *     "delete-multiple-form" = "/admin/commerce/promotions/delete",
  *     "collection" = "/admin/commerce/promotions",
+ *     "drupal:content-translation-overview" = "/promotion/{commerce_promotion}/translations",
+ *     "drupal:content-translation-add" = "/promotion/{commerce_promotion}/translations/add/{source}/{target}",
+ *     "drupal:content-translation-edit" = "/promotion/{commerce_promotion}/translations/edit/{language}",
+ *     "drupal:content-translation-delete" = "/promotion/{commerce_promotion}/translations/delete/{language}",
  *   },
  * )
  */
 class Promotion extends CommerceContentEntityBase implements PromotionInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function toUrl($rel = 'canonical', array $options = []) {
+    if ($rel == 'canonical') {
+      $rel = 'edit-form';
+    }
+    return parent::toUrl($rel, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createDuplicate() {
+    $duplicate = parent::createDuplicate();
+    // Coupons cannot be transferred because their codes are unique.
+    $duplicate->set('coupons', []);
+
+    return $duplicate;
+  }
 
   /**
    * {@inheritdoc}
@@ -81,6 +118,21 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
    */
   public function setName($name) {
     $this->set('name', $name);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDisplayName() {
+    return $this->get('display_name')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setDisplayName($display_name) {
+    $this->set('display_name', $display_name);
     return $this;
   }
 
@@ -327,25 +379,24 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
   /**
    * {@inheritdoc}
    */
-  public function getStartDate() {
-    // Can't use the ->date property because it resets the timezone to UTC.
-    return new DrupalDateTime($this->get('start_date')->value);
+  public function getStartDate($store_timezone = 'UTC') {
+    return new DrupalDateTime($this->get('start_date')->value, $store_timezone);
   }
 
   /**
    * {@inheritdoc}
    */
   public function setStartDate(DrupalDateTime $start_date) {
-    $this->get('start_date')->value = $start_date->format('Y-m-d');
+    $this->get('start_date')->value = $start_date->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
     return $this;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getEndDate() {
+  public function getEndDate($store_timezone = 'UTC') {
     if (!$this->get('end_date')->isEmpty()) {
-      return new DrupalDateTime($this->get('end_date')->value);
+      return new DrupalDateTime($this->get('end_date')->value, $store_timezone);
     }
   }
 
@@ -353,8 +404,10 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
    * {@inheritdoc}
    */
   public function setEndDate(DrupalDateTime $end_date = NULL) {
-    $this->get('end_date')->value = $end_date ? $end_date->format('Y-m-d') : NULL;
-    return $this;
+    $this->get('end_date')->value = NULL;
+    if ($end_date) {
+      $this->get('end_date')->value = $end_date->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
+    }
   }
 
   /**
@@ -418,12 +471,14 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
     if (!in_array($order->getStoreId(), $this->getStoreIds())) {
       return FALSE;
     }
-    $time = \Drupal::time()->getRequestTime();
-    if ($this->getStartDate()->format('U') > $time) {
+    $date = $order->getCalculationDate();
+    $store_timezone = $date->getTimezone()->getName();
+    $start_date = $this->getStartDate($store_timezone);
+    if ($start_date->format('U') > $date->format('U')) {
       return FALSE;
     }
-    $end_date = $this->getEndDate();
-    if ($end_date && $end_date->format('U') <= $time) {
+    $end_date = $this->getEndDate($store_timezone);
+    if ($end_date && $end_date->format('U') <= $date->format('U')) {
       return FALSE;
     }
     if ($usage_limit = $this->getUsageLimit()) {
@@ -479,7 +534,7 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
   public function apply(OrderInterface $order) {
     $offer = $this->getOffer();
     if ($offer instanceof OrderItemPromotionOfferInterface) {
-      $offer_conditions = new ConditionGroup($offer->getConditions(), 'OR');
+      $offer_conditions = new ConditionGroup($offer->getConditions(), $offer->getConditionOperator());
       // Apply the offer to order items that pass the conditions.
       foreach ($order->getItems() as $order_item) {
         if ($offer_conditions->evaluate($order_item)) {
@@ -550,6 +605,24 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
       ->setDisplayConfigurable('view', TRUE)
       ->setDisplayConfigurable('form', TRUE);
 
+    $fields['display_name'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Display name'))
+      ->setDescription(t('If provided, shown on the order instead of "@translated".', [
+        '@translated' => t('Discount'),
+      ]))
+      ->setTranslatable(TRUE)
+      ->setSettings([
+        'display_description' => TRUE,
+        'default_value' => '',
+        'max_length' => 255,
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => 0,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->setDisplayConfigurable('form', TRUE);
+
     $fields['description'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Description'))
       ->setDescription(t('Additional information about the promotion to show to the customer'))
@@ -572,7 +645,6 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
       ->setRequired(TRUE)
       ->setSetting('target_type', 'commerce_order_type')
       ->setSetting('handler', 'default')
-      ->setTranslatable(TRUE)
       ->setDisplayOptions('form', [
         'type' => 'commerce_entity_select',
         'weight' => 2,
@@ -585,7 +657,6 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
       ->setRequired(TRUE)
       ->setSetting('target_type', 'commerce_store')
       ->setSetting('handler', 'default')
-      ->setTranslatable(TRUE)
       ->setDisplayOptions('form', [
         'type' => 'commerce_entity_select',
         'weight' => 2,
@@ -648,10 +719,10 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
       ->setLabel(t('Start date'))
       ->setDescription(t('The date the promotion becomes valid.'))
       ->setRequired(TRUE)
-      ->setSetting('datetime_type', 'date')
+      ->setSetting('datetime_type', 'datetime')
       ->setDefaultValueCallback('Drupal\commerce_promotion\Entity\Promotion::getDefaultStartDate')
       ->setDisplayOptions('form', [
-        'type' => 'datetime_default',
+        'type' => 'commerce_store_datetime',
         'weight' => 5,
       ]);
 
@@ -659,9 +730,10 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
       ->setLabel(t('End date'))
       ->setDescription(t('The date after which the promotion is invalid.'))
       ->setRequired(FALSE)
-      ->setSetting('datetime_type', 'date')
+      ->setSetting('datetime_type', 'datetime')
+      ->setSetting('datetime_optional_label', t('Provide an end date'))
       ->setDisplayOptions('form', [
-        'type' => 'commerce_end_date',
+        'type' => 'commerce_store_datetime',
         'weight' => 6,
       ]);
 
@@ -707,21 +779,7 @@ class Promotion extends CommerceContentEntityBase implements PromotionInterface 
    */
   public static function getDefaultStartDate() {
     $timestamp = \Drupal::time()->getRequestTime();
-    return gmdate('Y-m-d', $timestamp);
-  }
-
-  /**
-   * Default value callback for 'end_date' base field definition.
-   *
-   * @see ::baseFieldDefinitions()
-   *
-   * @return int
-   *   The default value (date string).
-   */
-  public static function getDefaultEndDate() {
-    // Today + 1 year.
-    $timestamp = \Drupal::time()->getRequestTime();
-    return gmdate('Y-m-d', $timestamp + 31536000);
+    return gmdate(DateTimeItemInterface::DATETIME_STORAGE_FORMAT, $timestamp);
   }
 
   /**

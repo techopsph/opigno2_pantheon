@@ -5,6 +5,8 @@
  * Provide views data for entity_browser.module.
  */
 
+use Drupal\search_api\Entity\Index;
+
 /**
  * Implements hook_views_data_alter().
  */
@@ -20,11 +22,21 @@ function entity_browser_views_data_alter(&$data) {
           'real field' => $entity_keys['id'],
         ],
       ];
+
+      if (!empty($entity_keys['bundle'])) {
+        $data[$base_table]['entity_browser_bundle'] = [
+          'title' => t('Entity Browser Target Bundles'),
+          'filter' => [
+            'id' => 'entity_browser_bundle',
+            'real field' => $entity_keys['bundle'],
+          ],
+        ];
+      }
     }
   }
   if (\Drupal::moduleHandler()->moduleExists('search_api')) {
     /** @var \Drupal\search_api\IndexInterface $index */
-    foreach (\Drupal\search_api\Entity\Index::loadMultiple() as $index) {
+    foreach (Index::loadMultiple() as $index) {
       $key = 'search_api_index_' . $index->id();
       $data[$key]['entity_browser_select'] = [
         'title' => t('Entity browser bulk select form for Search API views'),

@@ -16,8 +16,11 @@ content:
     label: above
     settings: {  }
     third_party_settings: {  }
+    region: content
 hidden:
   billing_countries: true
   default_currency: true
   mail: true
   name: true
+  timezone: true
+  uid: true

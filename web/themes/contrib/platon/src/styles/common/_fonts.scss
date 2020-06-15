@@ -1,0 +1,129 @@
+@font-face {
+  font-family: 'icomoon';
+  src:  url('../fonts/icomoon.eot?2sr5pc');
+  src:  url('../fonts/icomoon.eot?2sr5pc#iefix') format('embedded-opentype'),
+  url('../fonts/icomoon.ttf?2sr5pc') format('truetype'),
+  url('../fonts/icomoon.woff?2sr5pc') format('woff'),
+  url('../fonts/icomoon.svg?2sr5pc#icomoon') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'icomoon' !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-achievements-2:before {
+  content: "\e909";
+}
+.icon-calendar-2:before {
+  content: "\e90a";
+}
+.icon-catalog-2:before {
+  content: "\e90b";
+}
+.icon-help:before {
+  content: "\e90c";
+}
+.icon-home-2:before {
+  content: "\e90d";
+}
+.icon-logout:before {
+  content: "\e90e";
+}
+.icon-search:before {
+  content: "\e915";
+}
+.icon-settings:before {
+  content: "\e916";
+}
+.icon-user:before {
+  content: "\e917";
+}
+.icon-achievements:before {
+  content: "\e900";
+}
+.icon-blocks:before {
+  content: "\e901";
+}
+.icon-calendar:before {
+  content: "\e902";
+}
+.icon-catalog:before {
+  content: "\e903";
+}
+.icon-chevron-right:before {
+  content: "\e904";
+}
+.icon-home:before {
+  content: "\e905";
+}
+.icon-lines:before {
+  content: "\e906";
+}
+.icon-messages:before {
+  content: "\e907";
+}
+.icon-statistics:before {
+  content: "\e908";
+}
+.icon-arrow-down:before {
+  content: "\e90f";
+}
+.icon-arrow-left:before {
+  content: "\e910";
+}
+.icon-arrow-right:before {
+  content: "\e911";
+}
+.icon-arrow-up:before {
+  content: "\e912";
+}
+.icon-odp-file:before {
+  content: "\e913";
+}
+.icon-ods-file:before {
+  content: "\e914";
+}
+.icon-odt-file:before {
+  content: "\e918";
+}
+.icon-pps-file:before {
+  content: "\e919";
+}
+.icon-pptx-file:before {
+  content: "\e91a";
+}
+.icon-ppt-file:before {
+  content: "\e91b";
+}
+.icon-pdf-file:before {
+  content: "\e91c";
+}
+.icon-xlsx-file:before {
+  content: "\e91d";
+}
+.icon-xls-file:before {
+  content: "\e91e";
+}
+.icon-docx-file:before {
+  content: "\e91f";
+}
+.icon-doc-file:before {
+  content: "\e920";
+}
+.icon-txt-file:before {
+  content: "\e921";
+}

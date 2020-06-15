@@ -19,6 +19,8 @@ opigno_learning_path.learning_path_settings:
       type: text
     opigno_learning_path_notify_user_user_blocked:
       type: text
+    opigno_learning_path_notify_user_user_certificate_expired:
+      type: text
     opigno_learning_path_notify_admin_mails:
       type: string
 

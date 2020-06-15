@@ -75,6 +75,8 @@
 
             /* config_image */
             let image = returnValues.attributes.image ? returnValues.attributes.image : '';
+            let entity_uuid = returnValues.attributes.data_entity_uuid ? returnValues.attributes.data_entity_uuid : '';
+            let entity_type = returnValues.attributes.data_entity_type ? returnValues.attributes.data_entity_type : '';
             let backgroundColor = returnValues.background_color;
             let width = '100%';
             let height = '';
@@ -96,7 +98,7 @@
             position = position.split(' ');
 
             let backgroundImageDiv = '<div class="background-image" style="position:absolute;z-index:-1;width:100%;height:100%;text-align:' + position[0] + ';background-color:' + backgroundColor + ';">';
-            backgroundImageDiv += '<img src="' + image + '" style="width:' + width + ';height:' + height + ';">';
+            backgroundImageDiv += '<img data-entity-type="' + entity_type + '" data-entity-uuid="' + entity_uuid + '" src="' + image + '" style="width:' + width + ';height:' + height + ';">';
             backgroundImageDiv += '</div>';
 
             let contentDiv = '<div class="editor-content" style="padding:15px;">' + content + '</div>';

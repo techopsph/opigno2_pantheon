@@ -5,7 +5,7 @@
   "homepage": "http://drupal.org/project/opigno_certificate",
   "license": "GPL-2.0+",
   "require": {
-      "drupal/view_mode_selector": "1.x-dev#11c9ad2"
+    "drupal/view_mode_selector": "1.x-dev#93d105f"
   },
   "minimum-stability": "dev"
 }

@@ -29,7 +29,34 @@ class ScormPackageConstraintValidator extends ConstraintValidator {
     // This is a standard: the manifest file will always be here.
     $manifest_file = $extract_dir . '/imsmanifest.xml';
     if (!file_exists($manifest_file)) {
-      $this->context->addViolation($constraint->missingManifestFile);
+      $validation = FALSE;
+
+      $files = scandir($extract_dir);
+      $count_files = count($files);
+
+      if ($count_files == 3 && is_dir($extract_dir. '/' . $files[2])) {
+        $subfolder_files = scandir($extract_dir. '/' . $files[2]);
+
+        if (in_array('imsmanifest.xml', $subfolder_files)) {
+          $source = $extract_dir. '/' . $files[2];
+
+          $i = new \RecursiveDirectoryIterator($source);
+          foreach($i as $f) {
+            if($f->isFile()) {
+              rename($f->getPathname(), $extract_dir . '/' . $f->getFilename());
+            } else if($f->isDir()) {
+              rename($f->getPathname(), $extract_dir . '/' . $f->getFilename());
+              unlink($f->getPathname());
+            }
+          }
+          $validation = TRUE;
+        }
+      }
+
+
+      if ($validation == FALSE) {
+        $this->context->addViolation($constraint->missingManifestFile);
+      }
     }
   }
 

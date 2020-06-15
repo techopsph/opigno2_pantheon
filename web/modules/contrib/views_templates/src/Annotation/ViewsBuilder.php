@@ -1,12 +1,6 @@
 <?php
-/**
- * @file
- * Contains \Drupal\views_templates\Annotation\ViewsBuilder.
- */
-
 
 namespace Drupal\views_templates\Annotation;
-
 
 use Drupal\Component\Annotation\Plugin;
 
@@ -27,7 +21,7 @@ class ViewsBuilder extends Plugin {
   public $id;
 
   /**
-   * Description for list page
+   * Description for list page.
    *
    * @var string
    *

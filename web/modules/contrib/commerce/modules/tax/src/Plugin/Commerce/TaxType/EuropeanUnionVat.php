@@ -24,6 +24,9 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
     $form['rates'] = $this->buildRateSummary();
+    // The Intra-Community rate is special and should not be in the summary.
+    unset($form['rates']['table']['ic']);
+    unset($form['rates']['table']['ic|zero']);
     // Replace the phrase "tax rates" with "VAT rates" to be more precise.
     $form['rates']['#markup'] = $this->t('The following VAT rates are provided:');
 
@@ -35,12 +38,10 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
    */
   protected function resolveZones(OrderItemInterface $order_item, ProfileInterface $customer_profile) {
     $zones = $this->getZones();
-    $customer_address = $customer_profile->address->first();
+    /** @var \Drupal\address\AddressInterface $customer_address */
+    $customer_address = $customer_profile->get('address')->first();
     $customer_country = $customer_address->getCountryCode();
-    $customer_zones = array_filter($zones, function ($zone) use ($customer_address) {
-      /** @var \Drupal\commerce_tax\TaxZone $zone */
-      return $zone->match($customer_address);
-    });
+    $customer_zones = $this->getMatchingZones($customer_address);
     if (empty($customer_zones)) {
       // The customer is not in the EU.
       return [];
@@ -49,37 +50,37 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
     $store = $order->getStore();
     $store_address = $store->getAddress();
     $store_country = $store_address->getCountryCode();
-    $store_zones = array_filter($zones, function ($zone) use ($store_address) {
-      /** @var \Drupal\commerce_tax\TaxZone $zone */
-      return $zone->match($store_address);
-    });
+    $store_zones = $this->getMatchingZones($store_address);
     $store_registration_zones = array_filter($zones, function ($zone) use ($store) {
       /** @var \Drupal\commerce_tax\TaxZone $zone */
       return $this->checkRegistrations($store, $zone);
     });
 
-    // @todo Replace with $customer_profile->get('tax_number')->value
-    // once tax numbers are implemented.
     $customer_tax_number = '';
+    if (!$customer_profile->get('tax_number')->isEmpty()) {
+      /** @var \Drupal\commerce_tax\Plugin\Field\FieldType\TaxNumberItemInterface $tax_number_item */
+      $tax_number_item = $customer_profile->get('tax_number')->first();
+      if ($tax_number_item->checkValue('european_union_vat')) {
+        $customer_tax_number = $tax_number_item->value;
+      }
+    }
     // Since january 1st 2015 all digital goods sold to EU customers
     // must use the customer zone. For example, an ebook sold
     // to Germany needs to have German VAT applied.
     $taxable_type = $this->getTaxableType($order_item);
-    $year = $this->getCalculationDate($order)->format('Y');
+    $year = $order->getCalculationDate()->format('Y');
     $is_digital = $taxable_type == TaxableType::DIGITAL_GOODS && $year >= 2015;
-    $resolved_zones = [];
     if (empty($store_zones) && !empty($store_registration_zones)) {
-      // The store is not in the EU but is registered to collect VAT.
-      // This VAT is only charged on B2C digital services.
+      // The store is not in the EU but is registered to collect VAT for
+      // digital goods.
       $resolved_zones = [];
-      if ($is_digital && !$customer_tax_number) {
-        $resolved_zones = $customer_zones;
+      if ($is_digital) {
+        $resolved_zones = $customer_tax_number ? [$zones['ic']] : $customer_zones;
       }
     }
     elseif ($customer_tax_number && $customer_country != $store_country) {
       // Intra-community supply (B2B).
-      $ic_zone = $this->getIcZone();
-      $resolved_zones = [$ic_zone];
+      $resolved_zones = [$zones['ic']];
     }
     elseif ($is_digital) {
       $resolved_zones = $customer_zones;
@@ -247,7 +248,7 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
     ]);
     $zones['cz'] = new TaxZone([
       'id' => 'cz',
-      'label' => $this->t('Czech Republic'),
+      'label' => $this->t('Czechia'),
       'display_label' => $labels['vat'],
       'territories' => [
         ['country_code' => 'CZ'],
@@ -547,8 +548,8 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
       'label' => $this->t('Greece'),
       'display_label' => $labels['vat'],
       'territories' => [
-        // Greece without Thassos, Samothrace, Skiros, Northern Sporades, Lesbos, Chios, The Cyclades, The Dodecanese.
-        ['country_code' => 'GR', 'excluded_postal_codes' => '/640 ?04|680 ?02|340 ?07|((370|811|821|840|851) ?[0-9]{2})/'],
+        // Greece without Leros, Lesbos, Kos, Samos, Chios.
+        ['country_code' => 'GR', 'excluded_postal_codes' => '/(811|821|831|853|854) ?[0-9]{2}/'],
       ],
       'rates' => [
         [
@@ -572,6 +573,39 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
           'label' => $labels['reduced'],
           'percentages' => [
             ['number' => '0.06', 'start_date' => '2015-07-01'],
+          ],
+        ],
+      ],
+    ]);
+    $zones['gr_x'] = new TaxZone([
+      'id' => 'gr_x',
+      'label' => $this->t('Greek Islands (Leros, Lesbos, Kos, Samos, Chios)'),
+      'display_label' => $labels['vat'],
+      'territories' => [
+        // Leros, Lesbos, Kos, Samos, Chios.
+        ['country_code' => 'GR', 'included_postal_codes' => '/(811|821|831|853|854) ?[0-9]{2}/'],
+      ],
+      'rates' => [
+        [
+          'id' => 'standard',
+          'label' => $labels['standard'],
+          'percentages' => [
+            ['number' => '0.17', 'start_date' => '2016-06-01'],
+          ],
+          'default' => TRUE,
+        ],
+        [
+          'id' => 'intermediate',
+          'label' => $labels['intermediate'],
+          'percentages' => [
+            ['number' => '0.09', 'start_date' => '2011-01-01'],
+          ],
+        ],
+        [
+          'id' => 'reduced',
+          'label' => $labels['reduced'],
+          'percentages' => [
+            ['number' => '0.04', 'start_date' => '2015-07-01'],
           ],
         ],
       ],
@@ -674,7 +708,7 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
           'id' => 'second_reduced',
           'label' => $labels['second_reduced'],
           'percentages' => [
-            ['number' => '0.09', 'start_date' => '2011-07-01'],
+            ['number' => '0.09', 'start_date' => '2011-07-01', 'end_date' => '2018-12-31'],
           ],
         ],
         [
@@ -881,7 +915,8 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
           'id' => 'reduced',
           'label' => $labels['reduced'],
           'percentages' => [
-            ['number' => '0.06', 'start_date' => '1986-10-01'],
+            ['number' => '0.06', 'start_date' => '1986-10-01', 'end_date' => '2018-12-31'],
+            ['number' => '0.09', 'start_date' => '2019-01-01'],
           ],
         ],
       ],
@@ -1071,6 +1106,13 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
             ['number' => '0.095', 'start_date' => '2013-07-01'],
           ],
         ],
+        [
+          'id' => 'super_reduced',
+          'label' => $labels['super_reduced'],
+          'percentages' => [
+            ['number' => '0.05', 'start_date' => '2020-01-01'],
+          ],
+        ],
       ],
     ]);
     $zones['sk'] = new TaxZone([
@@ -1098,20 +1140,8 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
         ],
       ],
     ]);
-
-    return $zones;
-  }
-
-  /**
-   * Gets the special Intra-Community Supply tax zone.
-   *
-   * Used by resolveZones() for cross-country B2B sales.
-   *
-   * @return \Drupal\commerce_tax\TaxZone
-   *   The tax zone.
-   */
-  protected function getIcZone() {
-    return new TaxZone([
+    // Used for cross-country B2B sales.
+    $zones['ic'] = new TaxZone([
       'id' => 'ic',
       'label' => $this->t('Intra-Community Supply'),
       'display_label' => $this->t('Intra-Community Supply'),
@@ -1121,7 +1151,7 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
       ],
       'rates' => [
         [
-          'id' => 'ic',
+          'id' => 'zero',
           'label' => $this->t('Intra-Community Supply'),
           'percentages' => [
             ['number' => '0', 'start_date' => '1970-01-01'],
@@ -1130,6 +1160,8 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
         ],
       ],
     ]);
+
+    return $zones;
   }
 
 }

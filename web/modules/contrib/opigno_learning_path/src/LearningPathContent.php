@@ -277,4 +277,47 @@ class LearningPathContent {
     return $ids;
   }
 
+  /**
+   * Function for getting group steps without courses, only modules.
+   */
+  public static function getAllStepsOnlyModules($group_id, $uid = NULL, $all = FALSE, $onlyCM = NULL, $latest_cert_date = NULL) {
+    if (!$uid) {
+      $uid = \Drupal::currentUser()->id();
+    }
+
+    // Load group steps.
+    if ($all) {
+      $group_steps = opigno_learning_path_get_all_steps($group_id, $uid, $onlyCM, $latest_cert_date);
+    }
+    else {
+      $group_steps = opigno_learning_path_get_steps($group_id, $uid, $onlyCM, $latest_cert_date);
+    }
+
+    $steps = [];
+    // Load group courses substeps.
+    array_walk($group_steps, function ($step, $key) use ($uid, &$steps, $onlyCM, $latest_cert_date) {
+      $step['position'] = $key;
+      if ($step['typology'] === 'Course') {
+        $course_steps = opigno_learning_path_get_steps($step['id'], $uid, $onlyCM, $latest_cert_date);
+
+        // We also need set last step.
+        $last_course_step = end($course_steps);
+
+        // Save parent course and position.
+        $course_steps = array_map(function ($course_step, $key) use ($step, $last_course_step) {
+          $course_step['parent'] = $step;
+          $course_step['position'] = $key;
+          $course_step['is last child'] = $course_step['cid'] === $last_course_step['cid'];
+          return $course_step;
+        }, $course_steps, array_keys($course_steps));
+        $steps = array_merge($steps, $course_steps);
+      }
+      else {
+        $steps[] = $step;
+      }
+    });
+
+    return $steps;
+  }
+
 }

@@ -263,7 +263,7 @@ class LPManagedContent extends ContentEntityBase {
       ->setSetting('target_type', 'group')
       ->setSetting('handler_settings',
         [
-          'target_bundles' => ['opigno_learning_path' => 'opigno_learning_path'],
+          'target_bundles' => ['learning_path' => 'learning_path'],
         ]);
 
     $fields['lp_content_type_id'] = BaseFieldDefinition::create('string')

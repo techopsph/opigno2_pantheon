@@ -66,8 +66,16 @@ class OpignoScormController extends ControllerBase {
    * Scorm data commit method.
    */
   public function scormCommit($opigno_scorm_id, $opigno_scorm_sco_id) {
+    $data_content = $GLOBALS['request']->getContent();
+
     if (!empty($_POST['data'])) {
       $data = json_decode($_POST['data']);
+    }
+    elseif ($data_content) {
+      $data = json_decode($data_content);
+    }
+
+    if ($data) {
       if (!empty($data->cmi->interactions)) {
         $_SESSION['scorm_answer_results'] = [
           'opigno_scorm_id' => $opigno_scorm_id,

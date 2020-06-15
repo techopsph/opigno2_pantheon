@@ -69,15 +69,19 @@ class PrivateMessageThread extends ContentEntityBase implements PrivateMessageTh
   /**
    * {@inheritdoc}
    */
-  public function isMember($id) {
-    $members = $this->getMembers();
-    foreach ($members as $member) {
-      if ($member->id() == $id) {
-        return TRUE;
-      }
+  public function getMembersId() {
+    $members = [];
+    foreach ($this->get('members')->getValue() as $member_item) {
+      $members[] = $member_item['target_id'];
     }
+    return $members;
+  }
 
-    return FALSE;
+  /**
+   * {@inheritdoc}
+   */
+  public function isMember($id) {
+    return in_array($id, $this->getMembersId());
   }
 
   /**
@@ -378,6 +382,8 @@ class PrivateMessageThread extends ContentEntityBase implements PrivateMessageTh
         'type' => 'entity_reference_autocomplete',
         'settings' => [
           'match_operator' => 'CONTAINS',
+          'match_limit' => 10,
+          'max_members' => 0,
           'size' => 60,
           'autocomplete_type' => 'tags',
           'placeholder' => '',

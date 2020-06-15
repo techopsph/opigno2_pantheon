@@ -26,22 +26,41 @@ export class LinkAdminComponent implements OnInit {
   @Output() deleted: EventEmitter<string> = new EventEmitter();
 
   activities: Activity[];
+  hasActivities: boolean = false;
   errorMessage: string = '';
   scoreMessage: string = '';
-  minScore: number;
+  minScore: number = 0;
   requiredActivities: any = [];
   requiredActivitiesNames: any = [];
   updateEntityLinkUrl: string;
   removeEntityLinkUrl: string;
+  activitiesPageUrl: string;
   confirmCreateOrphan = false;
   conditionTypes: any;
   condition: string;
   conditionExists: boolean;
-  conditionsExist: boolean;
+  conditionsExist: boolean = true;
   addCondition: boolean = false;
   showScoreField: boolean = false;
   showActivitiesField: boolean = false;
   checkboxesMap: any = [];
+  text_conditions: string;
+  text_score: string;
+  text_edit: string;
+  text_delete: string;
+  text_last_step: string;
+  text_add: string;
+  text_validate: string;
+  text_cancel: string;
+  text_delete_link: string;
+  text_this_action_create_an_orphan: string;
+  text_confirm: string;
+  text_score_2: string;
+  text_answer_at_last_step: string;
+  text_before_need_to_add: string;
+  text_activities: string;
+  simpleExist: boolean;
+  initPopup: boolean = false;
 
   constructor(
     private http: HttpClient,
@@ -49,16 +68,31 @@ export class LinkAdminComponent implements OnInit {
     private entityService: EntityService,
     private activityService: ActivitiesService,
     private route: ActivatedRoute
-  ) { }
+  ) {
+    this.text_conditions = window['appConfig'].text_conditions;
+    this.text_score = window['appConfig'].text_score;
+    this.text_edit = window['appConfig'].text_edit;
+    this.text_delete = window['appConfig'].text_delete;
+    this.text_last_step = window['appConfig'].text_last_step;
+    this.text_add = window['appConfig'].text_add;
+    this.text_validate = window['appConfig'].text_validate;
+    this.text_cancel = window['appConfig'].text_cancel;
+    this.text_delete_link = window['appConfig'].text_delete_link;
+    this.text_this_action_create_an_orphan = window['appConfig'].text_this_action_create_an_orphan;
+    this.text_confirm = window['appConfig'].text_confirm;
+    this.text_score_2 = window['appConfig'].text_score_2;
+    this.text_answer_at_last_step = window['appConfig'].text_answer_at_last_step;
+    this.text_before_need_to_add = window['appConfig'].text_before_need_to_add;
+    this.text_activities = window['appConfig'].text_activities;
+  }
 
   ngOnInit(): void {
     this.minScore = this.selectedLink.score;
     this.requiredActivities = this.selectedLink.activities ? this.selectedLink.activities : [];
     this.updateEntityLinkUrl = window['appConfig'].updateEntityLinkUrl;
     this.removeEntityLinkUrl = window['appConfig'].removeEntityLinkUrl;
+    this.activitiesPageUrl = this.appService.replaceUrlParams(window['appConfig'].activitiesPageUrl, {'%groupId': this.groupId});
 
-    this.setConditionExists();
-    this.setConditionTypes();
     this.setActivitiesMap();
   }
 
@@ -66,15 +100,27 @@ export class LinkAdminComponent implements OnInit {
     // Initial read activities.
     let parent = this.entityService.getEntityByCid(this.selectedLink.parent, this.entities);
     let activities = this.activityService.getRequiredActivities(parent.entityId);
+
     Observable.forkJoin([activities]).subscribe(results => {
       let activities = Object.keys(results[0]).map(function(key) { return results[0][key] });
+
+      if (typeof activities[1] !== 'undefined') {
+        this.initPopup = true;
+        this.simpleExist = activities[1];
+      }
+
+      activities = activities[0];
+
       // Order by weight
       activities.sort(function(a, b) {
         return a.weight - b.weight;
       });
 
+      this.hasActivities = activities.length > 0 || this.simpleExist;
       this.activities = activities;
 
+      this.setConditionExists();
+      this.setConditionTypes();
       this.setActivitiesList();
       this.setActivitiesCheckboxes();
     });
@@ -269,12 +315,6 @@ export class LinkAdminComponent implements OnInit {
       this.conditionExists = false;
     }
 
-    if (this.minScore > 0 && (this.requiredActivities && this.requiredActivities.length > 0)) {
-      this.conditionsExist = true;
-    }
-    else {
-      this.conditionsExist = false;
-    }
   }
 
   isScoreConditionExists(): boolean {
@@ -292,15 +332,19 @@ export class LinkAdminComponent implements OnInit {
   }
 
   setConditionTypes(): void {
+    this.conditionsExist = true;
     // Set conditions dropdown options.
     this.conditionTypes = [];
     if (this.minScore == 0 || this.minScore === null) {
-      this.conditionTypes.push({id: "score", name: "Score"});
+      this.conditionTypes.push({id: "score", name: window['appConfig'].text_score});
       this.condition = 'score';
+      this.conditionsExist = false;
     }
 
-    if (!this.requiredActivities || this.requiredActivities.length === 0) {
-      this.conditionTypes.push({id: "activities", name: "Answer at last step"});
+    if ((this.activities && this.activities.length > 0) &&
+      (!this.selectedLink.activities || this.selectedLink.activities && this.selectedLink.activities.length === 0)) {
+      this.conditionTypes.push({id: "activities", name: window['appConfig'].text_answer_at_last_step});
+      this.conditionsExist = false;
     }
 
     if (this.minScore > 0) {
@@ -312,10 +356,10 @@ export class LinkAdminComponent implements OnInit {
     // Set conditions dropdown options for edit mode.
     this.conditionTypes = [];
     if (type === 'score') {
-      this.conditionTypes.push({id: "score", name: "Score"});
+      this.conditionTypes.push({id: "score", name: window['appConfig'].text_score});
     }
     else {
-      this.conditionTypes.push({id: "activities", name: "Answer at last step"});
+      this.conditionTypes.push({id: "activities", name: window['appConfig'].text_answer_at_last_step});
     }
     this.condition = type;
   }

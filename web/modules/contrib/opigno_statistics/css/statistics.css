@@ -241,6 +241,13 @@
   background-image: url('../img/icon_state_passed.png');
 }
 
+.icon_state_expired,
+.step_state_expired {
+  background-image: url('../img/icon-state-expired.png');
+  width: 47px;
+  height: 47px;
+}
+
 .score-bar,
 .score-bar-inner {
   display: block;

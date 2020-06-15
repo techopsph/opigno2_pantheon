@@ -210,22 +210,35 @@ function opigno_messaging_form_private_message_add_form_alter(&$form, FormStateI
  * @return \Drupal\user\UserInterface[]
  *   User ID.
  */
-function opigno_messaging_get_user_for_group($group_id = NULL) {
+function opigno_messaging_get_user_for_group($group_id = NULL, $show_all = FALSE) {
   if ($group_id === NULL
     || $group_id === 0) {
     return opigno_messaging_get_all_recipients();
   }
 
-  $current_user = \Drupal::currentUser();
+  $users = [];
   $group = Group::load($group_id);
+  $members = $group->getMembers();
+  $current_user = \Drupal::currentUser();
+
+  if ($show_all) {
+    if ($members) {
+      $users = array_map(function ($member) {
+        /** @var \Drupal\group\GroupMembership $member */
+        return $member->getUser();
+      }, $members);
+    }
+
+    return $users;
+  }
+
   $member = $group->getMember($current_user);
   $member_roles = $member->getRoles();
-  $users = [];
 
   if (array_key_exists('learning_path-user_manager', $member_roles)
     || array_key_exists('opigno_class-class_manager', $member_roles)
     || array_key_exists('learning_path-content_manager', $member_roles)) {
-    $members = $group->getMembers();
+
     $users = array_map(function ($member) {
       /** @var \Drupal\group\GroupMembership $member */
       return $member->getUser();
@@ -237,8 +250,6 @@ function opigno_messaging_get_user_for_group($group_id = NULL) {
     });
   }
   else {
-    $group = Group::load($group_id);
-    $members = $group->getMembers();
     $owner = $group->getOwner();
 
     foreach ($members as $member) {
@@ -248,6 +259,7 @@ function opigno_messaging_get_user_for_group($group_id = NULL) {
           || array_key_exists('opigno_class-class_manager', $member_roles)
           || array_key_exists('learning_path-content_manager', $member_roles)
           || $member->getUser()->id() == $owner->id()) {
+
         $users[] = $member->getUser();
       }
     }
@@ -628,6 +640,14 @@ function opigno_messaging_mail($key, &$message, $params) {
  */
 function messaging_user_update_callback(array $form, FormStateInterface $form_state) {
   $current_user = \Drupal::currentUser();
+  $user_roles = $current_user->getRoles();
+  $show_all = FALSE;
+  foreach ($user_roles as $role) {
+    if (in_array($role, ['administrator', 'user_manager', 'content_manager'])) {
+      $show_all = TRUE;
+      break;
+    }
+  }
   // Get the current values that are selected.
   $current_selected_users = $form_state->getValue('users_to_send');
 
@@ -655,8 +675,8 @@ function messaging_user_update_callback(array $form, FormStateInterface $form_st
     $learning_path_id = 0;
   }
 
-  $class_users = opigno_messaging_get_user_for_group($class_id);
-  $learning_path_users = opigno_messaging_get_user_for_group($learning_path_id);
+  $class_users = opigno_messaging_get_user_for_group($class_id, $show_all);
+  $learning_path_users = opigno_messaging_get_user_for_group($learning_path_id, $show_all);
 
   $users = array_uintersect($class_users, $learning_path_users, function ($user1, $user2) {
     /** @var \Drupal\user\UserInterface $user1 */
@@ -740,47 +760,40 @@ function opigno_messaging_preprocess_views_view_field(&$variables) {
  * Implements hook_views_query_alter().
  */
 function opigno_messaging_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
-  if ($view->id() == 'private_message' && in_array($view->current_display, ['block_all', 'block_last'])) {
-    // Get all message treads of current user.
-    $uid = \Drupal::currentUser()->id();
-    $threads = OpignoMessageThread::getUserThreads($uid);
+  if ($view->id() == 'private_message') {
+    static $threads;
+    if (!isset($threads)) {
+      // Get all message treads of current user.
+      $uid = \Drupal::currentUser()->id();
+      $threads = OpignoMessageThread::getUserThreads($uid);
 
-    if ($threads) {
-      // Get threads delete/access time
-      // for whenever deleted threads of current user.
-      $db_connection = \Drupal::service('database');
-      $query_thread = $db_connection->select('pm_thread_delete_time', 'tdt');
-      $query_thread->join('private_message_thread__last_delete_time', 'ldt', 'ldt.last_delete_time_target_id = tdt.id');
-      $query_thread->join('pm_thread_access_time', 'tat', 'tat.id = tdt.id');
-      $query_thread->fields('ldt', ['entity_id']);
-      $query_thread->fields('tat', ['access_time']);
-      $query_thread->fields('tdt', ['delete_time'])
-        ->condition('tdt.owner', $uid)
-        ->condition('tdt.delete_time', 0, '>');
-      $threads_times = $query_thread->execute()->fetchAllAssoc('entity_id');
-
-      if ($threads_times) {
-        // Get deleted threads for current user.
-        $deleted_threads = [];
-        foreach ($threads_times as $key => $thread) {
-          if ($thread->delete_time > $thread->access_time) {
-            $deleted_threads[] = $key;
-          }
-        }
+      if ($threads) {
+        // Get threads delete/access time
+        // for whenever deleted threads of current user.
+        $db_connection = \Drupal::service('database');
+        $query_thread = $db_connection->select('pm_thread_delete_time', 'tdt');
+        $query_thread->join('private_message_thread__last_delete_time', 'ldt', 'ldt.last_delete_time_target_id = tdt.id');
+        $query_thread->join('private_message_thread__last_access_time', 'tlat', 'tlat.entity_id = ldt.entity_id');
+        $query_thread->join('pm_thread_access_time', 'tat', 'tat.id = tlat.last_access_time_target_id AND tat.owner = :uid', [':uid' => $uid]);
+        $query_thread->fields('ldt', ['entity_id'])
+          ->condition('tdt.owner', $uid)
+          ->condition('tdt.delete_time', 0, '>')
+          ->condition('tdt.delete_time', 'tat.access_time', '>');
+        $deleted_threads = $query_thread->execute()->fetchCol();
 
         if ($deleted_threads) {
           // Remove deleted threads from threads array.
           $threads = array_diff($threads, $deleted_threads);
         }
       }
+    }
 
-      if ($threads) {
-        // Add allowed threads to query.
-        $query->addWhere('', 'private_message_threads.id', $threads, 'IN');
-      }
-      else {
-        $query->addWhere('', 'private_message_threads.id', [0], 'IN');
-      }
+    if ($threads) {
+      // Add allowed threads to query.
+      $query->addWhere('', 'private_message_threads.id', $threads, 'IN');
+    }
+    else {
+      $query->addWhere('', 'private_message_threads.id', [0], 'IN');
     }
   }
 }

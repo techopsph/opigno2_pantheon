@@ -9,6 +9,8 @@ use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\Core\Cache\Cache;
+use Drupal\opigno_learning_path\Entity\LPStatus;
+use Drupal\opigno_learning_path\LearningPathContent;
 
 /**
  * Provides a 'article' block.
@@ -51,19 +53,24 @@ class StepsBlock extends BlockBase {
   protected function buildState($step) {
     $uid = \Drupal::currentUser()->id();
     $status = opigno_learning_path_get_step_status($step, $uid, TRUE);
-    $markups = [
-      'pending' => '<span class="lp_steps_block_step_pending"></span>',
-      'failed' => '<span class="lp_steps_block_step_failed"></span>'
-      . $this->t('Failed'),
-      'passed' => '<span class="lp_steps_block_step_passed"></span>'
-      . $this->t('Passed'),
+    $class = [
+      'pending' => 'lp_steps_block_step_pending',
+      'failed' => 'lp_steps_block_step_failed',
+      'passed' => 'lp_steps_block_step_passed',
     ];
-    $markup = isset($markups[$status]) ? $markups[$status] : '&dash;';
-    return [
-      'data' => [
-        '#markup' => $markup,
-      ],
-    ];
+
+    if (isset($class[$status])) {
+      return [
+        'data' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#attributes' => ['class' => [$class[$status]]],
+        ],
+      ];
+    }
+    else {
+      return ['data' => ['#markup' => '&dash;']];
+    }
   }
 
   /**
@@ -104,25 +111,12 @@ class StepsBlock extends BlockBase {
 
     if ($freeNavigation) {
       // Get all steps for LP.
-      $group_steps = opigno_learning_path_get_all_steps($gid, $uid);
+      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid, TRUE);
     }
     else {
       // Get guided steps.
-      $group_steps = opigno_learning_path_get_steps($gid, $uid);
+      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid);
     }
-
-    $steps = [];
-
-    // Load courses substeps.
-    array_walk($group_steps, function ($step) use ($uid, &$steps) {
-      if ($step['typology'] === 'Course') {
-        $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-        $steps = array_merge($steps, $course_steps);
-      }
-      else {
-        $steps[] = $step;
-      }
-    });
 
     /** @var \Drupal\user\UserInterface $user */
     $user = \Drupal::currentUser();
@@ -156,11 +150,14 @@ class StepsBlock extends BlockBase {
       return TRUE;
     });
 
+    // Get user training expiration flag.
+    $expired = LPStatus::isCertificateExpired($group, $uid);
+
     $score = opigno_learning_path_get_score($gid, $uid);
     $progress = opigno_learning_path_progress($gid, $uid);
     $progress = round(100 * $progress);
 
-    $is_passed = opigno_learning_path_is_passed($group, $uid);
+    $is_passed = opigno_learning_path_is_passed($group, $uid, $expired);
 
     if ($is_passed) {
       $state_class = 'lp_steps_block_summary_state_passed';

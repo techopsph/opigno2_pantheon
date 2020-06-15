@@ -496,3 +496,52 @@ body.page-catalogue {
     }
   }
 }
+
+// Catalog collapse
+#catalog-filter-parent {
+  .btn-collapse {
+    @include clearfix;
+    width: 100%;
+    text-align: left;
+    background-color: $blue;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.5rem 1rem;
+
+    @include media-breakpoint-up(lg) {
+      display: none !important;
+    }
+
+    i {
+      transform: rotate(90deg);
+      float: right;
+      line-height: 30px;
+    }
+
+    &[aria-expanded="true"] {
+      i {
+        transform: rotate(270deg);
+      }
+    }
+  }
+
+  #catalog-filter {
+    width: 100%;
+
+    #edit-opigno-group-membership--wrapper {
+      & > legend {
+        display: none;
+
+        @include media-breakpoint-up(lg) {
+          display: block;
+        }
+      }
+    }
+
+    @include media-breakpoint-up(lg) {
+      display: block !important;
+    }
+  }
+}

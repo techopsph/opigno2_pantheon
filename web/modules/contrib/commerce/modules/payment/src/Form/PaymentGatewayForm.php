@@ -6,9 +6,12 @@ use Drupal\commerce_payment\PaymentGatewayManager;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\entity\Form\EntityDuplicateFormTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class PaymentGatewayForm extends EntityForm {
+
+  use EntityDuplicateFormTrait;
 
   /**
    * The payment gateway plugin manager.
@@ -71,12 +74,11 @@ class PaymentGatewayForm extends EntityForm {
     // Pass the plugin configuration only if the plugin hasn't been changed via #ajax.
     $plugin_configuration = $gateway->getPluginId() == $plugin ? $gateway->getPluginConfiguration() : [];
 
-    $wrapper_id = Html::getUniqueId('shipping-method-form');
-    $form['#tree'] = TRUE;
+    $wrapper_id = Html::getUniqueId('payment-gateway-form');
     $form['#prefix'] = '<div id="' . $wrapper_id . '">';
     $form['#suffix'] = '</div>';
-
     $form['#tree'] = TRUE;
+
     $form['label'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Name'),
@@ -163,6 +165,7 @@ class PaymentGatewayForm extends EntityForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $this->entity->save();
+    $this->postSave($this->entity, $this->operation);
     $this->messenger()->addMessage($this->t('Saved the %label payment gateway.', ['%label' => $this->entity->label()]));
     $form_state->setRedirect('entity.commerce_payment_gateway.collection');
   }

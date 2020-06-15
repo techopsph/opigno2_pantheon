@@ -57,7 +57,7 @@ class OpignoAnswerRevisionRevertForm extends ConfirmFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorage('opigno_answer'),
+      $container->get('entity_type.manager')->getStorage('opigno_answer'),
       $container->get('date.formatter')
     );
   }
@@ -141,7 +141,7 @@ class OpignoAnswerRevisionRevertForm extends ConfirmFormBase {
   protected function prepareRevertedRevision(OpignoAnswerInterface $revision, FormStateInterface $form_state) {
     $revision->setNewRevision();
     $revision->isDefaultRevision(TRUE);
-    $revision->setRevisionCreationTime(REQUEST_TIME);
+    $revision->setRevisionCreationTime(\Drupal::time()->getRequestTime());
 
     return $revision;
   }

@@ -4,7 +4,6 @@ namespace Drupal\Tests\commerce\FunctionalJavascript;
 
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Tests\commerce\Functional\CommerceBrowserTestBase;
 use Drupal\user\Entity\Role;
 
 /**
@@ -12,9 +11,7 @@ use Drupal\user\Entity\Role;
  *
  * @group commerce
  */
-class PluginSelectTest extends CommerceBrowserTestBase {
-
-  use JavascriptTestTrait;
+class PluginSelectTest extends CommerceWebDriverTestBase {
 
   /**
    * The entity_test storage.
@@ -118,7 +115,7 @@ class PluginSelectTest extends CommerceBrowserTestBase {
     ]);
     $this->drupalGet($entity->toUrl('edit-form'));
     $this->getSession()->getPage()->fillField('test_plugin[0][target_plugin_id]', 'order_email');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
 
     $this->submitForm([
       'test_plugin[0][target_plugin_configuration][order_email][mail]' => 'test@example.com',
@@ -134,7 +131,7 @@ class PluginSelectTest extends CommerceBrowserTestBase {
     // Select the other condition.
     $this->drupalGet($entity->toUrl('edit-form'));
     $this->getSession()->getPage()->fillField('test_plugin[0][target_plugin_id]', 'order_total_price');
-    $this->waitForAjaxToFinish();
+    $this->assertSession()->assertWaitOnAjaxRequest();
 
     $this->submitForm([
       'test_plugin[0][target_plugin_configuration][order_total_price][operator]' => '<',

@@ -22,7 +22,6 @@ description: ''
 tag: ''
 base_table: groups_field_data
 base_field: id
-core: 8.x
 display:
   default:
     display_plugin: default
@@ -58,36 +57,43 @@ display:
           text_input_required: 'Select any filter and click on Apply to see results'
           bef:
             general:
+              autosubmit: true
+              autosubmit_exclude_textfield: false
+              autosubmit_hide: true
+              input_required: false
               allow_secondary: false
               secondary_label: 'Advanced options'
-              autosubmit: true
-              autosubmit_hide: true
             sort:
-              bef_format: bef
+              plugin_id: bef
               advanced:
-                collapsible: false
-                collapsible_label: 'Sort options'
                 combine: false
                 combine_rewrite: ''
                 reset: false
                 reset_label: ''
+                collapsible: false
+                collapsible_label: 'Sort options'
                 is_secondary: false
-            opigno_group_membership:
-              bef_format: default
-              more_options:
-                bef_select_all_none: false
-                bef_collapsible: false
-                is_secondary: false
-                rewrite:
-                  filter_rewrite_values: ''
-            field_learning_path_category_target_id:
-              bef_format: bef
-              more_options:
-                bef_select_all_none: false
-                bef_collapsible: false
-                is_secondary: false
-                rewrite:
-                  filter_rewrite_values: '- Any -|All Categories'
+            filter:
+              opigno_group_membership:
+                plugin_id: default
+                advanced:
+                  collapsible: false
+                  is_secondary: false
+                  placeholder_text: ''
+                  rewrite:
+                    filter_rewrite_values: ''
+                  sort_options: false
+              field_learning_path_category_target_id:
+                plugin_id: bef
+                select_all_none: false
+                select_all_none_nested: false
+                advanced:
+                  collapsible: false
+                  is_secondary: false
+                  placeholder_text: ''
+                  rewrite:
+                    filter_rewrite_values: '- Any -|All Categories'
+                  sort_options: false
           text_input_required_format: basic_html
       pager:
         type: full
@@ -422,13 +428,6 @@ display:
           multi_type: separator
           separator: ', '
           field_api_classes: false
-#          set_precision: false
-#          precision: 0
-#          decimal: .
-#          format_plural: false
-#          format_plural_string: !!binary MQNAY291bnQ=
-#          prefix: ''
-#          suffix: ''
           plugin_id: field
         opigno_lp_progress:
           id: opigno_lp_progress
@@ -541,6 +540,9 @@ display:
           entity_field: type
           plugin_id: bundle
           group: 1
+          expose:
+            operator_limit_selection: false
+            operator_list: {  }
         opigno_group_membership:
           id: opigno_group_membership
           table: groups_field_data
@@ -570,6 +572,8 @@ display:
               user_manager: '0'
               statistics_reader: '0'
               opigno_administrator: '0'
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -614,6 +618,8 @@ display:
               statistics_reader: '0'
               opigno_administrator: '0'
             reduce: false
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -656,6 +662,8 @@ display:
             multiple: false
             remember_roles:
               authenticated: authenticated
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''

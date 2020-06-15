@@ -4,6 +4,8 @@ dependencies:
   config:
     - field.field.group.learning_path.field_anonymous_visibility
     - field.field.group.learning_path.field_certificate
+    - field.field.group.learning_path.field_certificate_expire
+    - field.field.group.learning_path.field_certificate_expire_results
     - field.field.group.learning_path.field_learning_path_category
     - field.field.group.learning_path.field_learning_path_description
     - field.field.group.learning_path.field_learning_path_duration
@@ -23,20 +25,33 @@ bundle: learning_path
 mode: default
 content:
   field_anonymous_visibility:
-    weight: 4
+    weight: 5
     settings:
       display_label: true
     third_party_settings: {  }
     type: boolean_checkbox
     region: content
   field_certificate:
-    weight: 8
+    weight: 9
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
+  field_certificate_expire:
+    weight: 10
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  field_certificate_expire_results:
+    weight: 11
     settings: {  }
     third_party_settings: {  }
     type: options_select
     region: content
   field_learning_path_category:
-    weight: 6
+    weight: 7
     settings: {  }
     third_party_settings: {  }
     type: options_select
@@ -50,7 +65,7 @@ content:
     type: text_textarea
     region: content
   field_learning_path_duration:
-    weight: 7
+    weight: 8
     settings:
       size: 60
       placeholder: ''
@@ -59,13 +74,13 @@ content:
     region: content
   field_learning_path_enable_forum:
     type: boolean_checkbox
-    weight: 5
+    weight: 6
     region: content
     settings:
       display_label: true
     third_party_settings: {  }
   field_learning_path_media_image:
-    weight: 9
+    weight: 12
     settings:
       entity_browser: media_entity_browser_groups
       field_widget_display: rendered_entity
@@ -80,29 +95,30 @@ content:
     type: entity_browser_entity_reference
     region: content
   field_learning_path_visibility:
-    weight: 2
+    weight: 3
     settings: {  }
     third_party_settings: {  }
     type: options_select
     region: content
   field_lp_price:
     type: number
-    weight: 10
+    weight: 13
     region: content
     settings:
       placeholder: '0.00'
     third_party_settings: {  }
   field_required_trainings:
-    weight: 11
+    weight: 14
     settings:
       match_operator: CONTAINS
       size: 60
       placeholder: 'Training name'
+      match_limit: 10
     third_party_settings: {  }
     type: entity_reference_autocomplete_tags
     region: content
   field_requires_validation:
-    weight: 3
+    weight: 4
     settings:
       display_label: true
     third_party_settings: {  }

@@ -310,12 +310,12 @@ class UserModuleStatus extends ContentEntityBase implements UserModuleStatusInte
   /**
    * {@inheritdoc}
    */
-  public function calculateBestScore() {
+  public function calculateBestScore($latest_cert_date = NULL) {
     /* @var \Drupal\opigno_module\Entity\OpignoModule $module */
     $module = $this->getModule();
     $user = $this->getOwner();
     // For each attempt, check the score and get the best one.
-    $user_attempts = $module->getModuleAttempts($user, 'best');
+    $user_attempts = $module->getModuleAttempts($user, 'best', $latest_cert_date);
     if (!$user_attempts) {
       return 0;
     }

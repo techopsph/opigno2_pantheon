@@ -5,14 +5,14 @@ namespace Drupal\Tests\commerce_payment\Kernel;
 use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\profile\Entity\Profile;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\Tests\commerce_order\Kernel\OrderKernelTestBase;
 
 /**
  * Tests the FilterPaymentGatewaysEvent.
  *
  * @group commerce
  */
-class FilterPaymentGatewaysEventTest extends CommerceKernelTestBase {
+class FilterPaymentGatewaysEventTest extends OrderKernelTestBase {
 
   /**
    * The payment gateway storage.
@@ -27,12 +27,6 @@ class FilterPaymentGatewaysEventTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'address',
-    'entity_reference_revisions',
-    'profile',
-    'state_machine',
-    'commerce_product',
-    'commerce_order',
     'commerce_payment',
     'commerce_payment_example',
     'commerce_payment_test',
@@ -44,10 +38,6 @@ class FilterPaymentGatewaysEventTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
-    $this->installConfig('commerce_order');
     $this->installConfig('commerce_payment');
 
     $this->storage = $this->container->get('entity_type.manager')->getStorage('commerce_payment_gateway');
@@ -91,19 +81,19 @@ class FilterPaymentGatewaysEventTest extends CommerceKernelTestBase {
     ]);
     $order->save();
 
-    $available_gateways = $this->storage->loadMultipleForOrder($order);
-    $this->assertEquals(2, count($available_gateways));
-    $gateway = array_shift($available_gateways);
-    $this->assertEquals($payment_gateway_example->label(), $gateway->label());
-    $gateway = array_shift($available_gateways);
-    $this->assertEquals($payment_gateway_filtered->label(), $gateway->label());
+    $available_payment_gateways = $this->storage->loadMultipleForOrder($order);
+    $this->assertEquals(2, count($available_payment_gateways));
+    $payment_gateway = array_shift($available_payment_gateways);
+    $this->assertEquals($payment_gateway_example->label(), $payment_gateway->label());
+    $payment_gateway = array_shift($available_payment_gateways);
+    $this->assertEquals($payment_gateway_filtered->label(), $payment_gateway->label());
 
     $order->setData('excluded_gateways', [$payment_gateway_filtered->id()]);
 
-    $available_gateways = $this->storage->loadMultipleForOrder($order);
-    $this->assertEquals(1, count($available_gateways));
-    $gateway = array_shift($available_gateways);
-    $this->assertEquals($payment_gateway_example->label(), $gateway->label());
+    $available_payment_gateways = $this->storage->loadMultipleForOrder($order);
+    $this->assertEquals(1, count($available_payment_gateways));
+    $payment_gateway = array_shift($available_payment_gateways);
+    $this->assertEquals($payment_gateway_example->label(), $payment_gateway->label());
   }
 
 }

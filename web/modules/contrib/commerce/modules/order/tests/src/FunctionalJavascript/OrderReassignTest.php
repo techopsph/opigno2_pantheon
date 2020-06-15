@@ -2,18 +2,19 @@
 
 namespace Drupal\Tests\commerce_order\FunctionalJavascript;
 
-use Drupal\commerce_order\Entity\Order;
-use Drupal\Tests\commerce\Functional\CommerceBrowserTestBase;
-use Drupal\Tests\commerce\FunctionalJavascript\JavascriptTestTrait;
-
 /**
  * Tests the commerce_order reassign form.
  *
  * @group commerce
  */
-class OrderReassignTest extends CommerceBrowserTestBase {
+class OrderReassignTest extends OrderWebDriverTestBase {
 
-  use JavascriptTestTrait;
+  /**
+   * A test order.
+   *
+   * @var \Drupal\commerce_order\Entity\OrderInterface
+   */
+  protected $order;
 
   /**
    * Modules to enable.
@@ -37,9 +38,11 @@ class OrderReassignTest extends CommerceBrowserTestBase {
   }
 
   /**
-   * Tests the reassign form with a new user.
+   * {@inheritdoc}
    */
-  public function testOrderReassign() {
+  protected function setUp() {
+    parent::setUp();
+
     $order_item = $this->createEntity('commerce_order_item', [
       'type' => 'default',
       'unit_price' => [
@@ -48,32 +51,52 @@ class OrderReassignTest extends CommerceBrowserTestBase {
       ],
     ]);
     /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
-    $order = $this->createEntity('commerce_order', [
+    $this->order = $this->createEntity('commerce_order', [
       'type' => 'default',
       'mail' => $this->loggedInUser->getEmail(),
       'uid' => $this->loggedInUser->id(),
       'order_items' => [$order_item],
       'store_id' => $this->store,
     ]);
+  }
 
-    $this->assertNotEmpty($order->hasLinkTemplate('reassign-form'));
-
-    $this->drupalGet($order->toUrl('reassign-form'));
+  /**
+   * Tests the reassign form with a new user.
+   */
+  public function testReassignToNewUser() {
+    $this->drupalGet($this->order->toUrl('reassign-form'));
     $this->getSession()->getPage()->fillField('customer_type', 'new');
-    $this->waitForAjaxToFinish();
-
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $values = [
       'mail' => 'example@example.com',
     ];
     $this->submitForm($values, 'Reassign order');
+    $collection_url = $this->order->toUrl('collection', ['absolute' => TRUE]);
+    $this->assertSession()->addressEquals($collection_url);
+    $this->assertSession()->pageTextContains(t('has been assigned to customer @customer.', [
+      '@customer' => 'example@example.com',
+    ]));
 
-    $this->assertEquals($order->toUrl('collection', ['absolute' => TRUE])->toString(), $this->getSession()->getCurrentUrl());
+    $this->order = $this->reloadEntity($this->order);
+    $this->assertNotEquals($this->loggedInUser->id(), $this->order->getCustomerId());
+    $this->assertEquals('example@example.com', $this->order->getCustomer()->getEmail());
+  }
 
-    // Reload the order.
-    \Drupal::service('entity_type.manager')->getStorage('commerce_order')->resetCache([$order->id()]);
-    $order = Order::load($order->id());
-    $this->assertEquals($order->getCustomer()->getEmail(), 'example@example.com');
-    $this->assertEquals($order->getEmail(), 'example@example.com');
+  /**
+   * Tests the reassign form with an existing user.
+   */
+  public function testReassignToExistingUser() {
+    $another_user = $this->createUser();
+    $this->drupalGet($this->order->toUrl('reassign-form'));
+    $this->submitForm(['uid' => $another_user->getAccountName()], 'Reassign order');
+    $collection_url = $this->order->toUrl('collection', ['absolute' => TRUE]);
+    $this->assertSession()->addressEquals($collection_url);
+    $this->assertSession()->pageTextContains(t('has been assigned to customer @customer.', [
+      '@customer' => $another_user->getAccountName(),
+    ]));
+
+    $this->order = $this->reloadEntity($this->order);
+    $this->assertEquals($another_user->id(), $this->order->getCustomerId());
   }
 
 }

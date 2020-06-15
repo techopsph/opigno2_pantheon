@@ -120,6 +120,10 @@ function opigno_course_update_8004() {
   $view->set($base . '.alter', $alter_option);
   $view->save(TRUE);
 
+  if (!\Drupal::moduleHandler()->moduleExists('locale')) {
+    return;
+  }
+
   // Update translations.
   $db_connection = \Drupal::service('database');
   // Get id of translation.

@@ -4,12 +4,12 @@ namespace Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane;
 
 use Drupal\commerce\CredentialsCheckFloodInterface;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Drupal\Core\Link;
 use Drupal\user\UserAuthInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -117,16 +117,16 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
    */
   public function buildConfigurationSummary() {
     if (!empty($this->configuration['allow_guest_checkout'])) {
-      $summary = $this->t('Guest checkout: Allowed');
+      $summary = $this->t('Guest checkout: Allowed') . '<br>';
     }
     else {
       $summary = $this->t('Guest checkout: Not allowed') . '<br>';
-      if (!empty($this->configuration['allow_registration'])) {
-        $summary .= $this->t('Registration: Allowed');
-      }
-      else {
-        $summary .= $this->t('Registration: Not allowed');
-      }
+    }
+    if (!empty($this->configuration['allow_registration'])) {
+      $summary .= $this->t('Registration: Allowed');
+    }
+    else {
+      $summary .= $this->t('Registration: Not allowed');
     }
 
     return $summary;
@@ -146,11 +146,6 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       '#type' => 'checkbox',
       '#title' => $this->t('Allow registration'),
       '#default_value' => $this->configuration['allow_registration'],
-      '#states' => [
-        'visible' => [
-          ':input[name="configuration[panes][login][configuration][allow_guest_checkout]"]' => ['checked' => FALSE],
-        ],
-      ],
     ];
 
     return $form;
@@ -213,10 +208,18 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       '#type' => 'submit',
       '#value' => $this->t('Log in'),
       '#op' => 'login',
+      '#attributes' => [
+        'formnovalidate' => 'formnovalidate',
+      ],
+      '#limit_validation_errors' => [
+        array_merge($pane_form['#parents'], ['returning_customer']),
+      ],
+      '#submit' => [],
     ];
     $pane_form['returning_customer']['forgot_password'] = [
-      '#type' => 'markup',
-      '#markup' => Link::createFromRoute($this->t('Forgot password?'), 'user.pass')->toString(),
+      '#type' => 'link',
+      '#title' => $this->t('Forgot password?'),
+      '#url' => Url::fromRoute('user.pass'),
     ];
 
     $pane_form['guest'] = [
@@ -234,14 +237,21 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       '#prefix' => '<p>',
       '#suffix' => '</p>',
       '#markup' => $this->t('Proceed to checkout. You can optionally create an account at the end.'),
+      '#access' => $this->canRegisterAfterCheckout(),
     ];
     $pane_form['guest']['continue'] = [
       '#type' => 'submit',
       '#value' => $this->t('Continue as Guest'),
       '#op' => 'continue',
+      '#attributes' => [
+        'formnovalidate' => 'formnovalidate',
+      ],
+      '#limit_validation_errors' => [],
+      '#submit' => [],
     ];
 
     $pane_form['register'] = [
+      '#parents' => array_merge($pane_form['#parents'], ['register']),
       '#type' => 'fieldset',
       '#title' => $this->t('New Customer'),
       '#access' => $this->configuration['allow_registration'],
@@ -281,7 +291,13 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       '#type' => 'submit',
       '#value' => $this->t('Create account and continue'),
       '#op' => 'register',
+      '#weight' => 50,
     ];
+
+    /** @var \Drupal\user\UserInterface $account */
+    $account = $this->entityTypeManager->getStorage('user')->create([]);
+    $form_display = EntityFormDisplay::collectRenderDisplay($account, 'register');
+    $form_display->buildForm($account, $pane_form['register'], $form_state);
 
     return $pane_form;
   }
@@ -292,7 +308,8 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
   public function validatePaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
     $values = $form_state->getValue($pane_form['#parents']);
     $triggering_element = $form_state->getTriggeringElement();
-    switch ($triggering_element['#op']) {
+    $trigger = !empty($triggering_element['#op']) ? $triggering_element['#op'] : 'continue';
+    switch ($trigger) {
       case 'continue':
         return;
 
@@ -313,12 +330,12 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
           return;
         }
         if (!$this->credentialsCheckFlood->isAllowedHost($this->clientIp)) {
-          $form_state->setErrorByName($name_element, $this->t('Too many failed login attempts from your IP address. This IP address is temporarily blocked. Try again later or <a href=":url">request a new password</a>.', [':url' => Url::fromRoute('user.pass')]));
+          $form_state->setError($name_element, $this->t('Too many failed login attempts from your IP address. This IP address is temporarily blocked. Try again later or <a href=":url">request a new password</a>.', [':url' => $password_url]));
           $this->credentialsCheckFlood->register($this->clientIp, $username);
           return;
         }
         elseif (!$this->credentialsCheckFlood->isAllowedAccount($this->clientIp, $username)) {
-          $form_state->setErrorByName($name_element, $this->t('Too many failed login attempts for this account. It is temporarily blocked. Try again later or <a href=":url">request a new password</a>.', [':url' => Url::fromRoute('user.pass')]));
+          $form_state->setError($name_element, $this->t('Too many failed login attempts for this account. It is temporarily blocked. Try again later or <a href=":url">request a new password</a>.', [':url' => $password_url]));
           $this->credentialsCheckFlood->register($this->clientIp, $username);
           return;
         }
@@ -355,10 +372,17 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
           'pass' => $password,
           'status' => TRUE,
         ]);
-        // Validate the entity. This will ensure that the username and email
-        // are in the right format and not already taken.
+
+        $form_display = EntityFormDisplay::collectRenderDisplay($account, 'register');
+        $form_display->extractFormValues($account, $pane_form['register'], $form_state);
+        $form_display->validateFormValues($account, $pane_form['register'], $form_state);
+
+        // Manually flag violations of fields not handled by the form display.
+        // This is necessary as entity form displays only flag violations for
+        // fields contained in the display.
+        // @see \Drupal\user\AccountForm::flagViolations
         $violations = $account->validate();
-        foreach ($violations->getByFields(['name', 'mail']) as $violation) {
+        foreach ($violations->getByFields(['name', 'pass', 'mail']) as $violation) {
           list($field_name) = explode('.', $violation->getPropertyPath(), 2);
           $form_state->setError($pane_form['register'][$field_name], $violation->getMessage());
         }
@@ -376,7 +400,8 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
     $triggering_element = $form_state->getTriggeringElement();
-    switch ($triggering_element['#op']) {
+    $trigger = !empty($triggering_element['#op']) ? $triggering_element['#op'] : 'continue';
+    switch ($trigger) {
       case 'continue':
         break;
 
@@ -395,6 +420,17 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       'commerce_order' => $this->order->id(),
       'step' => $this->checkoutFlow->getNextStepId($this->getStepId()),
     ]);
+  }
+
+  /**
+   * Checks whether guests can register after checkout is complete.
+   *
+   * @return bool
+   *   TRUE if guests can register after checkout is complete, FALSE otherwise.
+   */
+  protected function canRegisterAfterCheckout() {
+    $completion_register_pane = $this->checkoutFlow->getPane('completion_register');
+    return $completion_register_pane->getStepId() != '_disabled';
   }
 
 }

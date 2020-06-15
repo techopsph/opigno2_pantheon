@@ -166,6 +166,7 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
     $form = parent::settingsForm($form, $form_state);
     // This setting has no bearing on this widget, so it is removed.
     unset($form['match_operator']);
+    unset($form['match_limit']);
 
     $form['max_members'] = [
       '#type' => 'number',
@@ -205,7 +206,11 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
       $element['#max_members'] = $max_members;
     }
 
-    $element['#attached']['library'][] = 'private_message/members_widget';
+    $element['#attached']['library'][] = 'private_message/members_widget_script';
+    $style_disabled = $this->config->get('remove_css');
+    if (!$style_disabled) {
+      $element['#attached']['library'][] = 'private_message/members_widget_style';
+    }
     $url = Url::fromRoute('private_message.members_widget_callback');
     $token = $this->csrfTokenGenerator->get($url->getInternalPath());
     $url->setOptions(['absolute' => TRUE, 'query' => ['token' => $token]]);

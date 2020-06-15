@@ -12,7 +12,6 @@ description: 'Lists all of the subgroups that have been added to a group.'
 tag: ''
 base_table: group_content_field_data
 base_field: id
-core: 8.x
 display:
   default:
     display_plugin: default

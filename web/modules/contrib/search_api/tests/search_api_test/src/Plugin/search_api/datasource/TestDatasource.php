@@ -2,6 +2,7 @@
 
 namespace Drupal\search_api_test\Plugin\search_api\datasource;
 
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\TypedData\ComplexDataInterface;
 use Drupal\search_api\Datasource\DatasourcePluginBase;
 use Drupal\search_api_test\TestPluginTrait;
@@ -11,7 +12,8 @@ use Drupal\search_api_test\TestPluginTrait;
  *
  * @SearchApiDatasource(
  *   id = "search_api_test",
- *   label = @Translation("Test datasource"),
+ *   label = @Translation("&quot;Test&quot; datasource"),
+ *   description = @Translation("This is the <em>test datasource</em> plugin description."),
  * )
  */
 class TestDatasource extends DatasourcePluginBase {
@@ -29,6 +31,21 @@ class TestDatasource extends DatasourcePluginBase {
    * {@inheritdoc}
    */
   public function loadMultiple(array $ids) {
+    $data = $this->getReturnValue(__FUNCTION__, []);
+    return array_intersect_key($data, array_flip($ids));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getItemLanguage(ComplexDataInterface $item) {
+    return $this->getReturnValue(__FUNCTION__, LanguageInterface::LANGCODE_NOT_SPECIFIED);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPropertyDefinitions() {
     return $this->getReturnValue(__FUNCTION__, []);
   }
 

@@ -3,6 +3,7 @@
 namespace Drupal\opigno_learning_path\Plugin\views\field;
 
 use Drupal\opigno_learning_path\Entity\LatestActivity;
+use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
 
@@ -24,14 +25,20 @@ class OpignoLearningPathProgress extends FieldPluginBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
    */
   public function render(ResultRow $values) {
     $account = \Drupal::currentUser();
+    $uid = $account->id();
     // Get an entity object.
     $entity = $values->_entity;
     $group = $entity instanceof LatestActivity ? $entity->getTraining() : $entity;
     if (!is_null($group)) {
-      $group_progress = opigno_learning_path_progress($group->id(), $account->id());
+      // Get training latest certification timestamp.
+      $latest_cert_date = LPStatus::getTrainingStartDate($group, $uid);
+
+      $group_progress = opigno_learning_path_progress($group->id(), $uid, $latest_cert_date);
       return round(100 * $group_progress) . '%';
     };
 

@@ -9,12 +9,14 @@ use Drupal\group\Entity\Group;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContext;
+use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoActivityInterface;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Drupal\opigno_module\Entity\OpignoModuleInterface;
 use Drupal\opigno_module\Entity\UserModuleStatus;
 use Drupal\opigno_module\OpignoModuleBadges;
+use Drupal\opigno_learning_path\LearningPathContent;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -73,13 +75,15 @@ class OpignoModuleController extends ControllerBase {
    *   Array of activities that will be added.
    * @param \Drupal\opigno_module\Entity\OpignoModuleInterface $module
    *   Opigno module entity object.
+   * @param null|Group $group
+   *   Training ID.
    *
    * @return bool
    *   Activities to module flag.
    *
    * @throws \Exception
    */
-  public function activitiesToModule(array $activities, OpignoModuleInterface $module) {
+  public function activitiesToModule(array $activities, OpignoModuleInterface $module, Group $group = NULL) {
     /* @var $connection \Drupal\Core\Database\Connection */
     $connection = \Drupal::service('database');
     $module_activities_fields = [];
@@ -91,6 +95,7 @@ class OpignoModuleController extends ControllerBase {
         $module_activity_fields['child_id'] = $activity->id();
         $module_activity_fields['child_vid'] = $activity->getRevisionId();
         $module_activity_fields['max_score'] = 10;
+        $module_activity_fields['group_id'] = is_object($group) ? $group->id() : $group;
         $module_activities_fields[] = $module_activity_fields;
       }
     }
@@ -101,6 +106,7 @@ class OpignoModuleController extends ControllerBase {
         'child_id',
         'child_vid',
         'max_score',
+        'group_id',
       ]);
       foreach ($module_activities_fields as $module_activities_field) {
         $insert_query->values($module_activities_field);
@@ -270,6 +276,34 @@ class OpignoModuleController extends ControllerBase {
       $attempt->save();
     }
 
+    // Get training unfinished attempt.
+    $attempt_lp = $opigno_module->getTrainingActiveAttempt($this->currentUser(), $group);
+    if ($attempt_lp == NULL) {
+      // No unfinished attempt. Create training new attempt
+      // only if current step is mandatory.
+      $steps = LearningPathContent::getAllStepsOnlyModules($group->id());
+      $step_module_info = array_filter($steps, function ($step) use ($opigno_module) {
+        return $step['id'] == $opigno_module->id();
+      });
+
+      if (!empty($step_module_info)) {
+        $step_module_info = array_shift($step_module_info);
+        // Get started time for training attempt.
+        $started = $attempt->get('started')->getValue();
+        $started = !empty($started[0]['value']) ? $started[0]['value'] : time();
+
+        // Create training new attempt.
+        $attempt_lp = LPStatus::create([
+          'uid' => $this->currentUser()->id(),
+          'gid' => $group->id(),
+          'status' => 'in progress',
+          'started' => $started,
+          'finished' => 0,
+        ]);
+        $attempt_lp->save();
+      }
+    }
+
     // Redirect to the module results page with message 'successfully finished'.
     if (isset($successfully_finished) && $successfully_finished) {
       if ($attempt->isFinished()) {
@@ -435,7 +469,7 @@ class OpignoModuleController extends ControllerBase {
       $cid = OpignoGroupContext::getCurrentGroupContentId();
       $gid = OpignoGroupContext::getCurrentGroupId();
       if ($gid) {
-        $steps = $this->getAllStepsOnlyModules($gid);
+        $steps = LearningPathContent::getAllStepsOnlyModules($gid);
         foreach ($steps as $step) {
           if ($step['id'] == $opigno_module->id() && $step['cid'] != $cid) {
             // Update content cid.
@@ -512,36 +546,21 @@ class OpignoModuleController extends ControllerBase {
     // Check if user have access on this step of LP.
     $gid = OpignoGroupContext::getCurrentGroupId();
     if ($gid) {
+      $group = Group::load($gid);
+      // Get training latest certification timestamp.
+      $latest_cert_date = LPStatus::getTrainingStartDate($group, $uid);
+
       $current_cid = OpignoGroupContext::getCurrentGroupContentId();
-      $group_steps = opigno_learning_path_get_steps($gid, $uid);
 
       // Load group courses substeps.
-      array_walk($group_steps, function ($step) use ($uid, &$steps) {
-        if ($step['typology'] === 'Course') {
-          $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-          $last_course_step = end($course_steps);
-          $course_steps = array_map(function ($course_step) use ($step, $last_course_step) {
-            $course_step['parent'] = $step;
-            $course_step['is last child'] = $course_step['cid'] === $last_course_step['cid'];
-            return $course_step;
-          }, $course_steps);
-
-          if (!isset($steps)) {
-            $steps = [];
-          }
-          $steps = array_merge($steps, $course_steps);
-        }
-        else {
-          $steps[] = $step;
-        }
-      });
+      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid, FALSE, NULL, $latest_cert_date);
     }
     else {
       return [];
     }
 
     // Check if user try to load activity from another module.
-    $module_activities = opigno_learning_path_get_module_activities($opigno_module->id(), $uid);
+    $module_activities = opigno_learning_path_get_module_activities($opigno_module->id(), $uid, FALSE, $latest_cert_date);
     $activities_ids = array_keys($module_activities);
 
     // Check if module in skills system.
@@ -591,7 +610,10 @@ class OpignoModuleController extends ControllerBase {
         }
 
         // Check if user is trying to skip mandatory activity.
-        if (!$freeNavigation && ($step['mandatory'] == 1 && $step['required score'] > $step['current attempt score'])) {
+        if (!$freeNavigation && ($step['mandatory'] == 1 &&
+            $step['required score'] > $step['current attempt score']) ||
+            OpignoGroupManagerController::mustBeVisitedMeeting($step, $group)) {
+
           return $this->redirect('opigno_learning_path.steps.next', [
             'group' => $gid,
             'parent_content' => $steps[$key]['cid'],
@@ -613,6 +635,7 @@ class OpignoModuleController extends ControllerBase {
         'module' => $opigno_module->id(),
       ]);
     }
+
     // Output rendered activity of the specified type.
     $build[] = \Drupal::entityTypeManager()->getViewBuilder('opigno_activity')->view($opigno_activity, 'activity');
     // Output answer form of the same activity type.
@@ -667,6 +690,9 @@ class OpignoModuleController extends ControllerBase {
     $score = $user_module_status->getScore();
     $moduleHandler = \Drupal::service('module_handler');
 
+    $lp_id = $user_module_status->get('learning_path')->target_id;
+    OpignoGroupContext::setGroupId($lp_id);
+
     // Load more activities for 'skills module' with switched on option 'use all suitable activities from Opigno system'.
     if ($moduleHandler->moduleExists('opigno_skills_system') && $opigno_module->getSkillsActive()) {
       $target_skill = $opigno_module->getTargetSkill();
@@ -692,7 +718,7 @@ class OpignoModuleController extends ControllerBase {
       $content[] = [
         '#theme' => 'opigno_user_result_item',
         '#opigno_answer' => $answer,
-        '#opigno_answer_activity' => $answer_activity ,
+        '#opigno_answer_activity' => $answer_activity,
         '#question_number' => $question_number,
         '#answer_max_score' => isset($module_activities[$answer_activity->id()]->max_score) ? $module_activities[$answer_activity->id()]->max_score : 10,
       ];
@@ -701,18 +727,20 @@ class OpignoModuleController extends ControllerBase {
     $user = $this->currentUser();
     $uid = $user->id();
     $gid = OpignoGroupContext::getCurrentGroupId();
-    $cid = OpignoGroupContext::getCurrentGroupContentId();
 
     if (!empty($gid)) {
       $group = Group::load($gid);
-      $group_steps = opigno_learning_path_get_steps($gid, $uid);
+
+      $latest_cert_date = LPStatus::getTrainingStartDate($group, $uid);
+      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid, FALSE, NULL, $latest_cert_date);
+
 
       if (!empty($_SESSION['step_required_conditions_failed'])) {
         // If guided option set, required conditions exist and didn't met.
         unset($_SESSION['step_required_conditions_failed']);
 
         $content_type_manager = \Drupal::service('opigno_group_manager.content_types.manager');
-        $step_info = opigno_learning_path_get_module_step($gid, $uid, $opigno_module);
+        $step_info = opigno_learning_path_get_module_step($gid, $uid, $opigno_module, $latest_cert_date);
 
         $content = [];
         $content[] = [
@@ -743,38 +771,9 @@ class OpignoModuleController extends ControllerBase {
         return $content;
       }
 
-      $steps = [];
-
-      // Load courses substeps.
-      array_walk($group_steps, function ($step, $key) use ($uid, &$steps) {
-        $step['position'] = $key;
-        if ($step['typology'] === 'Course') {
-          $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-          // Save parent course and position.
-          $course_steps = array_map(function ($course_step, $key) use ($step) {
-            $course_step['parent'] = $step;
-            $course_step['position'] = $key;
-            return $course_step;
-          }, $course_steps, array_keys($course_steps));
-          $steps = array_merge($steps, $course_steps);
-        }
-        else {
-          $steps[] = $step;
-        }
-      });
-
       // Find current step.
-      $count = count($steps);
-      $current_step = NULL;
-
-      for ($i = 0; $i < $count; ++$i) {
-        $step = $steps[$i];
-
-        if ($step['cid'] === $cid) {
-          $current_step = $step;
-          break;
-        }
-      }
+      $current_step_key = array_search($opigno_module->id(), array_column($steps, 'id'));
+      $current_step = isset($current_step_key) ? $steps[$current_step_key] : NULL;
 
       // Remove the live meeting and instructor-led training steps.
       $steps = array_filter($steps, function ($step) {
@@ -841,6 +840,87 @@ class OpignoModuleController extends ControllerBase {
           }
         }
 
+        // Training attempt update/finish.
+        // Get mandatory steps.
+        $mandatory_steps = array_filter($steps, function ($step) {
+          return $step['mandatory'];
+        });
+
+        // Steps queue mapping.
+        $steps_cids_mapping = array_map(function ($step) {
+          return $step['cid'];
+        }, $steps);
+
+        // Check if there are more mandatory steps.
+        // Get last mandatory step key.
+        $last_mandatory_step = end($mandatory_steps);
+        $last_mandatory_step_key = array_search($last_mandatory_step["cid"], $steps_cids_mapping);
+        // Get current step key.
+        $current_step_key = array_search($current_step["cid"], $steps_cids_mapping);
+
+        if ($current_step_key < $last_mandatory_step_key) {
+          // There are more mandatory steps.
+          $lp_status = 'in progress';
+          $finished = 0;
+        }
+        else {
+          // No more mandatory steps.
+          // Calculate training attempt status.
+          $training_is_passed = opigno_learning_path_is_passed($group, $uid, TRUE);
+          if ($training_is_passed) {
+            $lp_status = 'passed';
+          }
+          else {
+            $lp_status = 'failed';
+          }
+
+          $finished = !empty($end_time) ? $end_time : time();
+        }
+
+        // Get training unfinished attempt.
+        $attempt_lp = $opigno_module->getTrainingActiveAttempt($this->currentUser(), $group);
+        if ($attempt_lp) {
+          // Update training unfinished attempt.
+          $attempt_lp->setStatus($lp_status);
+          $attempt_lp->setFinished($finished);
+
+          if ($lp_status == 'passed') {
+            // Save training current attempt score.
+            $training_score = opigno_learning_path_get_score($group->id(), $uid, TRUE);
+            $attempt_lp->setScore($training_score);
+          }
+
+          $attempt_lp->save();
+
+          // Save passed training certificate expire date if set expiration.
+          if ($lp_status == 'passed' && LPStatus::isCertificateExpireSet($group)) {
+            $expiration_period = LPStatus::getCertificateExpirationPeriod($group);
+            if ($expiration_period) {
+              // Latest certificate timestamp - existing or new.
+              $started = $attempt_lp->getStarted();
+              if ($started) {
+                $latest_cert_date = $started;
+              }
+
+              if (!LPStatus::isCertificateExpired($group, $uid)) {
+                if ($existing_cert_date = LPStatus::getLatestCertificateTimestamp($gid, $uid)) {
+                  $latest_cert_date = $existing_cert_date;
+                }
+              }
+
+              $latest_cert_date = !empty($latest_cert_date) ? $latest_cert_date : $start_time;
+
+              // Calculate expiration timestamp.
+              $suffix = $expiration_period > 1 ? 's' : '';
+              $offset = '+' . $expiration_period . ' month' . $suffix;
+              $expiration_timestamp = strtotime($offset, $finished);
+              // Set expiration data.
+              LPStatus::setCertificateExpireTimestamp($gid, $uid, $latest_cert_date, $expiration_timestamp);
+            }
+          }
+        }
+
+        // Training achievements.
         if (function_exists('opigno_learning_path_save_step_achievements')) {
           // Save current step parent achievements.
           $parent_id = isset($current_step['parent'])
@@ -1042,7 +1122,7 @@ class OpignoModuleController extends ControllerBase {
         if (!$has_min_score && $opigno_module->getHideResults()) {
           if (!$is_last && !in_array($current_step['typology'], ['Meeting', 'ITL'])) {
             // Redirect to next step.
-            return $this->redirect('opigno_learning_path.steps.next', ['group' => $gid, 'parent_content' => $cid]);
+            return $this->redirect('opigno_learning_path.steps.next', ['group' => $gid, 'parent_content' => $current_step['cid']]);
           }
           else {
             // Redirect to homepage.
@@ -1065,7 +1145,7 @@ class OpignoModuleController extends ControllerBase {
           $route = 'opigno_learning_path.steps.next';
           $route_params = [
             'group' => $gid,
-            'parent_content' => $cid,
+            'parent_content' => $current_step['cid'],
           ];
         }
         else {
@@ -1144,25 +1224,7 @@ class OpignoModuleController extends ControllerBase {
     $gid = OpignoGroupContext::getCurrentGroupId();
 
     // Load group steps.
-    $group_steps = opigno_learning_path_get_steps($gid, $uid);
-    $steps = [];
-
-    // Load group courses substeps.
-    array_walk($group_steps, function ($step) use ($uid, &$steps) {
-      if ($step['typology'] === 'Course') {
-        $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-        $last_course_step = end($course_steps);
-        $course_steps = array_map(function ($course_step) use ($step, $last_course_step) {
-          $course_step['parent'] = $step;
-          $course_step['is last child'] = $course_step['cid'] === $last_course_step['cid'];
-          return $course_step;
-        }, $course_steps);
-        $steps = array_merge($steps, $course_steps);
-      }
-      else {
-        $steps[] = $step;
-      }
-    });
+    $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid);
 
     // Find current & next step.
     $count = count($steps);
@@ -1266,36 +1328,6 @@ class OpignoModuleController extends ControllerBase {
       'group' => $gid,
       'opigno_module' => $opigno_module->id(),
     ]);
-  }
-
-  /**
-   * Function for getting group steps without courses, only modules.
-   */
-  protected function getAllStepsOnlyModules($group_id) {
-    $uid = \Drupal::currentUser()->id();
-    // Load group steps.
-    $group_steps = opigno_learning_path_get_steps($group_id, $uid);
-    $steps = [];
-
-    // Load group courses substeps.
-    array_walk($group_steps, function ($step, $key) use ($uid, &$steps) {
-      $step['position'] = $key;
-      if ($step['typology'] === 'Course') {
-        $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-        // Save parent course and position.
-        $course_steps = array_map(function ($course_step, $key) use ($step) {
-          $course_step['parent'] = $step;
-          $course_step['position'] = $key;
-          return $course_step;
-        }, $course_steps, array_keys($course_steps));
-        $steps = array_merge($steps, $course_steps);
-      }
-      else {
-        $steps[] = $step;
-      }
-    });
-
-    return $steps;
   }
 
 }

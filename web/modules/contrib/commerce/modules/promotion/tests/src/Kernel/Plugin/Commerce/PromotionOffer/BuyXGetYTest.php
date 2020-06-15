@@ -9,7 +9,7 @@ use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductType;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_promotion\Entity\Promotion;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\Tests\commerce_order\Kernel\OrderKernelTestBase;
 
 /**
  * Tests the "Buy X Get Y" offer.
@@ -18,7 +18,7 @@ use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
  *
  * @group commerce
  */
-class BuyXGetYTest extends CommerceKernelTestBase {
+class BuyXGetYTest extends OrderKernelTestBase {
 
   /**
    * The test order.
@@ -47,12 +47,6 @@ class BuyXGetYTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'entity_reference_revisions',
-    'profile',
-    'state_machine',
-    'commerce_order',
-    'path',
-    'commerce_product',
     'commerce_promotion',
   ];
 
@@ -62,18 +56,8 @@ class BuyXGetYTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('commerce_promotion');
-    $this->installEntitySchema('commerce_product_variation');
-    $this->installEntitySchema('commerce_product');
-    $this->installConfig([
-      'profile',
-      'commerce_order',
-      'commerce_product',
-      'commerce_promotion',
-    ]);
+    $this->installConfig(['commerce_promotion']);
     $this->installSchema('commerce_promotion', ['commerce_promotion_usage']);
 
     $product_type = ProductType::create([
@@ -82,8 +66,6 @@ class BuyXGetYTest extends CommerceKernelTestBase {
       'variationType' => 'default',
     ]);
     $product_type->save();
-    commerce_product_add_stores_field($product_type);
-    commerce_product_add_variations_field($product_type);
 
     for ($i = 0; $i < 4; $i++) {
       $this->variations[$i] = ProductVariation::create([
@@ -242,6 +224,7 @@ class BuyXGetYTest extends CommerceKernelTestBase {
     $adjustments = $third_order_item->getAdjustments();
     $adjustment = reset($adjustments);
     $this->assertEquals('promotion', $adjustment->getType());
+    $this->assertEquals('Discount', $adjustment->getLabel());
     $this->assertEquals(new Price('-3', 'USD'), $adjustment->getAmount());
     $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());
 
@@ -264,12 +247,14 @@ class BuyXGetYTest extends CommerceKernelTestBase {
     $adjustments = $third_order_item->getAdjustments();
     $adjustment = reset($adjustments);
     $this->assertEquals('promotion', $adjustment->getType());
+    $this->assertEquals('Discount', $adjustment->getLabel());
     $this->assertEquals(new Price('-3', 'USD'), $adjustment->getAmount());
     $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());
 
     $adjustments = $fourth_order_item->getAdjustments();
     $adjustment = reset($adjustments);
     $this->assertEquals('promotion', $adjustment->getType());
+    $this->assertEquals('Discount', $adjustment->getLabel());
     $this->assertEquals(new Price('-1', 'USD'), $adjustment->getAmount());
     $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());
   }
@@ -287,6 +272,7 @@ class BuyXGetYTest extends CommerceKernelTestBase {
     $offer_configuration['offer_amount'] = NULL;
     $offer->setConfiguration($offer_configuration);
     $this->promotion->setOffer($offer);
+    $this->promotion->setDisplayName('Buy X Get Y!');
 
     /** @var \Drupal\commerce_order\OrderItemStorageInterface $order_item_storage */
     $order_item_storage = \Drupal::entityTypeManager()->getStorage('commerce_order_item');
@@ -315,6 +301,7 @@ class BuyXGetYTest extends CommerceKernelTestBase {
     $adjustments = $third_order_item->getAdjustments();
     $adjustment = reset($adjustments);
     $this->assertEquals('promotion', $adjustment->getType());
+    $this->assertEquals('Buy X Get Y!', $adjustment->getLabel());
     $this->assertEquals(new Price('-18', 'USD'), $adjustment->getAmount());
     $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());
 
@@ -337,12 +324,14 @@ class BuyXGetYTest extends CommerceKernelTestBase {
     $adjustments = $third_order_item->getAdjustments();
     $adjustment = reset($adjustments);
     $this->assertEquals('promotion', $adjustment->getType());
+    $this->assertEquals('Buy X Get Y!', $adjustment->getLabel());
     $this->assertEquals(new Price('-18', 'USD'), $adjustment->getAmount());
     $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());
 
     $adjustments = $fourth_order_item->getAdjustments();
     $adjustment = reset($adjustments);
     $this->assertEquals('promotion', $adjustment->getType());
+    $this->assertEquals('Buy X Get Y!', $adjustment->getLabel());
     $this->assertEquals(new Price('-6', 'USD'), $adjustment->getAmount());
     $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());
   }
@@ -468,7 +457,7 @@ class BuyXGetYTest extends CommerceKernelTestBase {
     $adjustment = reset($adjustments);
     $this->assertEquals('promotion', $adjustment->getType());
     $this->assertEquals(new Price('-2.5', 'USD'), $adjustment->getAmount());
-    $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());;
+    $this->assertEquals($this->promotion->id(), $adjustment->getSourceId());
   }
 
 }

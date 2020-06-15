@@ -6,6 +6,7 @@
       $('.daterange-date input', context).datepicker({
         constrainInput: true,
         firstDay: 1,
+        dateFormat: $(this).attr('data-pattern'),
       });
     },
 

@@ -2,12 +2,12 @@
   <div class="info d-flex">
     <div class="flex-1 text-uppercase">
       <div>
-        <h2 *ngIf="step==1">1/2 <span i18n>CHOOSE AN ACTIVITY TYPE</span></h2>
-        <h2 *ngIf="step==2">2/2 <span i18n>CHOOSE AN ACTIVITY</span></h2>
+        <h2 *ngIf="step==1">1/2 <span>{{ text_choose_an_activity_type }}</span></h2>
+        <h2 *ngIf="step==2">2/2 <span>{{ text_choose_an_activity }}</span></h2>
       </div>
     </div>
     <button mat-icon-button color="basic" class="close" (click)="close()">
-      <mat-icon class="mat-24" aria-label="Close" i18n>close</mat-icon>
+      <mat-icon class="mat-24" aria-label="Close">close</mat-icon>
     </button>
   </div>
   <div [hidden]="entityForm" class="mt-4">
@@ -18,16 +18,16 @@
             <button class="type-name flex-1 text-left" (click)="form.type=i;updateAvailableEntities($event);step=2">
               {{type.name}}
             </button>
-            <button class="type-help-open" (click)="type.help=1" i18n>help</button>
+            <button class="type-help-open" (click)="type.help=1">{{ text_help }}</button>
           </div>
           <div *ngIf="type.help">
             <div class="d-flex">
               <div class="type-name btn flex-1 text-left">{{type.name}}</div>
-              <button class="type-help-close" (click)="type.help=0" i18n>close</button>
+              <button class="type-help-close" (click)="type.help=0">{{ text_close }}</button>
             </div>
             <div class="type-info" [innerHtml]="type.description"></div>
-            <button class="type-add w-100 btn btn-success text-uppercase" (click)="form.type=i;updateAvailableEntities($event);step=2" i18n>
-              Add activity
+            <button class="type-add w-100 btn btn-success text-uppercase" (click)="form.type=i;updateAvailableEntities($event);step=2">
+              {{ text_add_activity }}
             </button>
           </div>
         </div>
@@ -36,14 +36,13 @@
 
     <div class="step-2" *ngIf="(form.type || form.type===0) && step == 2">
       <div>
-        <button (click)="getAddForm()" i18n>Create a new activity</button>
+        <button (click)="getAddForm()">{{ text_create_a_new_activity }}</button>
       </div>
-      <div class="mt-3" i18n>Or add from existing catalogue</div>
-      <input type="text" placeholder="Search for an activity"
+      <div class="mt-3">{{ text_or_add_from_existing_catalogue }}</div>
+      <input type="text" placeholder="{{ text_search_for_an_activity }}"
              [(ngModel)]="filterEntity"
              (paste)="updateResults()"
-             (keyup)="updateResults()"
-             i18n-placeholder>
+             (keyup)="updateResults()">
 
       <mat-radio-group class="w-100 d-flex flex-column" [(ngModel)]="form.existingEntity">
         <mat-radio-button *ngFor="let result of results" [value]="result" (click)="addActivityToModule(result)">

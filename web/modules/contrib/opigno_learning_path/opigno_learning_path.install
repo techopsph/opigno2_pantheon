@@ -5,6 +5,7 @@
  * Install, update and uninstall functions for the module.
  */
 
+use Drupal\Core\Database\Database;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -21,6 +22,8 @@ function opigno_learning_path_install() {
   _opigno_learning_path_create_achievements_table();
   _opigno_learning_path_create_step_achievements_table();
   _opigno_learning_path_create_lp_module_availability_table();
+  _opigno_learning_path_create_user_lp_status_table();
+  _opigno_learning_path_create_user_lp_status_expire_table();
 }
 
 /**
@@ -661,4 +664,175 @@ function opigno_learning_path_update_8023() {
     $data = $storage->read($item);
     $config_storage->write($item, $data);
   }
+}
+
+/**
+ * Creates databases table for User Learning Path Status.
+ */
+function opigno_learning_path_update_8025() {
+  _opigno_learning_path_create_user_lp_status_table();
+  _opigno_learning_path_create_user_lp_status_expire_table();
+}
+
+/**
+ * Creates User Learning Path Status database table.
+ */
+function _opigno_learning_path_create_user_lp_status_table() {
+  $database = \Drupal::database();
+  if (!$database->schema()->tableExists('user_lp_status')) {
+    $entityTypeManager = \Drupal::entityTypeManager();
+    $entityTypeManager->clearCachedDefinitions();
+    $definition = $entityTypeManager->getDefinition('user_lp_status');
+    \Drupal::entityDefinitionUpdateManager()->installEntityType($definition);
+  }
+}
+
+/**
+ * Creates User Learning Path Status expire database table.
+ */
+function _opigno_learning_path_create_user_lp_status_expire_table() {
+  $schema = \Drupal::database()->schema();
+  $table_name = 'user_lp_status_expire';
+  if (!$schema->tableExists($table_name)) {
+    $table = [
+      'description' => 'User Learning Path Status expire',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'description' => 'User ID',
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'gid' => [
+          'description' => 'Training ID',
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'latest_cert_date' => [
+          'description' => 'Latest re-certification timestamp',
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'expire' => [
+          'description' => 'Expire timestamp',
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'notified' => [
+          'description' => 'If user was notified',
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+        'gid' => ['gid'],
+        'latest_cert_date' => ['latest_cert_date'],
+        'expire' => ['expire'],
+      ],
+    ];
+    $schema->createTable($table_name, $table);
+  }
+}
+
+/**
+ * Add training certificate expire fields.
+ */
+function opigno_learning_path_update_8026() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path') . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $data = $storage->read('field.storage.group.field_certificate_expire');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+  $data = $storage->read('field.field.group.learning_path.field_certificate_expire');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+
+  $module_handler = \Drupal::moduleHandler();
+  $config_storage = new FileStorage($module_handler->getModule('opigno_learning_path')->getPath() . '/config/install');
+  foreach (['field.storage.group.field_certificate_expire_results', 'field.field.group.learning_path.field_certificate_expire_results'] as $config_name) {
+    $config_record = $config_storage->read($config_name);
+    $entity_type = \Drupal::service('config.manager')->getEntityTypeIdByName($config_name);
+    /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $storage */
+    $storage = \Drupal::entityTypeManager()->getStorage($entity_type);
+    $entity = $storage->createFromStorageRecord($config_record);
+    $entity->save();
+  }
+
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $configs = [
+    'core.entity_form_display.group.learning_path.default',
+    'core.entity_view_display.group.learning_path.default',
+  ];
+
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+}
+
+/**
+ * Hide block title.
+ */
+function opigno_learning_path_update_8027() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path') . '/config/optional';
+  $storage = new FileStorage($config_path);
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('block.block.opigno_training_catalog_filter');
+  $config_storage->write('block.block.opigno_training_catalog_filter', $data);
+}
+
+/**
+ * Add user "notified" field to the learning path status expired table.
+ */
+function opigno_learning_path_update_8028() {
+  $table = 'user_lp_status_expire';
+  $field = 'notified';
+  $connection = Database::getConnection();
+  $schema = $connection->schema();
+
+  if ($schema->tableExists($table) && !$schema->fieldExists($table, $field)) {
+    $spec = [
+      'description' => 'If user was notified',
+      'type' => 'int',
+      'size' => 'tiny',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ];
+
+    $schema->addField($table, $field, $spec);
+  }
+}
+
+/**
+ * Update certificate expire period labels.
+ */
+function opigno_learning_path_update_8029() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path') . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('field.storage.group.field_certificate_expire_results');
+  $config_storage->write('field.storage.group.field_certificate_expire_results', $data);
 }

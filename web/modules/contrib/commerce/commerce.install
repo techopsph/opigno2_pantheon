@@ -12,12 +12,20 @@ function commerce_requirements($phase) {
   $requirements = [];
   if ($phase == 'install' || $phase == 'runtime') {
     if (!extension_loaded('bcmath')) {
-      $requirements['commerce'] = [
-        'description' => t('Commerce requires the bcmath PHP extension.'),
+      $requirements['commerce_bcmath'] = [
+        'title' => t('BC Math'),
+        'description' => t('Commerce requires the BC Math PHP extension.'),
         'severity' => REQUIREMENT_ERROR,
       ];
     }
   }
 
   return $requirements;
+}
+
+/**
+ * Install the Token module.
+ */
+function commerce_update_8201() {
+  \Drupal::service('module_installer')->install(['token']);
 }

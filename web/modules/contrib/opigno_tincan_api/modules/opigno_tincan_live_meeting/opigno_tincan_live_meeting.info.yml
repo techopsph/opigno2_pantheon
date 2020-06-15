@@ -7,7 +7,7 @@ dependencies:
   - opigno_tincan_api:opigno_tincan_api
   - opigno_moxtra:opigno_moxtra
 
-# Information added by Drupal.org packaging script on 2019-10-02
-version: '8.x-1.3'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.4'
 project: 'opigno_tincan_api'
-datestamp: 1570006146
+datestamp: 1591090666

@@ -1,18 +1,12 @@
 <?php
-/**
- * @file
- * Contains \Drupal\views_templates\Plugin\ViewsDuplicateBuilderPluginInterface.
- */
-
 
 namespace Drupal\views_templates\Plugin;
 
 /**
- * Creates a common interface for Builders that use a View Template entity for
- * a starting point.
+ * Creates common interface for Builders that use View Template.
  *
  * This allows Views to be exported to CMI and then manually changed to Views
- * Templates by changing the
+ * Templates by changing the.
  */
 interface ViewsDuplicateBuilderPluginInterface extends ViewsBuilderPluginInterface {
 
@@ -20,6 +14,7 @@ interface ViewsDuplicateBuilderPluginInterface extends ViewsBuilderPluginInterfa
    * Return the View Template id to be used by this Plugin.
    *
    * @return string
+   *   Returns View Template id.
    */
   public function getViewTemplateId();
 

@@ -13,5 +13,5 @@ Extend this class to make View template pragmatically
 ### ViewsDuplicateBuilderBase
 Extend this class to make a View Template from a *.yml Views Template file.
 
-Views Templates should put in the 'views_templates' in the root directory of the module.
-
+Views Templates should put in the 'views_templates' in the root directory
+of the module.

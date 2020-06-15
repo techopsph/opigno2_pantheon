@@ -16,8 +16,8 @@
             <div class="content-wrapper bg-white px-5 py-4">
               <div class="module-count" *ngIf="entity.modules_count||entity.modules_count===0">
                 {{entity.modules_count}}
-                <ng-container *ngIf="entity.modules_count<=1" i18n>module</ng-container>
-                <ng-container *ngIf="entity.modules_count>1" i18n>modules</ng-container>
+                <ng-container *ngIf="entity.modules_count<=1">{{ text_module }}</ng-container>
+                <ng-container *ngIf="entity.modules_count>1">{{ text_modules }}</ng-container>
               </div>
               <div class="tree-view my-5" *ngIf="entity.treeViewOpened">
                 <level [groupId]="entity.entityId" [addCourse]="false" (updateNextLinkEvent)="updateNextLink($event)" (updateCountEvent)="entity.modules_count=$event"></level>
@@ -27,8 +27,7 @@
           <div class="tree-view-toggler">
             <button class="w-100 text-right pr-5 py-3 bg-secondary"
                     (click)="entity.treeViewOpened = entity.treeViewOpened ? false : true;"
-                    [class.open]="entity.treeViewOpened"
-                    i18n>Tree view</button>
+                    [class.open]="entity.treeViewOpened">{{ text_tree_view }}</button>
           </div>
         </div>
       </ng-container>

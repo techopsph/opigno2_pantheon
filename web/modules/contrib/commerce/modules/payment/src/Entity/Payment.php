@@ -26,6 +26,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
  *   bundle_plugin_type = "commerce_payment_type",
  *   handlers = {
  *     "access" = "Drupal\commerce_payment\PaymentAccessControlHandler",
+ *     "event" = "Drupal\commerce_payment\Event\PaymentEvent",
  *     "list_builder" = "Drupal\commerce_payment\PaymentListBuilder",
  *     "storage" = "Drupal\commerce_payment\PaymentStorage",
  *     "form" = {
@@ -162,8 +163,11 @@ class Payment extends ContentEntityBase implements PaymentInterface {
    */
   public function getBalance() {
     if ($amount = $this->getAmount()) {
-      $refunded_amount = $this->getRefundedAmount();
-      return $amount->subtract($refunded_amount);
+      $balance = $amount;
+      if ($refunded_amount = $this->getRefundedAmount()) {
+        $balance = $balance->subtract($refunded_amount);
+      }
+      return $balance;
     }
   }
 
@@ -297,8 +301,8 @@ class Payment extends ContentEntityBase implements PaymentInterface {
       $this->setRefundedAmount($refunded_amount);
     }
     // Maintain the authorized and completed timestamps.
-    $state = $this->getState()->value;
-    $original_state = isset($this->original) ? $this->original->getState()->value : '';
+    $state = $this->getState()->getId();
+    $original_state = isset($this->original) ? $this->original->getState()->getId() : '';
     if ($state == 'authorization' && $original_state != 'authorization') {
       if (empty($this->getAuthorizedTime())) {
         $this->setAuthorizedTime(\Drupal::time()->getRequestTime());
@@ -307,6 +311,33 @@ class Payment extends ContentEntityBase implements PaymentInterface {
     if ($state == 'completed' && $original_state != 'completed') {
       if (empty($this->getCompletedTime())) {
         $this->setCompletedTime(\Drupal::time()->getRequestTime());
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
+
+    $order = $this->getOrder();
+    if ($order && $this->isCompleted()) {
+      $payment_order_updater = \Drupal::service('commerce_payment.order_updater');
+      $payment_order_updater->requestUpdate($order);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
+
+    $payment_order_updater = \Drupal::service('commerce_payment.order_updater');
+    foreach ($entities as $entity) {
+      if ($order = $entity->getOrder()) {
+        $payment_order_updater->requestUpdate($order);
       }
     }
   }

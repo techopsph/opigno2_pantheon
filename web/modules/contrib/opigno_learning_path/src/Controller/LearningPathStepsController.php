@@ -17,6 +17,7 @@ use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\opigno_learning_path\Entity\LPResult;
 use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
+use Drupal\opigno_learning_path\LearningPathContent;
 use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -82,26 +83,7 @@ class LearningPathStepsController extends ControllerBase {
     $is_ajax = \Drupal::request()->isXmlHttpRequest();
 
     // Load group steps.
-    $group_steps = opigno_learning_path_get_steps($gid, $uid);
-    $steps = [];
-
-    // Load group courses substeps.
-    array_walk($group_steps, function ($step, $key) use ($uid, &$steps) {
-      $step['position'] = $key;
-      if ($step['typology'] === 'Course') {
-        $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-        // Save parent course and position.
-        $course_steps = array_map(function ($course_step, $key) use ($step) {
-          $course_step['parent'] = $step;
-          $course_step['position'] = $key;
-          return $course_step;
-        }, $course_steps, array_keys($course_steps));
-        $steps = array_merge($steps, $course_steps);
-      }
-      else {
-        $steps[] = $step;
-      }
-    });
+    $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid);
 
     foreach ($steps as $step) {
       if (in_array($step['typology'], ['Meeting', 'ILT'])) {
@@ -133,8 +115,8 @@ class LearningPathStepsController extends ControllerBase {
         if ($is_mandatory) {
           $name = $step['name'];
           $required = $step['required score'];
-          if ($required > 0) {
-            if ($step['best score'] < $required) {
+          if ($required > 0 || $step['typology'] == 'Meeting') {
+            if ($step['best score'] < $required || OpignoGroupManagerController::mustBeVisitedMeeting($step, $group)) {
               $course_entity = OpignoGroupManagedContent::load($step['cid']);
               $course_content_type = $this->content_type_manager->createInstance(
                 $course_entity->getGroupContentTypeId()
@@ -146,11 +128,7 @@ class LearningPathStepsController extends ControllerBase {
 
               $content = [
                 '#type' => 'markup',
-                '#markup' => $this->t('<p>You should first get a minimum score of %required to the step %step before going further. <a href=":link">Try again.</a></p>', [
-                  '%step' => $name,
-                  '%required' => $required,
-                  ':link' => $current_step_url->toString(),
-                ]),
+                '#markup' => $this->requiredStepMessage($name, $required, $current_step_url->toString()),
               ];
               if ($is_ajax) {
                 return (new AjaxResponse())->addCommand(new OpenModalDialogCommand('', $content));
@@ -164,9 +142,7 @@ class LearningPathStepsController extends ControllerBase {
             if ($step['attempts'] === 0) {
               $content = [
                 '#type' => 'markup',
-                '#markup' => $this->t('<p>A required step: %step should be done first.</p>', [
-                  '%step' => $name,
-                ]),
+                '#markup' => $this->requiredStepMessage($name),
               ];
               if ($is_ajax) {
                 return (new AjaxResponse())->addCommand(new OpenModalDialogCommand('', $content));
@@ -367,29 +343,12 @@ class LearningPathStepsController extends ControllerBase {
     // Load group steps.
     if ($freeNavigation) {
       // Get all steps for LP.
-      $group_steps = opigno_learning_path_get_all_steps($gid, $uid);
+      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid, TRUE);
     }
     else {
-      $group_steps = opigno_learning_path_get_steps($gid, $uid);
+      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid);
     }
-    $steps = [];
 
-    // Load group courses substeps.
-    array_walk($group_steps, function ($step) use ($uid, &$steps) {
-      if ($step['typology'] === 'Course') {
-        $course_steps = opigno_learning_path_get_steps($step['id'], $uid);
-        $last_course_step = end($course_steps);
-        $course_steps = array_map(function ($course_step) use ($step, $last_course_step) {
-          $course_step['parent'] = $step;
-          $course_step['is last child'] = $course_step['cid'] === $last_course_step['cid'];
-          return $course_step;
-        }, $course_steps);
-        $steps = array_merge($steps, $course_steps);
-      }
-      else {
-        $steps[] = $step;
-      }
-    });
 
     // Find current & next step.
     $count = count($steps);
@@ -407,7 +366,7 @@ class LearningPathStepsController extends ControllerBase {
     if (!$freeNavigation && isset($current_step) && $current_step['mandatory'] === 1) {
       $name = $current_step['name'];
       $required = $current_step['required score'];
-      if ($required > 0) {
+      if ($required > 0 || $current_step['typology'] == 'Meeting') {
         // Check if it's "skills module" with skills which user is already passed.
         if ($current_step['typology'] == 'Module') {
           $module = \Drupal::entityTypeManager()->getStorage('opigno_module')->load($current_step['id']);
@@ -418,7 +377,9 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
 
-        if ($current_step['current attempt score'] < $required) {
+        if ($current_step['current attempt score'] < $required ||
+          OpignoGroupManagerController::mustBeVisitedMeeting($current_step, $group)) {
+
           $course_entity = OpignoGroupManagedContent::load($current_step['cid']);
           $course_content_type = $this->content_type_manager->createInstance(
             $course_entity->getGroupContentTypeId()
@@ -429,11 +390,7 @@ class LearningPathStepsController extends ControllerBase {
           );
 
           // Message if current step score less than required.
-          $message = $this->t('<p>You should first get a minimum score of %required to the step %step before going further. <a href=":link">Try again.</a></p>', [
-            '%step' => $name,
-            '%required' => $required,
-            ':link' => $current_step_url->toString(),
-          ]);
+          $message = $this->requiredStepMessage($name, $required, $current_step_url->toString());
 
           // Check if current step is module and has activities
           // with manual evaluation which haven't been evaluated yet.
@@ -508,11 +465,7 @@ class LearningPathStepsController extends ControllerBase {
 
             return [
               '#type' => 'markup',
-              '#markup' => $this->t('<p>You should first get a minimum score of %required to the step %step before going further. <a href=":link">Try again.</a></p>', [
-                '%step' => $name,
-                '%required' => $required,
-                ':link' => $module_url->toString(),
-              ]),
+              '#markup' => $this->requiredStepMessage($name, $required, $module_url->toString()),
             ];
           }
         }
@@ -525,9 +478,7 @@ class LearningPathStepsController extends ControllerBase {
 
             return [
               '#type' => 'markup',
-              '#markup' => $this->t('<p>A required step: %step should be done first.</p>', [
-                '%step' => $name,
-              ]),
+              '#markup' => $this->requiredStepMessage($name),
             ];
           }
         }
@@ -574,10 +525,7 @@ class LearningPathStepsController extends ControllerBase {
           if ($next_step['best score'] < $required) {
             return [
               '#type' => 'markup',
-              '#markup' => $this->t('<p>You should first get a minimum score of %required to the step %step before going further.</p>', [
-                '%step' => $name,
-                '%required' => $required,
-              ]),
+              '#markup' =>$this->requiredStepMessage($name, $required),
             ];
           }
         }
@@ -585,9 +533,7 @@ class LearningPathStepsController extends ControllerBase {
           if ($next_step['attempts'] === 0) {
             return [
               '#type' => 'markup',
-              '#markup' => $this->t('<p>A required step: %step should be done first.</p>', [
-                '%step' => $name,
-              ]),
+              '#markup' => $this->requiredStepMessage($name),
             ];
           }
         }
@@ -631,12 +577,12 @@ class LearningPathStepsController extends ControllerBase {
       $current_result_attempt = LPResult::getCurrentLPAttempt($group, \Drupal::currentUser());
       if ($current_result_attempt) {
         $current_result_attempt->setHasPassed($user_passed);
-        $current_result_attempt->setFinished(REQUEST_TIME);
+        $current_result_attempt->setFinished(\Drupal::time()->getRequestTime());
         $current_result_attempt->save();
       }
       else {
         // Store the result in database.
-        $result = LPResult::createWithValues($group->id(), $current_uid, $user_passed, REQUEST_TIME);
+        $result = LPResult::createWithValues($group->id(), $current_uid, $user_passed, \Drupal::time()->getRequestTime());
         $result->save();
       }
 
@@ -784,6 +730,43 @@ class LearningPathStepsController extends ControllerBase {
     }
 
     return $attempt;
+  }
+
+  /**
+   * Provide the required step messages.
+   *
+   * @param string $name
+   *   Step name.
+   * @param int $required
+   *   Minimum score.
+   * @param string $link
+   *   Link to try again.
+   *
+   * @return string
+   *   Message.
+   */
+  protected function requiredStepMessage($name, $required = NULL, $link = '') {
+    if (empty($required)) {
+      // The simple message.
+      return $this->t('<p>A required step: %step should be done first.</p>', [
+        '%step' => $name,
+      ]);
+    }
+    else {
+      $text = 'You should first get a minimum score of %required to the step %step before going further.';
+      if (!empty($link)) {
+        return $this->t("<p>{$text} <a href=':link'>Try again.</a></p>", [
+          '%step' => $name,
+          '%required' => $required,
+          ':link' => $link,
+        ]);
+      } else {
+        return $this->t("<p>{$text}</p>", [
+          '%step' => $name,
+          '%required' => $required,
+        ]);
+      }
+    }
   }
 
 }

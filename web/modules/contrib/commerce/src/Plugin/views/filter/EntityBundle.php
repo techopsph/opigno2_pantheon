@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce\Plugin\views\filter;
 
+use Drupal\commerce\EntityManagerBridgeTrait;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\filter\Bundle;
 use Drupal\Core\Session\AccountInterface;
@@ -17,6 +18,8 @@ use Drupal\Core\Session\AccountInterface;
  * @ViewsFilter("commerce_entity_bundle")
  */
 class EntityBundle extends Bundle {
+
+  use EntityManagerBridgeTrait;
 
   /**
    * {@inheritdoc}
@@ -53,12 +56,45 @@ class EntityBundle extends Bundle {
    * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
-    $bundles = $this->entityManager->getBundleInfo($this->getEntityType());
+    $bundles = $this->bundleInfoService->getBundleInfo($this->getEntityType());
     if ($this->options['expose']['hide_single_bundle'] && count($bundles) <= 1) {
       return FALSE;
     }
 
     return parent::access($account);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getValueOptions() {
+    if (!isset($this->valueOptions)) {
+      $types = $this->bundleInfoService->getBundleInfo($this->entityTypeId);
+      // When the filter is exposed, filter out bundles that the user is
+      // not allowed to see. Workaround for core issue #3099068.
+      $storage = $this->getEntityTypeManager()->getStorage($this->entityTypeId);
+      foreach ($types as $type => $info) {
+        if ($this->isExposed()) {
+          $stub_entity = $storage->create([
+            $this->entityType->getKey('bundle') => $type,
+          ]);
+          if (!$stub_entity->access('view')) {
+            unset($types[$type]);
+          }
+        }
+      }
+
+      $this->valueTitle = $this->t('@entity types', ['@entity' => $this->entityType->getLabel()]);
+      $options = [];
+      foreach ($types as $type => $info) {
+        $options[$type] = $info['label'];
+      }
+
+      asort($options);
+      $this->valueOptions = $options;
+    }
+
+    return $this->valueOptions;
   }
 
   /**
@@ -74,7 +110,7 @@ class EntityBundle extends Bundle {
 
     $bundle_entity_type = $this->entityType->getBundleEntityType();
     if ($bundle_entity_type) {
-      $bundle_entity_storage = $this->entityManager->getStorage($bundle_entity_type);
+      $bundle_entity_storage = $this->getEntityTypeManager()->getStorage($bundle_entity_type);
 
       foreach (array_keys($this->value) as $bundle) {
         if ($bundle_entity = $bundle_entity_storage->load($bundle)) {

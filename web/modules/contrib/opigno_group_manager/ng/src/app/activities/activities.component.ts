@@ -30,6 +30,12 @@ export class ActivitiesComponent implements OnInit {
   modules: Entity[];
   moduleContext: boolean;
   allModules: Entity[];
+  text_all: string;
+  text_activities_bank: string;
+  text_add_activity: string;
+  text_activity: string;
+  text_activities: string;
+  text_show_activities: string;
 
   constructor(
     private sanitizer: DomSanitizer,
@@ -38,11 +44,16 @@ export class ActivitiesComponent implements OnInit {
     private activityService: ActivitiesService,
   ) {
     this.moduleContext = window['appConfig'].moduleContext;
+    this.text_all = window['appConfig'].text_all;
+    this.text_activities_bank = window['appConfig'].text_activities_bank;
+    this.text_add_activity = window['appConfig'].text_add_activity;
+    this.text_activity = window['appConfig'].text_activity;
+    this.text_activities = window['appConfig'].text_activities;
+    this.text_show_activities = window['appConfig'].text_show_activities;
   }
 
   ngOnInit() {
     let entities = this.entityService.getEntities(this.groupId);
-
     if (!this.moduleContext) {
       Observable.forkJoin([entities]).subscribe(results => {
         this.entities = results[0];
@@ -75,7 +86,6 @@ export class ActivitiesComponent implements OnInit {
 
   updateModule(module) {
 
-    console.log('updateModule', module)
   }
 
   updateModules(event='') {

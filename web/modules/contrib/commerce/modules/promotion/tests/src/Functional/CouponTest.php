@@ -76,14 +76,14 @@ class CouponTest extends CommerceBrowserTestBase {
     $this->getSession()->getPage()->fillField('code[0][value]', $code);
     $this->submitForm([], t('Save'));
     $this->assertSession()->pageTextContains("Saved the $code coupon.");
-    $coupon_count = $this->getSession()->getPage()->find('xpath', '//table/tbody/tr/td[text()="' . $code . '"]');
+    $coupon_count = $this->getSession()->getPage()->findAll('xpath', '//table/tbody/tr/td[text()="' . $code . '"]');
     $this->assertEquals(count($coupon_count), 1, 'Coupon exists in the table.');
 
     $coupon = Coupon::load(1);
     $this->assertEquals($this->promotion->id(), $coupon->getPromotionId());
     $this->assertEquals($code, $coupon->getCode());
 
-    \Drupal::service('entity_type.manager')->getStorage('commerce_promotion')->resetCache([$this->promotion->id()]);
+    $this->container->get('entity_type.manager')->getStorage('commerce_promotion')->resetCache([$this->promotion->id()]);
     $this->promotion = Promotion::load($this->promotion->id());
     $this->assertTrue($this->promotion->hasCoupon($coupon));
   }
@@ -105,7 +105,7 @@ class CouponTest extends CommerceBrowserTestBase {
     ];
     $this->submitForm($edit, 'Save');
 
-    \Drupal::service('entity_type.manager')->getStorage('commerce_promotion_coupon')->resetCache([$coupon->id()]);
+    $this->container->get('entity_type.manager')->getStorage('commerce_promotion_coupon')->resetCache([$coupon->id()]);
     $coupon = Coupon::load($coupon->id());
     $this->assertEquals($new_code, $coupon->getCode());
   }
@@ -125,7 +125,7 @@ class CouponTest extends CommerceBrowserTestBase {
     $this->assertSession()->pageTextContains('This action cannot be undone.');
     $this->submitForm([], t('Delete'));
 
-    \Drupal::service('entity_type.manager')->getStorage('commerce_promotion_coupon')->resetCache([$coupon->id()]);
+    $this->container->get('entity_type.manager')->getStorage('commerce_promotion_coupon')->resetCache([$coupon->id()]);
     $coupon_exists = (bool) Coupon::load($coupon->id());
     $this->assertFalse($coupon_exists);
   }
@@ -134,38 +134,46 @@ class CouponTest extends CommerceBrowserTestBase {
    * Tests bulk generation of coupons.
    */
   public function testGenerateCoupons() {
+    // Generate 52 single-use coupons.
     $coupon_quantity = 52;
-
     $this->drupalGet('/promotion/' . $this->promotion->id() . '/coupons');
     $this->getSession()->getPage()->clickLink('Generate coupons');
-
-    // Check the integrity of the form and set values.
-    $this->assertSession()->fieldExists('format');
     $this->getSession()->getPage()->selectFieldOption('format', 'numeric');
-
-    $this->assertSession()->fieldExists('quantity');
     $this->getSession()->getPage()->fillField('quantity', (string) $coupon_quantity);
     $this->getSession()->getPage()->pressButton('Generate');
     $this->checkForMetaRefresh();
 
     $this->assertSession()->pageTextContains("Generated $coupon_quantity coupons.");
     $coupon_count = $this->getSession()->getPage()->findAll('xpath', '//table/tbody/tr/td[text()="0 / 1"]');
-
-    $this->assertEquals(count($coupon_count), $coupon_quantity, 'Coupons exist in the table.');
+    $this->assertEquals(count($coupon_count), $coupon_quantity);
 
     $coupons = Coupon::loadMultiple();
-    $this->assertEquals(count($coupons), $coupon_quantity, 'Coupons created');
+    $this->assertEquals(count($coupons), $coupon_quantity);
     foreach ($coupons as $id => $coupon) {
       $this->assertEquals($this->promotion->id(), $coupon->getPromotionId());
       $this->assertTrue(ctype_digit($coupon->getCode()));
       $this->assertEquals(strlen($coupon->getCode()), 8);
+      $this->assertEquals(1, $coupon->getUsageLimit());
     }
-
-    \Drupal::service('entity_type.manager')->getStorage('commerce_promotion')->resetCache([$this->promotion->id()]);
+    $this->container->get('entity_type.manager')->getStorage('commerce_promotion')->resetCache([$this->promotion->id()]);
     $this->promotion = Promotion::load($this->promotion->id());
     foreach ($coupons as $id => $coupon) {
       $this->assertTrue($this->promotion->hasCoupon($coupon));
     }
+
+    // Generate 6 unlimited-use coupons.
+    $coupon_quantity = 6;
+    $this->drupalGet('/promotion/' . $this->promotion->id() . '/coupons');
+    $this->getSession()->getPage()->clickLink('Generate coupons');
+    $this->getSession()->getPage()->selectFieldOption('format', 'numeric');
+    $this->getSession()->getPage()->fillField('quantity', (string) $coupon_quantity);
+    $this->getSession()->getPage()->selectFieldOption('limit', 0);
+    $this->getSession()->getPage()->pressButton('Generate');
+    $this->checkForMetaRefresh();
+
+    $this->assertSession()->pageTextContains("Generated $coupon_quantity coupons.");
+    $coupon_count = $this->getSession()->getPage()->findAll('xpath', '//table/tbody/tr/td[text()="0 / Unlimited"]');
+    $this->assertEquals(count($coupon_count), $coupon_quantity);
   }
 
 }

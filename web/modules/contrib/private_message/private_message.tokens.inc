@@ -130,7 +130,7 @@ function private_message_tokens($type, $tokens, array $data, array $options, Bub
         case 'created':
           $date_format = DateFormat::load('medium');
           $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($private_message->getCreatedTime(), 'medium', '', NULL, $langcode);
+          $replacements[$original] = \Drupal::service('date.formatter')->format($private_message->getCreatedTime(), 'medium', '', NULL, $langcode);
           break;
       }
     }
@@ -157,7 +157,7 @@ function private_message_tokens($type, $tokens, array $data, array $options, Bub
         case 'updated':
           $date_format = DateFormat::load('medium');
           $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($private_message_thread->getUpdatedTime(), 'medium', '', NULL, $langcode);
+          $replacements[$original] = \Drupal::service('date.formatter')->format($private_message_thread->getUpdatedTime(), 'medium', '', NULL, $langcode);
           break;
       }
     }

@@ -170,6 +170,8 @@ class ProductVariationAttributesWidget extends ProductVariationWidgetBase implem
         '#ajax' => [
           'callback' => [get_class($this), 'ajaxRefresh'],
           'wrapper' => $form['#wrapper_id'],
+          // Prevent a jump to the top of the page.
+          'disable-refocus' => TRUE,
         ],
       ];
       // Convert the _none option into #empty_value.
@@ -178,10 +180,6 @@ class ProductVariationAttributesWidget extends ProductVariationWidgetBase implem
           $attribute_element['#empty_value'] = '';
         }
         unset($attribute_element['#options']['_none']);
-      }
-      // 1 required value -> Disable the element to skip unneeded ajax calls.
-      if ($attribute_element['#required'] && count($attribute->getValues()) === 1) {
-        $attribute_element['#disabled'] = TRUE;
       }
       // Optimize the UX of optional attributes:
       // - Hide attributes that have no values.

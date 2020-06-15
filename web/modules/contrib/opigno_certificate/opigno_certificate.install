@@ -102,5 +102,19 @@ function opigno_certificate_update_80022() {
  * Enables CKEditor Background module.
  */
 function opigno_certificate_update_80023() {
-  \Drupal::service('module_installer')->install(['ckeditor_bgimage']);
+  \Drupal::service('module_installer')->install(['ckeditor_bgimage', 'ckeditor_font']);
+}
+
+/**
+ * Update text format for WYSIWYG Certificate with CKEditor.
+ */
+function opigno_certificate_update_80024() {
+  $config_path = drupal_get_path('module', 'opigno_certificate')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('filter.format.opigno_certificate_wysiwyg');
+  $config_storage->write('filter.format.opigno_certificate_wysiwyg', $data);
+  $data = $storage->read('editor.editor.opigno_certificate_wysiwyg');
+  $config_storage->write('editor.editor.opigno_certificate_wysiwyg', $data);
 }

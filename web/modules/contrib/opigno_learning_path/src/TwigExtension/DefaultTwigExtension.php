@@ -140,7 +140,7 @@ class DefaultTwigExtension extends \Twig_Extension {
 
     if ($route_name == 'entity.group.canonical' && $access) {
       $link = NULL;
-      $validation = $group->field_requires_validation->value;
+      $validation = LearningPathAccess::requiredValidation($group, $account);
       $is_member = $group->getMember($account) !== FALSE;
       $is_anonymous = $account->id() === 0;
       $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
@@ -224,10 +224,8 @@ class DefaultTwigExtension extends \Twig_Extension {
 
     $current_route = \Drupal::routeMatch()->getRouteName();
     $visibility = $group->field_learning_path_visibility->value;
-    $validation = $group->field_requires_validation->value;
     $account = \Drupal::currentUser();
     $is_anonymous = $account->id() === 0;
-
     if ($is_anonymous && $visibility != 'public') {
       if ($visibility != 'semiprivate'
             || (!$group->hasField('field_lp_price')
@@ -236,8 +234,9 @@ class DefaultTwigExtension extends \Twig_Extension {
       }
     }
 
-    $member_pending = $visibility === 'semiprivate' && $validation
-      && !LearningPathAccess::statusGroupValidation($group, $account);
+    // Check if we need to wait validation.
+    $validation = LearningPathAccess::requiredValidation($group, $account);
+    $member_pending = !LearningPathAccess::statusGroupValidation($group, $account);
     $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
     $required_trainings = LearningPathAccess::hasUncompletedRequiredTrainings($group, $account);
 

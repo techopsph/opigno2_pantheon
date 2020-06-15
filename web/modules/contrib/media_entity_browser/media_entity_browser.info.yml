@@ -1,6 +1,6 @@
 name: Media Entity Browser
 type: module
-description: 'This module provides an Entity Browser for Media Entity.'
+description: 'This module provides an Entity Browser for Media.'
 package: Media
 core: '8.x'
 
@@ -15,8 +15,8 @@ test_dependencies:
   - inline_entity_form (>=8.x-1.x)
   - entity_browser (>=8.x-2.x)
   - entity_browser:entity_browser_entity_form (>=8.x-2.x)
+  - video_embed_field:video_embed_field (>=8.x-2.x)
   - drupal:media (>=8.4)
-  - video_embed_field (>=8.x-2.x)
   - ctools:ctools
 
 # To export this config, make sure config_devel is installed, cache is rebuilt

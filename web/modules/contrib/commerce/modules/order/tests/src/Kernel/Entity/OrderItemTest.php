@@ -4,9 +4,8 @@ namespace Drupal\Tests\commerce_order\Kernel\Entity;
 
 use Drupal\commerce_order\Adjustment;
 use Drupal\commerce_order\Entity\OrderItem;
-use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_price\Price;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\Tests\commerce_order\Kernel\OrderKernelTestBase;
 
 /**
  * Tests the order item entity.
@@ -15,39 +14,7 @@ use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
  *
  * @group commerce
  */
-class OrderItemTest extends CommerceKernelTestBase {
-
-  /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = [
-    'entity_reference_revisions',
-    'profile',
-    'state_machine',
-    'commerce_product',
-    'commerce_order',
-  ];
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp() {
-    parent::setUp();
-
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
-    $this->installConfig('commerce_order');
-
-    // An order item type that doesn't need a purchasable entity, for simplicity.
-    OrderItemType::create([
-      'id' => 'test',
-      'label' => 'Test',
-      'orderType' => 'default',
-    ])->save();
-  }
+class OrderItemTest extends OrderKernelTestBase {
 
   /**
    * Tests the order item entity and its methods.
@@ -69,6 +36,7 @@ class OrderItemTest extends CommerceKernelTestBase {
    * @covers ::getAdjustedUnitPrice
    * @covers ::getData
    * @covers ::setData
+   * @covers ::unsetData
    * @covers ::getCreatedTime
    * @covers ::setCreatedTime
    */
@@ -108,6 +76,9 @@ class OrderItemTest extends CommerceKernelTestBase {
     $order_item->addAdjustment($adjustments[1]);
     $adjustments = $order_item->getAdjustments();
     $this->assertEquals($adjustments, $order_item->getAdjustments());
+    $this->assertEquals($adjustments, $order_item->getAdjustments(['custom', 'fee']));
+    $this->assertEquals([$adjustments[0]], $order_item->getAdjustments(['custom']));
+    $this->assertEquals([$adjustments[1]], $order_item->getAdjustments(['fee']));
     $order_item->removeAdjustment($adjustments[0]);
     $this->assertEquals([$adjustments[1]], $order_item->getAdjustments());
     $this->assertEquals(new Price('21.98', 'USD'), $order_item->getAdjustedTotalPrice());
@@ -127,6 +98,9 @@ class OrderItemTest extends CommerceKernelTestBase {
     $this->assertEquals('default', $order_item->getData('test', 'default'));
     $order_item->setData('test', 'value');
     $this->assertEquals('value', $order_item->getData('test', 'default'));
+    $order_item->unsetData('test');
+    $this->assertNull($order_item->getData('test'));
+    $this->assertEquals('default', $order_item->getData('test', 'default'));
 
     $order_item->setCreatedTime(635879700);
     $this->assertEquals(635879700, $order_item->getCreatedTime());
@@ -171,6 +145,23 @@ class OrderItemTest extends CommerceKernelTestBase {
     $this->assertEquals(new Price('21.98', 'USD'), $order_item->getAdjustedTotalPrice());
     $this->assertEquals(new Price('17.98', 'USD'), $order_item->getAdjustedTotalPrice(['custom']));
     $this->assertEquals(new Price('23.98', 'USD'), $order_item->getAdjustedTotalPrice(['fee']));
+  }
+
+  /**
+   * Tests the handling of invalid bundles.
+   *
+   * @covers ::bundleFieldDefinitions
+   */
+  public function testInvalidBundle() {
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Could not load the "invalid" order item type.');
+
+    $order_item = OrderItem::create([
+      'type' => 'invalid',
+      'title' => 'My order item',
+      'quantity' => '2',
+      'unit_price' => new Price('9.99', 'USD'),
+    ]);
   }
 
 }

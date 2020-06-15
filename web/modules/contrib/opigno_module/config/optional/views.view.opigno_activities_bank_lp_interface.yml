@@ -510,7 +510,7 @@ display:
           admin_label: ''
           empty: true
           tokenize: true
-          content: '<p>There are no any activities to add in module</p>'
+          content: "<p>There isn't any activity to add in this module</p>"
           plugin_id: text_custom
       relationships: {  }
       arguments: {  }

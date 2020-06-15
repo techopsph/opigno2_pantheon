@@ -74,6 +74,11 @@ class ContentTypeCourse extends ContentTypeBase {
 
     /** @var \Drupal\group\Entity\Group $group */
     $group = Group::load($entity_id);
+
+    if (empty($group)) {
+      return FALSE;
+    }
+
     if ($group->getGroupType()->id() != 'opigno_course') {
       return FALSE;
     }

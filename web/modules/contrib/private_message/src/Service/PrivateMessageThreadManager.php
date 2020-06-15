@@ -125,7 +125,7 @@ class PrivateMessageThreadManager implements PrivateMessageThreadManagerInterfac
    * The users to receive notifications.
    *
    * @return \Drupal\Core\Session\AccountInterface[]
-   *   An array of  Account objects of the thread memebers who are to receive
+   *   An array of Account objects of the thread members who are to receive
    *   the notification.
    */
   private function getNotificationRecipients() {

@@ -56,7 +56,7 @@
     <div class="col-md-4">
       <section>
         <h2 class="h4 bg-primary color-white text-uppercase mb-0 px-3 py-2">{{ 'Information'|t }}</h2>
-        <div class="content bg-light py-2 pr-3">
+        <div class="content bg-light px-3 pl-md-0 py-2">
           <div class="lp-image">
             {% if content.field_learning_path_media_image[0] %}
               {{ content.field_learning_path_media_image }}
@@ -78,7 +78,7 @@
     </div>
     <div id="group-content" {{ content_attributes.addClass('col-md-8') }}>
       <h2 class="h4 bg-primary text-uppercase color-white mb-0 px-3 py-2">{{ 'About this training'|t }}</h2>
-      <div class="content bg-light px-2 pt-2">
+      <div class="content bg-light px-3 px-md-2 pt-2">
         <div class="bg-white px-3 py-3">
           {{ content|without('field_learning_path_media_image', 'field_learning_path_duration', 'field_learning_path_category') }}
         </div>

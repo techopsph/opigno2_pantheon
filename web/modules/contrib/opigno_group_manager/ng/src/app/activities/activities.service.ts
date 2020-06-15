@@ -78,9 +78,26 @@ export class ActivitiesService {
   }
 
   addActivity(moduleId, activityId): Observable<any> {
+    const group = this.getParams(window.location.href, 'group');
     return this.http
-      .get(this.apiBaseUrl + this.appService.replaceUrlParams(this.addActivityUrl, { '%opigno_module': moduleId, '%opigno_activity': activityId }))
+      .get(this.apiBaseUrl + this.appService.replaceUrlParams(this.addActivityUrl, { '%opigno_module': moduleId, '%opigno_activity': activityId, '%group_id': group }))
       .map(response => response.json() as any);
+  }
+
+  getParams(url, needed) {
+    url = url.replace('http://', '');
+    url = url.replace('https://', '');
+    url = url.replace('www.', '');
+    let params = url.split('/');
+
+    if (needed) {
+      for (let i = 0; i < params.length; i++) {
+        if (params[i] === needed) {
+          return params[i + 1];
+        }
+      }
+    }
+    return params;
   }
 
 }

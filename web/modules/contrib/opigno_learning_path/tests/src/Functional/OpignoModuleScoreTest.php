@@ -76,7 +76,7 @@ class OpignoModuleScoreTest extends LearningPathBrowserTestBase {
     // because statistics only updates
     // when user finish module after keep_results option was changed.
     /* @see \Drupal\opigno_module\Entity\UserModuleStatus */
-    $this->createAndFinishAttempt($training, $module, $this->groupCreator, 50);
+    $this->createAndFinishAttempt($training, $module, $this->groupCreator, 50, TRUE);
 
     $this->drupalGet('/group/' . $training->id());
     $this->assertSession()->pageTextContains('50%');
@@ -113,7 +113,7 @@ class OpignoModuleScoreTest extends LearningPathBrowserTestBase {
   /**
    * Creates and finishes attempt.
    */
-  private function createAndFinishAttempt($training, $module, $user, $score) {
+  private function createAndFinishAttempt($training, $module, $user, $score, $newest = FALSE) {
     $attempt = UserModuleStatus::create([]);
     $attempt->setModule($module);
     $attempt->setScore($score);
@@ -124,6 +124,9 @@ class OpignoModuleScoreTest extends LearningPathBrowserTestBase {
     drupal_static_reset();
     // Save all achievements.
     $step = opigno_learning_path_get_module_step($training->id(), $user->id(), $module);
+    if ($newest) {
+      $step['best score'] = $step['current attempt score'] = $score;
+    }
     opigno_learning_path_save_step_achievements($training->id(), $user->id(), $step);
     opigno_learning_path_save_achievements($training->id(), $user->id());
 

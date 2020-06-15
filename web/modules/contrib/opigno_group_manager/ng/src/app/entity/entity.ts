@@ -13,5 +13,6 @@ export class Entity {
   successScoreMin?: number;
   successScoreMinMessage?: string;
   modules_count?: number;
+  translate?: any[];
   editable?: boolean;
 }

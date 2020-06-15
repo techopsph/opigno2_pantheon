@@ -67,7 +67,7 @@ class ManualPaymentAdminTest extends CommerceBrowserTestBase {
       'label' => 'Manual example',
       'plugin' => 'manual',
     ]);
-    $this->paymentGateway->getPlugin()->setConfiguration([
+    $this->paymentGateway->setPluginConfiguration([
       'display_label' => 'Cash on delivery',
       'instructions' => [
         'value' => 'Test instructions.',
@@ -110,11 +110,13 @@ class ManualPaymentAdminTest extends CommerceBrowserTestBase {
     $this->submitForm(['payment[amount][number]' => '100'], 'Add payment');
     $this->assertSession()->addressEquals($this->paymentUri);
     $this->assertSession()->pageTextContains('Pending');
+
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([1]);
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = Payment::load(1);
-    $this->assertEquals($payment->getOrderId(), $this->order->id());
-    $this->assertEquals($payment->getAmount()->getNumber(), '100');
-    $this->assertEquals($payment->getState()->getLabel(), 'Pending');
+    $this->assertEquals($this->order->id(), $payment->getOrderId());
+    $this->assertEquals('100.00', $payment->getAmount()->getNumber());
+    $this->assertEquals('Pending', $payment->getState()->getLabel());
 
     $this->drupalGet($this->paymentUri . '/add');
     $this->assertSession()->pageTextContains('Manual example');
@@ -122,11 +124,13 @@ class ManualPaymentAdminTest extends CommerceBrowserTestBase {
     $this->submitForm(['payment[amount][number]' => '100', 'payment[received]' => TRUE], 'Add payment');
     $this->assertSession()->addressEquals($this->paymentUri);
     $this->assertSession()->pageTextContains('Completed');
+
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([2]);
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = Payment::load(2);
-    $this->assertEquals($payment->getOrderId(), $this->order->id());
-    $this->assertEquals($payment->getAmount()->getNumber(), '100');
-    $this->assertEquals($payment->getState()->getLabel(), 'Completed');
+    $this->assertEquals($this->order->id(), $payment->getOrderId());
+    $this->assertEquals('100.00', $payment->getAmount()->getNumber());
+    $this->assertEquals('Completed', $payment->getState()->getLabel());
     $this->assertNotEmpty($payment->getCompletedTime());
   }
 
@@ -147,6 +151,7 @@ class ManualPaymentAdminTest extends CommerceBrowserTestBase {
     $this->assertSession()->pageTextNotContains('Pending');
     $this->assertSession()->pageTextContains('Completed');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([$payment->id()]);
     $payment = Payment::load($payment->id());
     $this->assertEquals($payment->getState()->getLabel(), 'Completed');
   }
@@ -168,8 +173,9 @@ class ManualPaymentAdminTest extends CommerceBrowserTestBase {
     $this->assertSession()->pageTextNotContains('Completed');
     $this->assertSession()->pageTextContains('Refunded');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([$payment->id()]);
     $payment = Payment::load($payment->id());
-    $this->assertEquals($payment->getState()->getLabel(), 'Refunded');
+    $this->assertEquals('Refunded', $payment->getState()->getLabel());
   }
 
   /**
@@ -184,10 +190,12 @@ class ManualPaymentAdminTest extends CommerceBrowserTestBase {
     $this->paymentGateway->getPlugin()->createPayment($payment);
 
     $this->drupalGet($this->paymentUri . '/' . $payment->id() . '/operation/void');
+    $this->assertSession()->pageTextContains('Are you sure you want to void the 10 USD payment?');
     $this->getSession()->getPage()->pressButton('Void');
     $this->assertSession()->addressEquals($this->paymentUri);
     $this->assertSession()->pageTextContains('Voided');
 
+    \Drupal::entityTypeManager()->getStorage('commerce_payment')->resetCache([$payment->id()]);
     $payment = Payment::load($payment->id());
     $this->assertEquals($payment->getState()->getLabel(), 'Voided');
   }

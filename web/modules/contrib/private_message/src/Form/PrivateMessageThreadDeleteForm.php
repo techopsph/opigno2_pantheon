@@ -19,9 +19,11 @@ class PrivateMessageThreadDeleteForm extends ContentEntityConfirmFormBase {
     $members = $this->getEntity()->getMembers();
     $member_names = [];
     foreach ($members as $member) {
+      if ($member->id() == $this->currentUser()->id()) {
+        continue;
+      }
       $member_names[] = $member->getDisplayName();
     }
-
     return $this->t('Are you sure you want to delete the thread between you and the following users: @others?', ['@others' => implode(', ', $member_names)]);
   }
 

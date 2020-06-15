@@ -77,8 +77,8 @@ table {
       padding-left: 1.25rem;
     }
 
-    select {
-      margin-bottom: -1rem;
+    .form-group {
+      margin: 8px 0;
     }
 
     &.checkbox {
@@ -134,5 +134,13 @@ a.tabledrag-handle .handle {
 table.views-listing-table {
   h3 {
     font-size: 1rem;
+  }
+}
+
+.table-responsive {
+  table {
+    display: table !important;
+    width: 100%;
+    overflow: visible;
   }
 }

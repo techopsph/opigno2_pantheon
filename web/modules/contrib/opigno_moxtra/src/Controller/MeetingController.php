@@ -10,6 +10,7 @@ use Drupal\opigno_moxtra\MoxtraServiceInterface;
 use Drupal\opigno_moxtra\OpignoServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Drupal\opigno_learning_path\LearningPathAccess;
 
 /**
  * Class MeetingController.
@@ -116,8 +117,11 @@ class MeetingController extends ControllerBase {
    *   Render array.
    */
   protected function buildMeetingScheduled(MeetingInterface $opigno_moxtra_meeting) {
+    $training_id = $opigno_moxtra_meeting->getTrainingId();
     $user = $this->currentUser();
-    if (!$user->hasPermission('start meeting')) {
+    $is_user_manager = LearningPathAccess::memberHasRole('content_manager', $user, $training_id);
+
+    if (!$user->hasPermission('start meeting') && !$is_user_manager) {
       return [
         '#type' => 'container',
         'message' => [

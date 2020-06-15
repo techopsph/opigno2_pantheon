@@ -282,6 +282,8 @@ class EditorFileDialog extends FormBase implements BaseFormIdInterface {
       $file_url = file_create_url($file->getFileUri());
       $file_url = file_url_transform_relative($file_url);
       $form_state->setValue(['attributes', 'image'], $file_url);
+      $form_state->setValue(['attributes', 'data_entity_uuid'], $file->uuid());
+      $form_state->setValue(['attributes', 'data_entity_type'], 'file');
     }
 
     if ($form_state->getErrors()) {

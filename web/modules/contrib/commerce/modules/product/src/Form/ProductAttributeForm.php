@@ -3,6 +3,7 @@
 namespace Drupal\commerce_product\Form;
 
 use Drupal\commerce\EntityHelper;
+use Drupal\commerce\InlineFormManager;
 use Drupal\commerce_product\ProductAttributeFieldManagerInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\BundleEntityFormBase;
@@ -20,13 +21,23 @@ class ProductAttributeForm extends BundleEntityFormBase {
   protected $attributeFieldManager;
 
   /**
+   * The inline form manager.
+   *
+   * @var \Drupal\commerce\InlineFormManager
+   */
+  protected $inlineFormManager;
+
+  /**
    * Constructs a new ProductAttributeForm object.
    *
    * @param \Drupal\commerce_product\ProductAttributeFieldManagerInterface $attribute_field_manager
    *   The attribute field manager.
+   * @param \Drupal\commerce\InlineFormManager $inline_form_manager
+   *   The inline form manager.
    */
-  public function __construct(ProductAttributeFieldManagerInterface $attribute_field_manager) {
+  public function __construct(ProductAttributeFieldManagerInterface $attribute_field_manager, InlineFormManager $inline_form_manager) {
     $this->attributeFieldManager = $attribute_field_manager;
+    $this->inlineFormManager = $inline_form_manager;
   }
 
   /**
@@ -34,7 +45,8 @@ class ProductAttributeForm extends BundleEntityFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('commerce_product.attribute_field_manager')
+      $container->get('commerce_product.attribute_field_manager'),
+      $container->get('plugin.manager.commerce_inline_form')
     );
   }
 
@@ -62,6 +74,7 @@ class ProductAttributeForm extends BundleEntityFormBase {
       // Attribute field names are constructed as 'attribute_' + id, and must
       // not be longer than 32 characters. Account for that prefix length here.
       '#maxlength' => EntityTypeInterface::BUNDLE_MAX_LENGTH - 10,
+      '#disabled' => !$attribute->isNew(),
     ];
     $form['elementType'] = [
       '#type' => 'select',
@@ -75,7 +88,10 @@ class ProductAttributeForm extends BundleEntityFormBase {
       '#default_value' => $attribute->getElementType(),
     ];
 
-    // Allow the attribute to be assigned to a product variaton type.
+    $attribute_field_map = $this->attributeFieldManager->getFieldMap();
+    $variation_type_storage = $this->entityTypeManager->getStorage('commerce_product_variation_type');
+    $variation_types = $variation_type_storage->loadMultiple();
+    // Allow the attribute to be assigned to a product variation type.
     $form['original_variation_types'] = [
       '#type' => 'value',
       '#value' => [],
@@ -83,15 +99,11 @@ class ProductAttributeForm extends BundleEntityFormBase {
     $form['variation_types'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Product variation types'),
+      '#options' => EntityHelper::extractLabels($variation_types),
+      '#access' => count($variation_types) > 0,
     ];
-    $attribute_field_map = $this->attributeFieldManager->getFieldMap();
-    $variation_type_storage = $this->entityTypeManager->getStorage('commerce_product_variation_type');
-    $variation_types = $variation_type_storage->loadMultiple();
     $disabled_variation_types = [];
-    foreach ($variation_types as $variation_type) {
-      $variation_type_id = $variation_type->id();
-      $form['variation_types']['#options'][$variation_type_id] = $variation_type->label();
-
+    foreach ($variation_types as $variation_type_id => $variation_type) {
       if (!$attribute->isNew() && isset($attribute_field_map[$variation_type_id])) {
         $used_attributes = array_column($attribute_field_map[$variation_type_id], 'attribute_id');
         if (in_array($attribute->id(), $used_attributes)) {
@@ -129,7 +141,7 @@ class ProductAttributeForm extends BundleEntityFormBase {
       $form = $this->buildValuesForm($form, $form_state);
     }
 
-    return $this->protectBundleIdElement($form);
+    return $form;
   }
 
   /**
@@ -182,7 +194,7 @@ class ProductAttributeForm extends BundleEntityFormBase {
       '#weight' => 5,
       '#prefix' => '<div id="' . $wrapper_id . '">',
       '#suffix' => '</div>',
-      // #input defaults to TRUE, which breaks file fields in the IEF element.
+      // #input defaults to TRUE, which breaks file fields on the value form.
       // This table is used for visual grouping only, the element itself
       // doesn't have any values of its own that need processing.
       '#input' => FALSE,
@@ -199,24 +211,28 @@ class ProductAttributeForm extends BundleEntityFormBase {
       $value_form['tabledrag'] = [
         '#markup' => '',
       ];
-
-      $value_form['entity'] = [
-        '#type' => 'inline_entity_form',
-        '#entity_type' => 'commerce_product_attribute_value',
-        '#bundle' => $attribute->id(),
-        '#langcode' => $attribute->get('langcode'),
-        '#save_entity' => FALSE,
-      ];
       if ($id == '_new') {
+        $value = $this->entityTypeManager->getStorage('commerce_product_attribute_value')->create([
+          'attribute' => $attribute->id(),
+          'langcode' => $attribute->get('langcode'),
+        ]);
         $default_weight = $max_weight;
         $remove_access = TRUE;
       }
       else {
         $value = $values[$id];
-        $value_form['entity']['#default_value'] = $value;
         $default_weight = $value->getWeight();
         $remove_access = $value->access('delete');
       }
+      $inline_form = $this->inlineFormManager->createInstance('content_entity', [
+        'skip_save' => TRUE,
+      ], $value);
+
+      $value_form['entity'] = [
+        '#parents' => ['values', $index, 'entity'],
+        '#inline_form' => $inline_form,
+      ];
+      $value_form['entity'] = $inline_form->buildInlineForm($value_form['entity'], $form_state);
 
       $value_form['weight'] = [
         '#type' => 'weight',
@@ -363,8 +379,10 @@ class ProductAttributeForm extends BundleEntityFormBase {
     }
 
     foreach ($form_state->getValue(['values']) as $index => $value_data) {
+      /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
+      $inline_form = $form['values'][$index]['entity']['#inline_form'];
       /** @var \Drupal\commerce_product\Entity\ProductAttributeValueInterface $value */
-      $value = $form['values'][$index]['entity']['#entity'];
+      $value = $inline_form->getEntity();
       $value->setWeight($value_data['weight']);
       $value->save();
     }

@@ -181,10 +181,7 @@
               var id = 'student_' + ui.item.id;
               var $row = $('#' + id);
 
-              console.log(id);
-
               if ($row.length) {
-                console.log('1');
                 hideClasses();
                 showClass($row);
 
@@ -193,7 +190,6 @@
                 window.scrollBy(0, -100);
               }
               else {
-                console.log('2');
                 var id = 'individual_' + ui.item.id;
                 var $row = $('#' + id);
 

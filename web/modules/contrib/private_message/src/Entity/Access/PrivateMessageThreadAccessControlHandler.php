@@ -16,6 +16,11 @@ class PrivateMessageThreadAccessControlHandler extends EntityAccessControlHandle
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
+
+    if ($account->hasPermission('administer private messages')) {
+      return AccessResult::allowed();
+    }
+
     if ($account->hasPermission('use private messaging system')) {
       switch ($operation) {
         case 'view':

@@ -46,8 +46,11 @@ class DashboardController extends ControllerBase {
         ->condition('p.uid', $uid);
 
       $result = $query->execute()->fetchObject();
-      $positions = json_decode($result->positions, TRUE);
-      $columns = ($result->columns) ? $result->columns : 3;
+      $positions = FALSE;
+      if (!empty($result->positions)) {
+        $positions = json_decode($result->positions, TRUE);
+      }
+      $columns = !empty($result->columns) ? $result->columns : 3;
     }
 
     if (!$positions) {

@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Opigno Calendar Event module.
+ */
+
+use Drupal\opigno_calendar_event\CalendarEventAccess;
+
+/**
+ * Update access handler for opigno calendar event entity.
+ */
+function opigno_calendar_event_update_8001() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $definition_update_manager->getEntityType('opigno_calendar_event');
+  $entity_type->setHandlerClass('access', CalendarEventAccess::class);
+  $definition_update_manager->updateEntityType($entity_type);
+}

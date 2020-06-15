@@ -4,12 +4,9 @@ dependencies:
   config:
     - commerce_product.commerce_product_type.default
     - field.field.commerce_product.default.body
-    - field.field.commerce_product.default.stores
-    - field.field.commerce_product.default.variations
   module:
     - commerce_product
     - text
-    - user
 id: commerce_product.default.default
 targetEntityType: commerce_product
 bundle: default
@@ -21,6 +18,15 @@ content:
     label: hidden
     settings: {  }
     third_party_settings: {  }
+    region: content
+  title:
+    label: hidden
+    type: string
+    weight: -5
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
   variations:
     type: commerce_add_to_cart
     weight: 1
@@ -30,6 +36,7 @@ content:
       combine: true
       show_quantity: false
     third_party_settings: {  }
+    region: content
 hidden:
   created: true
   stores: true

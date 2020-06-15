@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_product\Form;
 
+use Drupal\commerce\EntityHelper;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\inline_entity_form\Form\EntityInlineForm;
 
@@ -46,8 +47,8 @@ class ProductVariationInlineForm extends EntityInlineForm {
       'display_options' => [
         'settings' => [
           'format' => 'custom',
-          'format_custom_true' => t('Active'),
-          'format_custom_false' => t('Inactive'),
+          'format_custom_true' => t('Published'),
+          'format_custom_false' => t('Unpublished'),
         ],
       ],
     ];
@@ -68,10 +69,7 @@ class ProductVariationInlineForm extends EntityInlineForm {
     // The generated variation title includes the product title, which isn't
     // relevant in this context, the user only needs to see the attribute part.
     if ($attribute_values = $entity->getAttributeValues()) {
-      $attribute_labels = array_map(function ($attribute_value) {
-        return $attribute_value->label();
-      }, $attribute_values);
-
+      $attribute_labels = EntityHelper::extractLabels($attribute_values);
       $label = implode(', ', $attribute_labels);
     }
     else {

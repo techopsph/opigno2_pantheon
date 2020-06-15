@@ -60,6 +60,31 @@ opigno_module.import.module:
   requirements:
     _entity_create_access: opigno_activity
 
+opigno_module.preview:
+  path: 'admin/structure/opigno-modules/preview/{opigno_module}'
+  defaults:
+    _title: 'Preview of module'
+    _form: '\Drupal\opigno_module\Form\ModulePreviewForm'
+  requirements:
+    _entity_create_access: opigno_module
+  options:
+    parameters:
+      opigno_module:
+        type: entity:opigno_module
+      account:
+        type: entity:user
+
+opigno_activity.preview:
+  path: 'admin/structure/opigno-activity/preview/{opigno_activity}'
+  defaults:
+    _controller: '\Drupal\opigno_module\Controller\ActivitiesBrowserController::previewActivity'
+  requirements:
+    _entity_access: 'opigno_activity.update'
+  options:
+    parameters:
+      opigno_activity:
+        type: entity:opigno_activity
+
 opigno_module.export.activity:
   path: 'admin/structure/opigno_export/opigno_activity/{opigno_activity}'
   defaults:
@@ -145,7 +170,7 @@ opigno_module.activities_bank_lpm.checked_activities:
   defaults:
     _controller: '\Drupal\opigno_module\Controller\OpignoModuleManagerController::ajaxCheckedActivities'
   requirements:
-    _permission: 'administer module entities'
+    _custom_access: '\Drupal\opigno_module\Controller\OpignoModuleManagerController::ajaxCheckedActivitiesAccess'
 
 # Main admin menu page.
 opigno_module.opigno_settings:
@@ -266,7 +291,7 @@ opigno_module.manager.get_item_form:
         type: string
 
 opigno_module.manager.add_module_activity:
-  path: '/module/{opigno_module}/add-activity/{opigno_activity}'
+  path: '/module/{opigno_module}/add-activity/{opigno_activity}/group/{group}'
   defaults:
     _controller: '\Drupal\opigno_module\Controller\OpignoModuleManagerController::addActivityToModule'
   requirements:
@@ -277,6 +302,8 @@ opigno_module.manager.add_module_activity:
         type: entity:opigno_module
       opigno_activity:
         type: entity:opigno_activity
+      group:
+        type: entity:group
 
 opigno_module.manager.get_activity_types:
   path: '/module/manager/get-activity-types'

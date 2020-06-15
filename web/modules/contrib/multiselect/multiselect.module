@@ -66,9 +66,15 @@ function template_preprocess_multiselect(&$variables) {
   Element::setAttributes($element, array('id', 'name', 'size', 'required'));
 
   $available_options = Multiselect::getOptions('available', $element);
+  if (!is_array($available_options)) {
+    $available_options = [];
+  }
   $available_size = min(count($available_options), 10);
 
   $selected_options = Multiselect::getOptions('selected', $element);
+  if (!is_array($selected_options)) {
+    $selected_options = [];
+  }
   $selected_size = min(count($selected_options), 10);
   $total_size = $available_size + $selected_size;
 

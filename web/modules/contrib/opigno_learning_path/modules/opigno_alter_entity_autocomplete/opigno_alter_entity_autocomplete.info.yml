@@ -3,7 +3,7 @@ description: The module alters entity autocomplete suggestion list.
 type: module
 core: 8.x
 
-# Information added by Drupal.org packaging script on 2020-01-31
-version: '8.x-1.9'
+# Information added by Drupal.org packaging script on 2020-06-02
+version: '8.x-1.10'
 project: 'opigno_learning_path'
-datestamp: 1580461297
+datestamp: 1591084408

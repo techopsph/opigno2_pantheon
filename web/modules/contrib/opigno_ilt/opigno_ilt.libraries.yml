@@ -6,10 +6,9 @@ banner:
 
 form:
   version: VERSION
-  css:
-    theme:
-      css/form.css: {}
   js:
     js/form.js: {}
   dependencies:
     - core/jquery
+    - core/jquery.once
+    - opigno_learning_path/opigno_autocomplite_multiselect

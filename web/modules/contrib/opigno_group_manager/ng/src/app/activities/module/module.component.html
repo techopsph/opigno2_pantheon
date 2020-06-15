@@ -2,10 +2,10 @@
   <thead>
     <tr>
       <th></th>
-      <th i18n>Activity ID</th>
-      <th i18n>Max score</th>
-      <th i18n>Edit</th>
-      <th i18n>Remove</th>
+      <th>{{ text_activity_id_table }}</th>
+      <th>{{ text_max_score_table }}</th>
+      <th *ngIf="editable">{{ text_edit_table }}</th>
+      <th *ngIf="editable">{{ text_remove_table }}</th>
     </tr>
   </thead>
   <tbody [dragula]="'nested-bag'">
@@ -20,20 +20,20 @@
   </tbody>
 </table>
 
-<div class="delete-activity" *ngIf="showDeleteModal">
+<div class="delete-activity" *ngIf="showDeleteModal && module.editable">
   <div id="delete-panel-content" (clickOutside)="closeDelete()" [exclude]="'.delete-link'">
-    <h2 class="mb-3" i18n>Confirm delete</h2>
+    <h2 class="mb-3">{{ text_confirm_delete }}</h2>
     <div>
-      <button mat-button (click)="closeDelete()" i18n>cancel</button>
-      <button mat-raised-button color="warn" (click)="deleteActivity()" i18n>confirm</button>
+      <button mat-button (click)="closeDelete()">{{ text_cancel }}</button>
+      <button mat-raised-button color="warn" (click)="deleteActivity()">{{ text_confirm }}</button>
     </div>
   </div>
 </div>
 
 <activities-bank [module]="module"
                  (closeEvent)="module.showAddModal=false;updateActivities($event)"
-                 *ngIf="module.showAddModal"></activities-bank>
+                 *ngIf="module.showAddModal && module.editable"></activities-bank>
 
 <add-activity [activities]="activities"
               (closeEvent)="showAddModal=false" (updateEvent)="updateActivities($event)"
-              *ngIf="showAddModal"></add-activity>
+              *ngIf="showAddModal && module.editable"></add-activity>

@@ -31,7 +31,7 @@ final class Interval {
    * @param string $unit
    *   The unit.
    */
-  public function __construct($number, $unit) {
+  public function __construct(string $number, string $unit) {
     if (!is_numeric($number)) {
       throw new \InvalidArgumentException(sprintf('The provided interval number "%s" is not a numeric value.', $number));
     }
@@ -49,7 +49,7 @@ final class Interval {
    * @return string
    *   The number.
    */
-  public function getNumber() {
+  public function getNumber() : string {
     return $this->number;
   }
 
@@ -59,7 +59,7 @@ final class Interval {
    * @return string
    *   The unit.
    */
-  public function getUnit() {
+  public function getUnit() : string {
     return $this->unit;
   }
 
@@ -69,7 +69,7 @@ final class Interval {
    * @return string
    *   The string representation of the interval.
    */
-  public function __toString() {
+  public function __toString() : string {
     return $this->number . ' ' . $this->unit;
   }
 
@@ -79,7 +79,7 @@ final class Interval {
    * @return array
    *   The array representation of the interval.
    */
-  public function toArray() {
+  public function toArray() : array {
     return ['number' => $this->number, 'unit' => $this->unit];
   }
 
@@ -92,8 +92,8 @@ final class Interval {
    * @return \Drupal\Core\Datetime\DrupalDateTime
    *   The new date.
    */
-  public function add(DrupalDateTime $date) {
-    /** @var \DateTime $new_date */
+  public function add(DrupalDateTime $date) : DrupalDateTime {
+    /** @var \Drupal\Core\Datetime\DrupalDateTime $new_date */
     $new_date = clone $date;
     $new_date->modify('+' . $this->__toString());
     // Jan 31st + 1 month should give Feb 28th, not Mar 3rd.
@@ -113,8 +113,8 @@ final class Interval {
    * @return \Drupal\Core\Datetime\DrupalDateTime
    *   The new date.
    */
-  public function subtract(DrupalDateTime $date) {
-    /** @var \DateTime $new_date */
+  public function subtract(DrupalDateTime $date) : DrupalDateTime {
+    /** @var \Drupal\Core\Datetime\DrupalDateTime $new_date */
     $new_date = clone $date;
     $new_date->modify('-' . $this->__toString());
     // Mar 31st - 1 month should Feb 28th, not Mar 3rd.
@@ -137,8 +137,8 @@ final class Interval {
    * @return \Drupal\Core\Datetime\DrupalDateTime
    *   The new date.
    */
-  public function floor(DrupalDateTime $date) {
-    /** @var \DateTime $new_date */
+  public function floor(DrupalDateTime $date) : DrupalDateTime {
+    /** @var \Drupal\Core\Datetime\DrupalDateTime $new_date */
     $new_date = clone $date;
     switch ($this->unit) {
       case 'hour':
@@ -181,7 +181,7 @@ final class Interval {
    * @return \Drupal\Core\Datetime\DrupalDateTime
    *   The new date.
    */
-  public function ceil(DrupalDateTime $date) {
+  public function ceil(DrupalDateTime $date) : DrupalDateTime {
     return $this->add($this->floor($date));
   }
 

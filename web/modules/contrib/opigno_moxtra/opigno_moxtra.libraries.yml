@@ -12,13 +12,12 @@ meeting:
 
 meeting_form:
   version: VERSION
-  css:
-    theme:
-      css/meeting_form.css: {}
   js:
     js/meeting_form.js: {}
   dependencies:
     - core/jquery
+    - core/jquery.once
+    - opigno_learning_path/opigno_autocomplite_multiselect
 
 meeting_scheduled:
   version: VERSION

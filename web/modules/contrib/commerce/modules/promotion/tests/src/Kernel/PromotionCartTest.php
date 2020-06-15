@@ -6,31 +6,14 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_promotion\Entity\Promotion;
-use Drupal\Tests\commerce_cart\Kernel\CartManagerTestTrait;
-use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
+use Drupal\Tests\commerce_cart\Kernel\CartKernelTestBase;
 
 /**
  * Tests the integration between promotions and carts.
  *
  * @group commerce
  */
-class PromotionCartTest extends CommerceKernelTestBase {
-
-  use CartManagerTestTrait;
-
-  /**
-   * The cart manager.
-   *
-   * @var \Drupal\commerce_cart\CartManager
-   */
-  protected $cartManager;
-
-  /**
-   * The cart provider.
-   *
-   * @var \Drupal\commerce_cart\CartProvider
-   */
-  protected $cartProvider;
+class PromotionCartTest extends CartKernelTestBase {
 
   /**
    * Modules to enable.
@@ -38,12 +21,6 @@ class PromotionCartTest extends CommerceKernelTestBase {
    * @var array
    */
   public static $modules = [
-    'entity_reference_revisions',
-    'profile',
-    'state_machine',
-    'commerce_order',
-    'path',
-    'commerce_product',
     'commerce_promotion',
   ];
 
@@ -53,18 +30,8 @@ class PromotionCartTest extends CommerceKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('profile');
-    $this->installEntitySchema('commerce_order');
-    $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('commerce_promotion');
-    $this->installEntitySchema('commerce_product_variation');
-    $this->installEntitySchema('commerce_product');
-    $this->installConfig([
-      'profile',
-      'commerce_order',
-      'commerce_product',
-      'commerce_promotion',
-    ]);
+    $this->installConfig(['commerce_promotion']);
     $this->installSchema('commerce_promotion', ['commerce_promotion_usage']);
   }
 
@@ -72,8 +39,6 @@ class PromotionCartTest extends CommerceKernelTestBase {
    * Tests adding a product with a promotion to the cart.
    */
   public function testPromotionCart() {
-    $this->installCommerceCart();
-
     $variation = ProductVariation::create([
       'type' => 'default',
       'sku' => strtolower($this->randomMachineName()),

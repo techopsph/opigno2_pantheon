@@ -65,14 +65,30 @@ entity_print_print_engine.dompdf:
 entity_print_print_engine.phpwkhtmltopdf:
   type: entint_print_engine_pdf
   label: 'PHP Wkhtmltopdf'
-  type: mapping
   mapping:
     binary_location:
       type: string
       label: 'Path to the wkhtmltopdf binary'
+    toc_generate:
+      type: boolean
+      label: 'Generate table of content'
+    toc_enable_back_links:
+      type: boolean
+      label: 'Link from section header to table of content'
+    toc_disable_dotted_lines:
+      type: boolean
+      label: 'Do not use dotted lines in the table of content'
+    toc_disable_links:
+      type: boolean
+      label: 'Do not link from table of content to sections'
+    viewport_size:
+      type: string
+      label: 'Set viewport size if you have custom scrollbars or css attribute overflow to emulate window size.'
+    remove_pdf_margins:
+      type: boolean
+      label: 'Remove the page margins on the PDF'
 
 entity_print_print_engine.tcpdfv1:
-  type: mapping
   label: 'TCPDF (v1)'
   type: mapping
   mapping:

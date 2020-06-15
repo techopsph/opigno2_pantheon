@@ -23,7 +23,7 @@ use Drupal\entity\BundleFieldDefinition;
  *     "storage" = "Drupal\opigno_calendar_event\CalendarEventStorage",
  *     "storage_schema" = "Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema",
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
- *     "access" = "Drupal\entity\EntityAccessControlHandler",
+ *     "access" = "Drupal\opigno_calendar_event\CalendarEventAccess",
  *     "permission_provider" = "Drupal\entity\EntityPermissionProvider",
  *     "views_data" = "Drupal\views\EntityViewsData",
  *     "form" = {
@@ -82,6 +82,13 @@ class CalendarEvent extends EditorialContentEntityBase implements CalendarEventI
    * @var string
    */
   protected $dateFieldName;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOwnerId() {
+    return $this->get('uid')->target_id;
+  }
 
   /**
    * {@inheritdoc}

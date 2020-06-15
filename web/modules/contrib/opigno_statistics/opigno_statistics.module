@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\Group;
+use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\user\UserInterface;
 use Drupal\Core\Database\Database;
 
@@ -51,17 +52,9 @@ function opigno_statistics_group_access(Group $group, $operation, AccountInterfa
     }
     else {
       // Check if user has role 'student manager' in any of trainings.
-      $query_c = $connection
-        ->select('group_content_field_data', 'g_c_f_d')
-        ->fields('g_c_f_d', ['gid']);
-      $query_c->leftJoin('group_content__group_roles', 'g_c_g_r', 'g_c_f_d.id = g_c_g_r.entity_id');
-      $query_c->condition('g_c_g_r.group_roles_target_id', 'learning_path-user_manager');
-      $query_c->condition('g_c_f_d.entity_id', $account->id());
-      $query_c->condition('g_c_f_d.type', 'learning_path-group_membership');
-      $query_c->condition('g_c_f_d.gid', $group->id());
-      $lp_counts = $query_c->countQuery()->execute()->fetchField();
+      $is_user_manager = LearningPathAccess::memberHasRole('user_manager', $account, $group->id());
 
-      if ($lp_counts > 0) {
+      if ($is_user_manager > 0) {
         return AccessResult::allowed();
       }
       else {

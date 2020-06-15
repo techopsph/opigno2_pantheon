@@ -100,7 +100,7 @@ class OrderRefresh implements OrderRefreshInterface {
    */
   public function needsRefresh(OrderInterface $order) {
     // Only draft orders should be automatically refreshed.
-    if ($order->getState()->value != 'draft') {
+    if ($order->getState()->getId() != 'draft') {
       return FALSE;
     }
 
@@ -134,7 +134,8 @@ class OrderRefresh implements OrderRefreshInterface {
       return;
     }
 
-    $context = new Context($order->getCustomer(), $order->getStore());
+    $time = $order->getCalculationDate()->format('U');
+    $context = new Context($order->getCustomer(), $order->getStore(), $time);
     foreach ($order->getItems() as $order_item) {
       $purchased_entity = $order_item->getPurchasedEntity();
       if ($purchased_entity) {

@@ -1,5 +1,14 @@
 Mime Mail 8.x-1.x, xxxx-xx-xx
 -----------------------
+- #2986723 by TR: Many settings not ported to D8 yet
+- #2938963 by hansfn, TR, colan: Sender'Mime Mail mailer fails without explanation
+- #2985911 by TR: Port test cases to D8
+- #2983816 by TR, Xano: Add basic config schemas / fix AdminForm
+- #2986145 by TR: Use mb_* functions instead of Unicode::* methods
+- #2986124 by TR, riddhi.addweb: Coding standards: Short array syntax
+- #2986160 by TR: drupal_get_message() and drupal_set_message() replaced by Messenger service
+- #2885904 by pcambra, colan, TR: Default filter format is non-existent
+- #2986156 by TR: getFormID() should be getFormId()
 
 Mime Mail 8.x-1.0-alpha2, 2017-05-14
 -----------------------
@@ -126,7 +135,7 @@ Mime Mail 6.x-1.0, 2011-11-19
 - #1203234 by sgabe | Offlein: Store input format setting for Rules and actions.
 - #1227242 by sgabe: Remove unnecessary reference signs.
 - #1076520 by joelstein: Absolute site stylesheets not included.
-- #1258062 by oadaeh: Don't allow an empty e-mail address with the default engine.
+- #1258062 by oadaeh: Don't allow an empty email address with the default engine.
 - #1270686 by gmania: Don't add Content-Disposition to multipart/alternative parts.
 - #1260302 by sgabe | prokop1000: Replace encoding detection with UTF-8.
 - #1270656 by sgabe: From header can be an array which causes errors.
@@ -137,7 +146,7 @@ Mime Mail 6.x-1.0, 2011-11-19
 - #1181170 by sgabe, Cyberwolf, ibes | windm: Add permission to set user specific settings.
 - #1309248 by sgabe, gmania: Generate not existing ImageCache images before embedding.
 - #1304134 by sdague: Add preference to link images.
-- #1275080 by gmania: Remove the depricated Errors-To header.
+- #1275080 by gmania: Remove the deprecated Errors-To header.
 
 Mime Mail 6.x-1.0-beta2, 2011-06-22
 ----------------------
@@ -159,7 +168,7 @@ Mime Mail 6.x-1.0-beta1, 2011-06-04
 - #1114536 by rjbrown99: Pass recipient to the template.
 - #971272 by sgabe: Allow to specify sender's name for Rules action messages.
 - #1167576 by Pol: Accept plaintext and text parameters for system messages.
-- #338460 by hopla: Doens't look for mail.css in Zen sub-themes.
+- #338460 by hopla: Doesn't look for mail.css in Zen sub-themes.
 - #261028 by sgabe, gnosis, mfb, mrfelton, LUTi: SMTP Return-Path Setting.
 - #1175378 by sgabe, samalone: Include module CSS files in email.
 
@@ -185,14 +194,14 @@ Mime Mail 6.x-1.0-alpha7, 2011-01-31
 - #961536 by clydefrog: Check if sender is empty, not just null
 - #852698 by sgabe | interestingaftermath: Specify sender's name
 - #685574 by sgabe, Wim Leers | Michelle: Optional site's css embedding
-- #758754 by sgabe | mennonot: Add 'Send HTML e-mail' action
+- #758754 by sgabe | mennonot: Add 'Send HTML email' action
 - #501722 by jpetso, fago, criz, sgabe, aantonop: HTML mail actions for Rules
 - #729658 by sgabe, Agileware: Allow better integration with Domain Access module
 - #960726 by sgabe, clydefrog: Send plaintext message if the HTML body is empty
 
 Mime Mail 6.x-1.0-alpha6, 2010-09-13
 ----------------------
-- #629038 by Robbert: Attachments dont respect ‘list’ setting
+- #629038 by Robbert: Attachments don't respect ‘list’ setting
 - #882960 by sgabe, glynster: CSS Mail Style Sheet Overrides
 - #319229 by javierreartes, tobiasb, sgabe, crifi: Set $attachments in drupal_wrap_mail()
 - #903536 by sgabe: Use variable_del() to remove smtp_library()

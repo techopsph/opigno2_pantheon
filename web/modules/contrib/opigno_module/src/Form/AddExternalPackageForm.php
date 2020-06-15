@@ -83,7 +83,7 @@ class AddExternalPackageForm extends FormBase {
       // Only need to validate if the field actually has a file.
       $form_state->setError(
         $form['package'],
-        $this->t("Files isn't uploaded.")
+        $this->t("The file was not uploaded.")
       );
     }
 
@@ -103,7 +103,7 @@ class AddExternalPackageForm extends FormBase {
       $public_files_real_path = \Drupal::service('file_system')->realpath($file_default_scheme . "://");
       $ppt_dir_real_path = $public_files_real_path . '/' . $ppt_dir;
 
-      $file = file_save_upload($file_field, $validators, $temporary_file_path, NULL, FILE_EXISTS_REPLACE);
+      $file = file_save_upload($file_field, $validators, $temporary_file_path, NULL, FileSystemInterface::EXISTS_REPLACE);
 
       // Rename uploaded file - remove special chars.
       $file_new = $file[0];
@@ -172,10 +172,37 @@ class AddExternalPackageForm extends FormBase {
       $scorm_file = $extract_dir . '/imsmanifest.xml';
       $tincan_file = $extract_dir . '/tincan.xml';
       if (!file_exists($scorm_file) && !file_exists($tincan_file)) {
-        $form_state->setError(
-          $form['package'],
-          $this->t('Your file is not recognized as a valid SCORM, TinCan, or H5P package.')
-        );
+        $validation = FALSE;
+
+        $files = scandir($extract_dir);
+        $count_files = count($files);
+
+        if ($count_files == 3 && is_dir($extract_dir. '/' . $files[2])) {
+          $subfolder_files = scandir($extract_dir. '/' . $files[2]);
+
+          if (in_array('imsmanifest.xml', $subfolder_files)) {
+            $source = $extract_dir. '/' . $files[2];
+
+            $i = new \RecursiveDirectoryIterator($source);
+            foreach($i as $f) {
+              if($f->isFile()) {
+                rename($f->getPathname(), $extract_dir . '/' . $f->getFilename());
+              } else if($f->isDir()) {
+                rename($f->getPathname(), $extract_dir . '/' . $f->getFilename());
+                unlink($f->getPathname());
+              }
+            }
+            $validation = TRUE;
+          }
+        }
+
+
+        if ($validation == FALSE) {
+          $form_state->setError(
+            $form['package'],
+            $this->t('Your file is not recognized as a valid SCORM, TinCan, or H5P package.')
+          );
+        }
       }
     }
   }

@@ -19,6 +19,12 @@
           that.setStyle('block');
         }
       });
+
+      // Show on mobile only block view.
+      if ($(window).width() < 768) {
+        $(this).closest('.view').removeClass('style-line');
+        that.setStyle('block');
+      }
     },
 
     setStyle: function (style) {

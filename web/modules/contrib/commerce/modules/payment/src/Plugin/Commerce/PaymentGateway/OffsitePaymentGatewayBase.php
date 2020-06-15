@@ -16,7 +16,7 @@ abstract class OffsitePaymentGatewayBase extends PaymentGatewayBase implements O
    */
   public function getNotifyUrl() {
     return Url::fromRoute('commerce_payment.notify', [
-      'commerce_payment_gateway' => $this->entityId,
+      'commerce_payment_gateway' => $this->parentEntity->id(),
     ], ['absolute' => TRUE]);
   }
 
@@ -29,7 +29,7 @@ abstract class OffsitePaymentGatewayBase extends PaymentGatewayBase implements O
    * {@inheritdoc}
    */
   public function onCancel(OrderInterface $order, Request $request) {
-    drupal_set_message($this->t('You have canceled checkout at @gateway but may resume the checkout process here when you are ready.', [
+    $this->messenger()->addMessage($this->t('You have canceled checkout at @gateway but may resume the checkout process here when you are ready.', [
       '@gateway' => $this->getDisplayLabel(),
     ]));
   }

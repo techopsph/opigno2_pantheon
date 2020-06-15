@@ -8,7 +8,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\gnode\Controller\GroupNodeController;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\group\Plugin\GroupContentEnablerManagerInterface;
-use Drupal\user\PrivateTempStoreFactory;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -28,7 +28,7 @@ class OpignoModuleGroupController extends GroupNodeController {
    *
    * @param \Drupal\group\Plugin\GroupContentEnablerManagerInterface $plugin_manager
    *   The group content plugin manager.
-   * @param \Drupal\user\PrivateTempStoreFactory $temp_store_factory
+   * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $temp_store_factory
    *   The private store factory.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.

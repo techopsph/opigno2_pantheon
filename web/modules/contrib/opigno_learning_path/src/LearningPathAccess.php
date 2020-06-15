@@ -77,13 +77,33 @@ class LearningPathAccess {
   }
 
   /**
+   * Returns group required validation.
+   */
+  public static function requiredValidation(Group $group, $account = FALSE) {
+    if (!$account) {
+      $account = \Drupal::currentUser();
+    }
+    // Check if we need to wait validation.
+    $validation = FALSE;
+    if ($group->get('field_requires_validation')->value && !$account->hasPermission('bypass group validation requirement')) {
+      $validation = TRUE;
+    }
+
+
+    return $validation;
+  }
+
+  /**
    * Returns group user access flag in validation condition.
    */
   public static function statusGroupValidation(Group $group, AccountInterface $account) {
     $access = TRUE;
     if ($membership = $group->getMember($account)) {
       $visibility = $group->field_learning_path_visibility->value;
-      $validation = $group->field_requires_validation->value;
+
+      // Check if we need to wait validation.
+      $validation = LearningPathAccess::requiredValidation($group, $account);
+
       $status = LearningPathAccess::getMembershipStatus($membership->getGroupContent()->id());
       $required_trainings = self::hasUncompletedRequiredTrainings($group, $account);
 
@@ -224,7 +244,8 @@ class LearningPathAccess {
     $uid = $membership->getEntity()->id();
     $gid = $group->id();
     $visibility = $group->field_learning_path_visibility->value;
-    $validation = $group->field_requires_validation->value;
+    // Check if we need to wait validation.
+    $validation = LearningPathAccess::requiredValidation($group);
     $is_new = $membership->isNew();
     $user_join = $membership->getEntity()->id() == $membership->getOwnerId();
     if ($is_new && $user_join) {
@@ -266,7 +287,7 @@ class LearningPathAccess {
           && $membership->getEntity()->id() == $membership->getOwnerId()) {
           $messenger = \Drupal::messenger();
           if ($status == 2) {
-            $messenger->addMessage(t('Thanks ! The subscription to that training requires the validation of an administrator or a teacher. 
+            $messenger->addMessage(t('Thanks ! The subscription to that training requires the validation of an administrator or a teacher.
               You will receive an email as soon as your subscription has been validated.')
             );
           }
@@ -550,6 +571,39 @@ class LearningPathAccess {
     }
 
     return $access;
+  }
+
+  /**
+   * Check if user has needed local role.
+   *
+   * @param string $role
+   *   User role in group.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   User account.
+   *
+   * @param int $gid
+   *   Group ID.
+   *
+   * @return bool
+   *   Check if user has access to Class or Course.
+   */
+  public static function memberHasRole($role, AccountInterface $account, $gid = NULL) {
+    $role = "learning_path-{$role}";
+
+    $connection = Database::getConnection();
+    $query = $connection->select('group_content_field_data', 'g_c_f_d')
+      ->fields('g_c_f_d', ['gid']);
+    $query->leftJoin('group_content__group_roles', 'g_c_g_r', 'g_c_f_d.id = g_c_g_r.entity_id');
+    $query->condition('g_c_g_r.group_roles_target_id', $role);
+    $query->condition('g_c_f_d.entity_id', $account->id());
+    $query->condition('g_c_f_d.type', 'learning_path-group_membership');
+    if (!empty($gid)) {
+      $query->condition('g_c_f_d.gid', $gid);
+    }
+    $lp_counts = $query->countQuery()->execute()->fetchField();
+
+    return $lp_counts > 0;
   }
 
 }

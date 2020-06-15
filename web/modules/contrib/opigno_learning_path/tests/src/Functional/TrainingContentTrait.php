@@ -7,6 +7,7 @@ use Drupal\group\Entity\GroupContent;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
+use Drupal\opigno_module\Entity\UserModuleStatus;
 
 /**
  * Trait TrainingContentTrait.
@@ -48,13 +49,15 @@ trait TrainingContentTrait {
    *   Group.
    * @param \Drupal\opigno_module\Entity\OpignoModule $module
    *   Module.
+   * @param int $is_mandatory
+   *   Content is required.
    *
    * @return \Drupal\group\Entity\Group
    *   The training with contents.
    */
-  protected function addModuleToTraining(Group $training, OpignoModule $module) {
+  protected function addModuleToTraining(Group $training, OpignoModule $module, $is_mandatory = 1) {
     // Add module as a content to a training.
-    $training = $this->createContentForTraining($module, 'ContentTypeModule', $training);
+    $training = $this->createContentForTraining($module, 'ContentTypeModule', $training, $is_mandatory);
 
     return $training;
   }
@@ -82,7 +85,7 @@ trait TrainingContentTrait {
     ]);
     $module->save();
 
-    $activities = $this->createActivities(['type' => 'long_answer'], 1);
+    $activities = $this->createActivities(['type' => 'opigno_long_answer'], 1);
 
     // Add activities to a modules.
     $opigno_module_controller = \Drupal::service('opigno_module.opigno_module');
@@ -94,14 +97,14 @@ trait TrainingContentTrait {
   /**
    * Creates training content.
    */
-  private function createContentForTraining($content_item, $content_type, $group) {
+  private function createContentForTraining($content_item, $content_type, $group, $is_mandatory = 1) {
     // Create the added item as an group content.
     $group_content = OpignoGroupManagedContent::createWithValues(
       $group->id(),
       $content_type,
       $content_item->id(),
       0,
-      1
+      $is_mandatory
     );
     $group_content->save();
 
@@ -140,6 +143,41 @@ trait TrainingContentTrait {
     }
 
     return $activities;
+  }
+
+  /**
+   * Create an Answer.
+   *
+   * @param OpignoActivity $activity
+   *   Opigno Activity entity.
+   * @param OpignoModule $module
+   *   Opigno Module entity.
+   * @param UserModuleStatus $attempt
+   *   Opigno user module status.
+   * @param int $uid
+   *   User ID.
+   * @param int $score
+   *   Score.
+   *
+   * @return \Drupal\opigno_module\Entity\OpignoAnswer
+   *   Opigno Answer entity.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+  public function createAnswer($activity, $module, $attempt, $uid, $score) {
+    $answer = \Drupal::entityTypeManager()->getStorage('opigno_answer')->create([
+      'type' => 'opigno_long_answer',
+      'activity' => $activity->id(),
+      'evaluated' => 1,
+      'user_module_status' => $attempt->id(),
+      'score' => $score,
+      'module' => $module->id(),
+      'user_id' => $uid,
+    ]);
+
+    $answer->save();
+
+    return $answer;
   }
 
   /**

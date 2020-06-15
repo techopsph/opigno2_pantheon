@@ -14,6 +14,7 @@
   float: none;
   margin: 0px;
   width: 100%;
+  margin-top: -24px;
 }
 
 .calendar-calendar td .inner div,
@@ -162,8 +163,6 @@
 .calendar-calendar .day-view .full div.calendar-agenda-items  {
   height: 47px;
   border-top: 1px solid #cccccc;
-  clear: both;
-  width: 100%;
 }
 
 .calendar-calendar .week-view .full .calendar-agenda-hour {
@@ -253,13 +252,11 @@
 
 .calendar-calendar .week-view div.single-day .view-item,
 .calendar-calendar .day-view div.single-day .view-item {
+  position: absolute;
   width: 100%;
   background: none;
   text-align: left;
   z-index: 1;
-  margin-top: -24px;
-  max-width: 120px;
-  float: left;
 }
 
 .calendar-calendar .week-view div.single-day .half-hour,
@@ -821,7 +818,7 @@
 .single-day-footer .grippie,
 .header-body-divider .grippie {
   overflow: hidden;
-  background: #eee url("../images/grippie.png") no-repeat center 2px;
+  background: #eee url("/misc/grippie.png") no-repeat center 2px;
   cursor: s-resize;
   height: 3px;
 }

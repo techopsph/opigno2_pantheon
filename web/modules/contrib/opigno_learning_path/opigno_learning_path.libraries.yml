@@ -66,6 +66,7 @@ member_add:
     - core/jquery
     - core/jquery.once
     - core/drupalSettings
+    - opigno_learning_path/opigno_autocomplite_multiselect
 
 create_member:
   version: VERSION
@@ -108,13 +109,33 @@ achievements:
   css:
     theme:
       css/opigno_learning_path_achievements.css: {}
+
+    component:
+      /libraries/slick/slick/slick.css: {}
   js:
     js/opigno_learning_path_achievements.js: {}
+    /libraries/slick/slick/slick.min.js: { minified: true }
   dependencies:
     - core/jquery
     - core/jquery.once
     - core/drupalSettings
     - core/drupal.ajax
+
+achievements_slick:
+  version: VERSION
+  css:
+    component:
+      /libraries/slick/slick/slick.css: {}
+  js:
+    /libraries/slick/slick/slick.min.js: { minified: true }
+
+achievements_slick_profile:
+  version: VERSION
+  css:
+    component:
+      /profiles/opigno_lms/libraries/slick/slick/slick.css: {}
+  js:
+    /profiles/opigno_lms/libraries/slick/slick/slick.min.js: { minified: true }
 
 creation_steps:
   version: VERSION
@@ -153,3 +174,7 @@ iframe_opigno_lp_manager:
   css:
     theme:
       css/iframe_opigno_lp_manager.css: {}
+
+opigno_autocomplite_multiselect:
+  js:
+    js/opigno_autocomplite_multiselect.js: {}
