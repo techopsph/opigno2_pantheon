@@ -45,8 +45,8 @@ final class Versions
   'drupal-ckeditor-libraries-group/font' => '4.13.1@e596f49021e8c716c17f9f0345658ed14d8dbe1f',
   'drupal/address' => '1.8.0@8.x-1.8',
   'drupal/better_exposed_filters' => '4.0.0-beta1@8.x-4.0-beta1',
-  'drupal/calendar' => 'dev-1.x@73e2979',
-  'drupal/calendar_datetime' => 'dev-1.x@',
+  'drupal/calendar' => '1.0.0-alpha2@8.x-1.0-alpha2',
+  'drupal/calendar_datetime' => '1.0.0-alpha2@',
   'drupal/ckeditor_bgimage' => '1.1.0@8.x-1.1',
   'drupal/ckeditor_font' => 'dev-1.x@6d06753a6795cf7c2cd25ed7427b7602b43c6046',
   'drupal/commerce' => '2.18.0@8.x-2.18',
@@ -237,9 +237,9 @@ final class Versions
   'symfony/finder' => 'v3.4.42@5ec813ccafa8164ef21757e8c725d3a57da59200',
   'symfony/polyfill-php80' => 'v1.17.0@5e30b2799bc1ad68f7feb62b60a73743589438dd',
   'symfony/var-dumper' => 'v4.4.10@56b3aa5eab0ac6720dcd559fd1d590ce301594ac',
-  'h5p/h5p-core' => '*@e6992587a36fdf6cba56956de4bb938b3db4d52f',
-  'h5p/h5p-editor' => '*@e6992587a36fdf6cba56956de4bb938b3db4d52f',
-  'opigno/opigno-composer' => 'dev-master@e6992587a36fdf6cba56956de4bb938b3db4d52f',
+  'h5p/h5p-core' => '*@b00995fbde7432182ff56f3812065b871c84b6ad',
+  'h5p/h5p-editor' => '*@b00995fbde7432182ff56f3812065b871c84b6ad',
+  'opigno/opigno-composer' => 'dev-master@b00995fbde7432182ff56f3812065b871c84b6ad',
 );
 
     private function __construct()

@@ -72,7 +72,6 @@
         "cweagans/composer-patches":            "^1.6",
         "drupal/core-composer-scaffold":        "^8.8",
         "drupal/core-project-message":          "^8.8",
-		"drupal/calendar":                      "1.x-dev#73e2979",
         "drupal/view_mode_selector":            "1.x-dev#93d105f",
 		"drupal/views_role_based_global_text":  "1.x-dev#550f8e0",
         "drupal/media_entity_browser":          "2.x-dev#8129394",

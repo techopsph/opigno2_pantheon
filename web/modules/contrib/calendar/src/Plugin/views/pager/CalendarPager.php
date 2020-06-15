@@ -46,7 +46,8 @@ class CalendarPager extends PagerPluginBase {
    * {@inheritdoc}
    */
   public function render($input) {
-    if (!$this->argument->validateValue()) {
+    // The $this->argument is an \Drupal\calendar\DateArgumentWrapper object or FALSE.
+    if (!$this->argument || !$this->argument->validateValue()) {
       return [];
     }
     $items['previous'] = [
@@ -89,7 +90,6 @@ class CalendarPager extends PagerPluginBase {
    */
   protected function getPagerURL($mode, $input) {
     $value = $this->getPagerArgValue($mode);
-    $base_path = $this->view->getPath();
     $current_position = 0;
     $arg_vals = [];
     /**
@@ -105,8 +105,7 @@ class CalendarPager extends PagerPluginBase {
       $current_position++;
     }
 
-    // @todo How do you get display_id here so we can use CalendarHelper::getViewsURL
-    return Url::fromUri('internal:/' . $base_path . '/' . implode('/', $arg_vals), ['query' => $input]);
+    return $this->view->getUrl($arg_vals, $this->view->current_display);
   }
 
   /**
