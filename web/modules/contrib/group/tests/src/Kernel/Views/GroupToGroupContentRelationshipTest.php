@@ -19,7 +19,20 @@ class GroupToGroupContentRelationshipTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['group', 'field', 'text', 'group_test_config', 'user', 'group_test_plugin', 'group_test_views'];
+  public static $modules = [
+    'group',
+    'options',
+    'entity',
+    'variationcache',
+    'field',
+    'text',
+    'group_test_config',
+    'group_test_plugin',
+    'group_test_views',
+    // The following need to be enabled for group_test_plugin.
+    'node',
+    'shortcut',
+  ];
 
   /**
    * Views used by this test.

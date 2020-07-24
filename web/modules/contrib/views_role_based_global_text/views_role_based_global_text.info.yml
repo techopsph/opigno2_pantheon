@@ -3,5 +3,4 @@ description: 'Module provides the option to show the content in Global: Text Are
 core: 8.x
 type: module
 dependencies:
-  - views
-
+  - drupal:views

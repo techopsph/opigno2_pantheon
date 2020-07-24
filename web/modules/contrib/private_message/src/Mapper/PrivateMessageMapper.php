@@ -45,28 +45,23 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
   public function getThreadIdForMembers(array $members) {
     $uids = [];
     foreach ($members as $member) {
-      $uids[] = $member->id();
+      $uids[$member->id()] = $member->id();
     }
 
-    $query = $this->database->select('private_message_threads', 'pm')
-      ->fields('pm', ['id'])
-      ->range(0, 1);
-
-    // First do an inner join for each user, to ensure that the user exists in
-    // the thread.
-    $i = 0;
-    foreach ($uids as $uid) {
-      $tmp_alias = 'member_' . $i;
-      $query->join('private_message_thread__members', $tmp_alias, $tmp_alias . '.entity_id = pm.id AND ' . $tmp_alias . '.members_target_id = :uid' . $i, [':uid' . $i => $uid]);
-      $i++;
+    // There is quite possibly a cleaner way to do this entirely in SQL, but
+    // the previous method using JOINs hit a system join limit in MySQL.
+    $query = $this->database->select('private_message_thread__members', 'pmt')
+      ->fields('pmt', ['entity_id', 'members_target_id'])
+      ->condition('members_target_id', $uids, 'IN')
+      ->groupBy('entity_id')
+      ->groupBy('members_target_id')
+      ->orderBy('entity_id', 'ASC');
+    $threads = [];
+    foreach ($query->execute()->fetchAll() as $result) {
+      $threads[$result->entity_id] = isset($threads[$result->entity_id]) ? ++$threads[$result->entity_id] : 1;
     }
-
-    // Next, do a left join for all rows that don't contain the users, and
-    // ensure that there aren't any additional users in selected threads.
-    $alias = $query->leftJoin('private_message_thread__members', 'thread_member', 'thread_member.entity_id = pm.id AND thread_member.members_target_id NOT IN (:uids[])', [':uids[]' => $uids]);
-    $query->isNull($alias . '.members_target_id');
-
-    return $query->execute()->fetchField();
+    $threads = array_flip($threads);
+    return $threads[count($uids)];
   }
 
   /**

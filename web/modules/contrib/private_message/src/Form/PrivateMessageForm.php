@@ -178,8 +178,9 @@ class PrivateMessageForm extends ContentEntityForm {
   public function buildForm(array $form, FormStateInterface $form_state, PrivateMessageThreadInterface $privateMessageThread = NULL) {
     $form = parent::buildForm($form, $form_state);
 
+
     if ($privateMessageThread) {
-      $form_state->set('thread_members', $privateMessageThread->getMembers());
+      $form_state->set('thread', $privateMessageThread);
       $form['actions']['submit']['#ajax'] = [
         'callback' => '::ajaxCallback',
       ];
@@ -294,8 +295,9 @@ class PrivateMessageForm extends ContentEntityForm {
   public function save(array $form, FormStateInterface $formState) {
     $status = parent::save($form, $formState);
 
-    $members = $formState->get('thread_members');
-    if (!$members) {
+    /** @var \Drupal\private_message\Entity\PrivateMessageThreadInterface $private_message_thread */
+    $private_message_thread = $formState->get('thread');
+    if (!$private_message_thread) {
       // Generate an array containing the members of the thread.
       $current_user = $this->userManager->load($this->currentUser->id());
 
@@ -306,13 +308,12 @@ class PrivateMessageForm extends ContentEntityForm {
           $members[] = $user;
         }
       }
+      // Get a private message thread containing the given users.
+      $private_message_thread = $this->privateMessageService->getThreadForMembers($members);
     }
 
-    // Get a private message thread containing the given users.
-    $private_message_thread = $this->privateMessageService->getThreadForMembers($members);
-
     // Save the thread.
-    $this->privateMessageThreadManager->saveThread($this->entity, $members, [], $private_message_thread);
+    $this->privateMessageThreadManager->saveThread($this->entity, $private_message_thread->getMembers(), [], $private_message_thread);
 
     // Save the thread to the form state.
     $formState->set('private_message_thread', $private_message_thread);

@@ -31,8 +31,8 @@ use Drupal\Core\Session\AccountInterface;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "canonical" = "/private_messages/{private_message_thread}",
- *     "delete-form" = "/private_messagethread/{private_message_thread}/delete",
+ *     "canonical" = "/private-messages/{private_message_thread}",
+ *     "delete-form" = "/private-messages/{private_message_thread}/delete",
  *   },
  *   field_ui_base_route = "private_message.private_message_thread_settings",
  * )
@@ -160,9 +160,24 @@ class PrivateMessageThread extends ContentEntityBase implements PrivateMessageTh
    * {@inheritdoc}
    */
   public function getLastAccessTime(AccountInterface $account) {
+    $cid = implode(':', ['private_message', 'last_access_time', $this->id(), $account->id()]);
+    // @todo Inject me.
+    $cache = \Drupal::cache('default');
+    $item = $cache->get($cid);
+
+    if ($item) {
+      // Ensure the last access time is still present on the thread.
+      foreach ($this->get('last_access_time') as $last_access_time) {
+        if ($last_access_time->target_id == $item->data) {
+          return $last_access_time;
+        }
+      }
+    }
+
     $private_message_last_access = FALSE;
     foreach ($this->get('last_access_time') as $last_access_time) {
       if ($last_access_time->entity->getOwnerId() == $account->id()) {
+        $cache->set($cid, $last_access_time->target_id);
         $private_message_last_access = $last_access_time;
 
         break;
@@ -220,28 +235,41 @@ class PrivateMessageThread extends ContentEntityBase implements PrivateMessageTh
    * {@inheritdoc}
    */
   public function getLastDeleteTimestamp(AccountInterface $account) {
-    $private_message_delete_time = FALSE;
-    foreach ($this->get('last_delete_time') as $last_delete_time) {
-      if ($last_delete_time->entity->getOwnerId() == $account->id()) {
-        $private_message_delete_time = $last_delete_time->entity->get('delete_time')->value;
+    $last_delete_time = $this->getLastDeleteTime($account);
 
-        break;
-      }
+    if ($last_delete_time) {
+      return $last_delete_time->get('delete_time')->value;
     }
 
-    return $private_message_delete_time;
+    return FALSE;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getLastDeleteTime(AccountInterface $account) {
+    $cid = implode(':', ['private_message', 'last_delete_time', $this->id(), $account->id()]);
+    // @todo Inject me.
+    $cache = \Drupal::cache('default');
+    $item = $cache->get($cid);
+
+    if ($item) {
+      // Ensure the last delete time is still present on the thread.
+      foreach ($this->get('last_delete_time') as $last_delete_time) {
+        if ($last_delete_time->target_id == $item->data) {
+          return $last_delete_time->entity;
+        }
+      }
+    }
+
     foreach ($this->get('last_delete_time') as $last_delete_time) {
       if ($last_delete_time->entity->getOwnerId() == $account->id()) {
+        $cache->set($cid, $last_delete_time->target_id);
         return $last_delete_time->entity;
       }
     }
 
+    // This should never happen with how the model is setup.
     return FALSE;
   }
 

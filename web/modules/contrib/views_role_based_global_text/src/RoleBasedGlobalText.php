@@ -1,15 +1,13 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views_role_based_global_text\RoleBasedGlobalText;
- */
-
 namespace Drupal\views_role_based_global_text;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\area\Text;
 
+/**
+ * Class RoleBasedGlobalText.
+ */
 class RoleBasedGlobalText extends Text {
 
   /**
@@ -17,7 +15,7 @@ class RoleBasedGlobalText extends Text {
    */
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['roles_fieldset']['roles'] = ['default' => FALSE];
+    $options['roles_fieldset']['default'] = FALSE;
     return $options;
   }
 

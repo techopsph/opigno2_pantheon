@@ -38,7 +38,7 @@ final class FallbackVersions
      * @throws OutOfBoundsException If a version cannot be located.
      * @throws UnexpectedValueException If the composer.lock file could not be located.
      */
-    public static function getVersion(string $packageName) : string
+    public static function getVersion(string $packageName): string
     {
         $versions = iterator_to_array(self::getVersions(self::getPackageData()));
 
@@ -56,7 +56,7 @@ final class FallbackVersions
      *
      * @throws UnexpectedValueException
      */
-    private static function getPackageData() : array
+    private static function getPackageData(): array
     {
         $checkedPaths = [
             // The top-level project's ./vendor/composer/installed.json
@@ -102,8 +102,8 @@ final class FallbackVersions
         throw new UnexpectedValueException(sprintf(
             'PackageVersions could not locate the `vendor/composer/installed.json` or your `composer.lock` '
             . 'location. This is assumed to be in %s. If you customized your composer vendor directory and ran composer '
-            . 'installation with --no-scripts or if you deployed without the required composer files, then you are on '
-            . 'your own, and we can\'t really help you. Fix your shit and cut the tooling some slack.',
+            . 'installation with --no-scripts, or if you deployed without the required composer files, PackageVersions '
+            . 'can\'t detect installed versions.',
             json_encode($checkedPaths)
         ));
     }
@@ -115,7 +115,7 @@ final class FallbackVersions
      *
      * @psalm-return Generator<string, string>
      */
-    private static function getVersions(array $packageData) : Generator
+    private static function getVersions(array $packageData): Generator
     {
         foreach ($packageData as $package) {
             yield $package['name'] => $package['version'] . '@' . (
