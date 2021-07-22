@@ -1,4 +1,0 @@
-send example email:
-  title: 'Send example email'
-  description: 'Use the example email form to send arbitrary email with attachments.'
-  restrict access: true

@@ -5,3 +5,8 @@ core_version_requirement: ^8 || ^9
 type: module
 dependencies:
   - drupal:views
+
+# Information added by Drupal.org packaging script on 2021-02-05
+version: '8.x-2.0'
+project: 'views_role_based_global_text'
+datestamp: 1612531061

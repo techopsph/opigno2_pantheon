@@ -1,4 +1,0 @@
-theme: current
-defaults:
-  sender: php_mail
-  formatter: mime_mail

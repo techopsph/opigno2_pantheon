@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bfdf2dc207c549d499df5b164c7c066a",
+    "content-hash": "ed1ec3139a0a64a6be61a9374fe27de2",
     "packages": [
         {
             "name": "almende/vis",
@@ -1509,17 +1509,11 @@
         },
         {
             "name": "drupal/calendar",
-            "version": "1.0.0-alpha4",
+            "version": "dev-1.x",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/calendar.git",
-                "reference": "8.x-1.0-alpha4"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/calendar-8.x-1.0-alpha4.zip",
-                "reference": "8.x-1.0-alpha4",
-                "shasum": "3c829439260591c4fbcc2a55737a7c9cb4908b05"
+                "reference": "1824fdc"
             },
             "require": {
                 "drupal/calendar_datetime": "*",
@@ -1528,15 +1522,19 @@
             },
             "type": "drupal-module",
             "extra": {
+                "branch-alias": {
+                    "dev-1.x": "1.x-dev"
+                },
                 "drupal": {
-                    "version": "8.x-1.0-alpha4",
-                    "datestamp": "1621960842",
+                    "version": "8.x-1.0-alpha3+17-dev",
+                    "datestamp": "1621960704",
                     "security-coverage": {
                         "status": "not-covered",
-                        "message": "Alpha releases are not covered by Drupal security advisories."
+                        "message": "Dev releases are not covered by Drupal security advisories."
                     }
                 },
                 "patches_applied": {
+                    "3143737-1": "https://www.drupal.org/files/issues/2020-05-29/calendar-opigno-adaptation-3143737-1.patch",
                     "3143737-2": "https://www.drupal.org/files/issues/2020-05-29/calendar-opigno-adaptation-3143737-2.patch",
                     "3143737-3": "https://www.drupal.org/files/issues/2021-04-20/calendar-opigno-adaptation-unittests-3143737-3.patch"
                 }
@@ -1578,23 +1576,27 @@
             "support": {
                 "source": "https://git.drupalcode.org/project/calendar",
                 "issues": "https://www.drupal.org/project/issues/calendar"
-            }
+            },
+            "time": "2020-03-17T09:24:57+00:00"
         },
         {
             "name": "drupal/calendar_datetime",
-            "version": "1.0.0-alpha4",
+            "version": "dev-1.x",
             "require": {
                 "drupal/calendar": "self.version",
                 "drupal/core": "^8 || ^9"
             },
             "type": "metapackage",
             "extra": {
+                "branch-alias": {
+                    "dev-1.x": "1.x-dev"
+                },
                 "drupal": {
-                    "version": "8.x-1.0-alpha4",
-                    "datestamp": "1621960842",
+                    "version": "8.x-1.0-alpha3+17-dev",
+                    "datestamp": "1621960704",
                     "security-coverage": {
                         "status": "not-covered",
-                        "message": "Alpha releases are not covered by Drupal security advisories."
+                        "message": "Dev releases are not covered by Drupal security advisories."
                     }
                 }
             },
@@ -3990,7 +3992,7 @@
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/media_entity_browser.git",
-                "reference": "8129394"
+                "reference": "31fdf95"
             },
             "require": {
                 "drupal/core": "^8 || ^9",
@@ -4050,7 +4052,7 @@
             "support": {
                 "source": "https://git.drupalcode.org/project/media_entity_browser"
             },
-            "time": "2019-08-05T00:42:18+00:00"
+            "time": "2020-07-03T03:36:09+00:00"
         },
         {
             "name": "drupal/message",
@@ -5879,7 +5881,7 @@
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/pdf.git",
-                "reference": "ec8d13d"
+                "reference": "1e33fbf"
             },
             "require": {
                 "drupal/core": "^8 || ^9"
@@ -5933,7 +5935,7 @@
             "support": {
                 "source": "https://git.drupalcode.org/project/pdf"
             },
-            "time": "2019-08-05T13:33:30+00:00"
+            "time": "2020-06-26T10:23:16+00:00"
         },
         {
             "name": "drupal/platon",
@@ -6049,32 +6051,42 @@
         },
         {
             "name": "drupal/private_message",
-            "version": "1.3.0",
+            "version": "dev-2.x",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/private_message.git",
-                "reference": "8.x-1.3"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/private_message-8.x-1.3.zip",
-                "reference": "8.x-1.3",
-                "shasum": "de79672caeb2fb7dbc28b9e8e4774fd354d00db1"
+                "reference": "0d76aa9"
             },
             "require": {
-                "drupal/core": "^8"
+                "drupal/core": ">=8.8",
+                "drupal/message": "^1.0",
+                "drupal/message_notify": "^1.0",
+                "php": ">=7.1"
+            },
+            "suggest": {
+                "drush/drush": "^9 || ^10"
             },
             "type": "drupal-module",
             "extra": {
+                "branch-alias": {
+                    "dev-2.x": "2.x-dev"
+                },
                 "drupal": {
-                    "version": "8.x-1.3",
-                    "datestamp": "1572818586",
+                    "version": "8.x-2.0-beta16+38-dev",
+                    "datestamp": "1615704415",
                     "security-coverage": {
-                        "status": "covered",
-                        "message": "Covered by Drupal's security advisory policy"
+                        "status": "not-covered",
+                        "message": "Dev releases are not covered by Drupal security advisories."
                     }
                 },
-                "patches_applied": []
+                "drush": {
+                    "services": {
+                        "drush.services.yml": "^9 || ^10"
+                    }
+                },
+                "patches_applied": {
+                    "#3121176: Optional Bartik blocks should depend on Bartik theme": "https://www.drupal.org/files/issues/2020-03-20/3121176-2.patch"
+                }
             },
             "notification-url": "https://packages.drupal.org/8/downloads",
             "license": [
@@ -6082,8 +6094,9 @@
             ],
             "authors": [
                 {
-                    "name": "Jaypan",
-                    "homepage": "https://www.drupal.org/user/324696"
+                    "name": "Jay Friendly (Jaypan)",
+                    "homepage": "https://www.jaypan.com",
+                    "role": "Maintainer"
                 },
                 {
                     "name": "anmolgoyal74",
@@ -6106,11 +6119,13 @@
                     "homepage": "https://www.drupal.org/user/3344054"
                 }
             ],
-            "description": "A private message system for users to send messages to each other",
-            "homepage": "https://www.drupal.org/project/private_message",
+            "description": "A private message system for users to send messages to each other.",
+            "homepage": "https://drupal.org/project/private_message",
             "support": {
-                "source": "https://git.drupalcode.org/project/private_message"
-            }
+                "source": "https://git.drupalcode.org/project/private_message",
+                "issues": "https://drupal.org/project/issues/private_message"
+            },
+            "time": "2020-05-31T01:50:43+00:00"
         },
         {
             "name": "drupal/profile",
@@ -7018,7 +7033,7 @@
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/view_mode_selector.git",
-                "reference": "93d105f"
+                "reference": "5d87d176d2048c427406543de6593851936c1e05"
             },
             "require": {
                 "drupal/core": "^8 || ^9"
@@ -7056,7 +7071,7 @@
             "support": {
                 "source": "https://git.drupalcode.org/project/view_mode_selector"
             },
-            "time": "2018-11-13T16:00:21+00:00"
+            "time": "2020-06-16T00:52:52+00:00"
         },
         {
             "name": "drupal/views_role_based_global_text",
@@ -13307,9 +13322,10 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "wikimedia/composer-merge-plugin": 20,
-        "drupal/view_mode_selector": 20,
+        "drupal/calendar": 20,
         "drupal/media_entity_browser": 20,
-        "drupal/pdf": 20
+        "drupal/pdf": 20,
+        "drupal/private_message": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

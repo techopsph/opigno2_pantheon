@@ -1,7 +1,0 @@
-langcode: en
-status: true
-dependencies: {  }
-id: opigno-admin
-label: 'Opigno admin'
-description: ''
-locked: false

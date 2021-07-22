@@ -1,9 +1,0 @@
-langcode: en
-status: true
-dependencies: {  }
-id: learning_path_product
-label: 'Learning Path product'
-orderItemType: default
-generateTitle: null
-traits: {  }
-locked: false

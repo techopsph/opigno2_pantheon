@@ -1,5 +1,0 @@
-tour_styling:
-  version: VERSION
-  css:
-    component:
-      css/opigno_tour.css: {}

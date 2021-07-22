@@ -10,74 +10,61 @@ use Drupal\Core\Entity\ContentEntityInterface;
 class CalendarEvent {
 
   /**
-   * The start date of the event.
-   *
-   * @var \DateTime
+   * @var \DateTime $startDate
+   *   The start date of the event.
    */
   protected $startDate;
 
   /**
-   * The end date of the event.
-   *
-   * @var \DateTime
+   * @var \DateTime $endDate
+   *   The end date of the event.
    */
   protected $endDate;
 
   /**
-   * The granularity of this event (e.g. "day", "second").
-   *
-   * @var string
+   * @var string $granularity
+   *   The granularity of this event (e.g. "day", "second").
    */
   protected $granularity;
 
   /**
-   * Defines whether or not this event's duration is all day.
-   *
-   * @var bool
+   * @var boolean
+   *   Defines whether or not this event's duration is all day.
    */
   protected $allDay;
 
   /**
-   * The timezone of the event.
-   *
-   * @var \DateTimeZone
+   * @var \DateTimeZone $timezone
+   *   The timezone of the event.
    */
   protected $timezone;
 
 
   /**
-   * An array of the fields to render.
-   *
    * @var array
+   *   An array of the fields to render.
    */
   protected $renderedFields;
 
   /**
-   * The array of labels to be used for this stripe option.
-   *
-   * @var array
+   * @var array $stripeLabels
+   *   The array of labels to be used for this stripe option.
    */
   protected $stripeLabels;
 
   /**
-   * The hex code array of the color to be used.
-   *
-   * @var string
+   * @var string $stripeHexes
+   *  The hex code array of the color to be used.
    */
   protected $stripeHexes;
 
   /**
-   * Whether this event covers multiple days.
-   *
-   * @var bool
+   * @var bool $isMultiDay
+   *  Whether this event covers multiple days.
    */
   protected $isMultiDay;
 
-  /**
-   * The content entity interface object.
-   *
-   * @var \Drupal\Core\Entity\ContentEntityInterface
-   */
+  /** @var  ContentEntityInterface */
   protected $entity;
 
   /**
@@ -90,7 +77,7 @@ class CalendarEvent {
   /**
    * Getter for the entity id.
    *
-   * @return intmixed
+   * @return int mixed
    *   The entity id.
    */
   public function getEntityId() {
@@ -110,9 +97,7 @@ class CalendarEvent {
   }
 
   /**
-   * Function to get entity.
-   *
-   * @return \Drupal\Core\Entity\ContentEntityInterface
+   * @return ContentEntityInterface
    */
   public function getEntity() {
     return $this->entity;
@@ -128,12 +113,10 @@ class CalendarEvent {
     return $this->entity->getEntityTypeId();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   public function getBundle() {
     return $this->entity->bundle();
   }
+
 
   /**
    * Getter for the start date.
@@ -198,7 +181,7 @@ class CalendarEvent {
   /**
    * Getter for the all day property.
    *
-   * @return bool
+   * @return boolean
    *   TRUE if the event is all day, FALSE otherwise.
    */
   public function isAllDay() {
@@ -208,7 +191,7 @@ class CalendarEvent {
   /**
    * Setter for the all day property.
    *
-   * @param bool $allDay
+   * @param boolean $allDay
    *   TRUE if the event is all day, FALSE otherwise.
    */
   public function setAllDay($allDay) {
@@ -250,12 +233,11 @@ class CalendarEvent {
    *
    * @return string
    *   The public url to this event.
-   *
-   * @throws \Drupal\Core\Entity\EntityMalformedException
    */
   public function getUrl() {
     return $this->entity->toUrl();
   }
+
 
   /**
    * Getter for the rendered fields array.
@@ -273,7 +255,7 @@ class CalendarEvent {
    * @param array $renderedFields
    *   The rendered fields array.
    */
-  public function setRenderedFields(array $renderedFields) {
+  public function setRenderedFields($renderedFields) {
     $this->renderedFields = $renderedFields;
   }
 
@@ -328,10 +310,10 @@ class CalendarEvent {
   }
 
   /**
-   * Add a single strip hex.
-   *
-   * @param $stripeHex
-   */
+ * Add a single strip hex.
+ *
+ * @param $stripeHex
+ */
   public function addStripeHex($stripeHex) {
     $this->stripeHexes[] = $stripeHex;
   }
@@ -339,7 +321,7 @@ class CalendarEvent {
   /**
    * Add a single strip label.
    *
-   * @param $stripeLabel
+   * @param $stripeHex
    */
   public function addStripeLabel($stripeLabel) {
     $this->stripeLabels[] = $stripeLabel;
@@ -348,7 +330,7 @@ class CalendarEvent {
   /**
    * The getter which indicates whether an event covers multiple days.
    *
-   * @return bool
+   * @return boolean
    */
   public function getIsMultiDay() {
     return $this->isMultiDay;
@@ -360,5 +342,4 @@ class CalendarEvent {
   public function setIsMultiDay($isMultiDay) {
     $this->isMultiDay = $isMultiDay;
   }
-
 }

@@ -2,6 +2,7 @@
 
 namespace Drupal\calendar\Plugin\ViewsTemplateBuilder;
 
+
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views_templates\Plugin\ViewsDuplicateBuilderBase;
@@ -20,18 +21,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ViewsFieldTemplate extends ViewsDuplicateBuilderBase {
 
   /**
-   * The entity field manager object.
-   *
-   * @var \Drupal\Core\Entity\EntityFieldManagerInterface
+   * @var  \Drupal\Core\Entity\EntityFieldManagerInterface
    */
-  protected $fieldManager;
+  protected $field_manager;
 
   /**
    * {@inheritdoc}
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, ViewsTemplateLoaderInterface $loader, EntityFieldManagerInterface $manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $loader);
-    $this->fieldManager = $manager;
+    $this->field_manager = $manager;
 
   }
 
@@ -62,21 +61,18 @@ class ViewsFieldTemplate extends ViewsDuplicateBuilderBase {
   /**
    * {@inheritdoc}
    */
-  protected function alterViewTemplateAfterCreation(array &$view_template, array $options = NULL) {
+  protected function alterViewTemplateAfterCreation(array &$view_template, $options = NULL) {
     parent::alterViewTemplateAfterCreation($view_template, $options);
-    $field_defs = $this->fieldManager->getBaseFieldDefinitions($this->getDefinitionValue('entity_type'));
+    $field_defs = $this->field_manager->getBaseFieldDefinitions($this->getDefinitionValue('entity_type'));
     if (empty($field_defs['status'])) {
       // If entity doesn't have a base field status remove it from View filter.
       unset($view_template['display']['default']['display_options']['filters']['status']);
     }
-    $this->fieldManager->getFieldDefinitions($this->getDefinitionValue('entity_type'), 'event');
-    $this->fieldManager->getFieldStorageDefinitions('node');
+    $this->field_manager->getFieldDefinitions($this->getDefinitionValue('entity_type'), 'event');
+    $this->field_manager->getFieldStorageDefinitions('node');
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+  public function buildConfigurationForm($form, FormStateInterface $form_state) {
     $config_form = parent::buildConfigurationForm($form, $form_state);
     $replacements = $this->getDefinitionValue('replacements');
     if (isset($replacements['base_path'])) {
@@ -91,5 +87,6 @@ class ViewsFieldTemplate extends ViewsDuplicateBuilderBase {
     }
     return $config_form;
   }
+
 
 }

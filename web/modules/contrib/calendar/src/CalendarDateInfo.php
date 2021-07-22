@@ -18,7 +18,7 @@ class CalendarDateInfo {
   /**
    * The date argument.
    *
-   * @var \Drupal\calendar_datetime\Plugin\views\argument\Date
+   * @var \Drupal\calendar_datetime\Plugin\views\argument\Date $dateArgument
    *   The date argument.
    */
   protected $dateArgument;
@@ -26,7 +26,7 @@ class CalendarDateInfo {
   /**
    * The position of the date argument among the other view arguments.
    *
-   * @var intdateArgumentPosition
+   * @var int dateArgumentPosition
    *   The date argument position.
    */
   protected $dateArgumentPosition;
@@ -55,7 +55,7 @@ class CalendarDateInfo {
    */
   protected $range;
 
-  // @todo Find a better way to hold all "minimum x" information
+  // @TODO Find a better way to hold all "minimum x" information
 
   /**
    * The minimum date of this calendar.
@@ -106,9 +106,10 @@ class CalendarDateInfo {
   protected $maxDate;
 
   /**
-   * @var bool
+   * @TODO explain what this variable does.
+   *
+   * @var boolean
    *   The forbid value.
-   * @todo Explain what this variable does.
    */
   protected $forbid;
 
@@ -355,7 +356,7 @@ class CalendarDateInfo {
   /**
    * Getter for the forbid value of this calendar.
    *
-   * @return bool
+   * @return boolean
    *   The forbid value.
    */
   public function isForbid() {
@@ -365,11 +366,10 @@ class CalendarDateInfo {
   /**
    * Setter for the forbid value of this calendar.
    *
-   * @param bool $forbid
+   * @param boolean $forbid
    *   The forbid value.
    */
   public function setForbid($forbid) {
     $this->forbid = $forbid;
   }
-
 }

@@ -2,12 +2,13 @@
 
 namespace Drupal\calendar\Plugin\views\pager;
 
+
 use Drupal\calendar\CalendarHelper;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\pager\PagerPluginBase;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Url;
 
 /**
  * The plugin to handle calendar pager.
@@ -28,9 +29,7 @@ class CalendarPager extends PagerPluginBase {
   const NEXT = '+';
   const PREVIOUS = '-';
   /**
-   * The Date argument wrapper object.
-   *
-   * @var \Drupal\calendar\DateArgumentWrapper
+   * @var \Drupal\calendar\DateArgumentWrapper;
    */
   protected $argument;
 
@@ -47,15 +46,15 @@ class CalendarPager extends PagerPluginBase {
    * {@inheritdoc}
    */
   public function render($input) {
-    // The $this->argument may be FALSE.
+    // The $this->argument is an \Drupal\calendar\DateArgumentWrapper object or FALSE.
     if (!$this->argument || !$this->argument->validateValue()) {
       return [];
     }
     $items['previous'] = [
-      'url' => $this->getPagerUrl(self::PREVIOUS, $input),
+      'url' => $this->getPagerURL(self::PREVIOUS, $input),
     ];
     $items['next'] = [
-      'url' => $this->getPagerUrl(self::NEXT, $input),
+      'url' => $this->getPagerURL(self::NEXT, $input),
     ];
     return [
       '#theme' => $this->themeFunctions(),
@@ -67,11 +66,10 @@ class CalendarPager extends PagerPluginBase {
   /**
    * Get the date argument value for the pager link.
    *
-   * @param string $mode
-   *   Either '-' or '+' to determine which direction.
+   * @param $mode
+   *  Either '-' or '+' to determine which direction.
    *
    * @return string
-   *   Formatted date time.
    */
   protected function getPagerArgValue($mode) {
     $datetime = $this->argument->createDateTime();
@@ -82,16 +80,15 @@ class CalendarPager extends PagerPluginBase {
   /**
    * Get the href value for the pager link.
    *
-   * @param string $mode
+   * @param $mode
    *   Either '-' or '+' to determine which direction.
    * @param array $input
    *   Any extra GET parameters that should be retained, such as exposed
    *   input.
    *
    * @return string
-   *   Url.
    */
-  protected function getPagerUrl($mode, array $input) {
+  protected function getPagerURL($mode, $input) {
     $value = $this->getPagerArgValue($mode);
     $current_position = 0;
     $arg_vals = [];
@@ -108,20 +105,7 @@ class CalendarPager extends PagerPluginBase {
       $current_position++;
     }
 
-    $display_handler = $this->view->displayHandlers->get($this->view->current_display)
-      ->getRoutedDisplay();
-    if ($display_handler) {
-      $url = $this->view->getUrl($arg_vals, $this->view->current_display);
-    }
-    else {
-      $url = Url::fromRoute('<current>', [], [])->toString();
-    }
-
-    if (!empty($input)) {
-      $url->setOption('query', $input);
-    }
-
-    return $url;
+    return $this->view->getUrl($arg_vals, $this->view->current_display);
   }
 
   /**

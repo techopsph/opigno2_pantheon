@@ -3,7 +3,7 @@
 namespace Drupal\private_message\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\private_message\Service\PrivateMessageServiceInterface;
@@ -25,9 +25,9 @@ class PrivateMessageController extends ControllerBase implements PrivateMessageC
   /**
    * The entity manager service.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $entityManager;
+  protected $entityTypeManager;
 
   /**
    * The form builder interface.
@@ -62,7 +62,7 @@ class PrivateMessageController extends ControllerBase implements PrivateMessageC
    *
    * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
    *   The current user.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entityManager
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity manager service.
    * @param \Drupal\Core\Form\FormBuilderInterface $formBuilder
    *   The form builder service.
@@ -71,13 +71,13 @@ class PrivateMessageController extends ControllerBase implements PrivateMessageC
    * @param \Drupal\private_message\Service\PrivateMessageServiceInterface $privateMessageService
    *   The private message service.
    */
-  public function __construct(AccountProxyInterface $currentUser, EntityManagerInterface $entityManager, FormBuilderInterface $formBuilder, UserDataInterface $userData, PrivateMessageServiceInterface $privateMessageService) {
+  public function __construct(AccountProxyInterface $currentUser, EntityTypeManagerInterface $entityTypeManager, FormBuilderInterface $formBuilder, UserDataInterface $userData, PrivateMessageServiceInterface $privateMessageService) {
     $this->currentUser = $currentUser;
-    $this->entityManager = $entityManager;
+    $this->entityTypeManager = $entityTypeManager;
     $this->formBuilder = $formBuilder;
     $this->userData = $userData;
     $this->privateMessageService = $privateMessageService;
-    $this->userManager = $entityManager->getStorage('user');
+    $this->userManager = $entityTypeManager->getStorage('user');
   }
 
   /**
@@ -86,7 +86,7 @@ class PrivateMessageController extends ControllerBase implements PrivateMessageC
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('current_user'),
-      $container->get('entity.manager'),
+      $container->get('entity_type.manager'),
       $container->get('form_builder'),
       $container->get('user.data'),
       $container->get('private_message.service')
@@ -104,7 +104,7 @@ class PrivateMessageController extends ControllerBase implements PrivateMessageC
     $private_message_thread = $this->privateMessageService->getFirstThreadForUser($user);
 
     if ($private_message_thread) {
-      $view_builder = $this->entityManager->getViewBuilder('private_message_thread');
+      $view_builder = $this->entityTypeManager->getViewBuilder('private_message_thread');
       // No wrapper is provided, as the full view mode of the entity already
       // provides the #private-message-page wrapper.
       $page = $view_builder->view($private_message_thread);

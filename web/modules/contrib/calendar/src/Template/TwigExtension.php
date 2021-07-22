@@ -43,5 +43,4 @@ class TwigExtension extends \Twig_Extension {
     }
     return $output;
   }
-
 }

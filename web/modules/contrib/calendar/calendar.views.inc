@@ -29,9 +29,9 @@ function calendar_views_data_alter(array &$data) {
 }
 
 /**
- * Create all the granularity arguments for a field.
+ * Create all the granularity arguments for a a field.
  *
- * @param mixed $field_id
+ * @param $field_id
  * @param string $group
  *
  * @return mixed

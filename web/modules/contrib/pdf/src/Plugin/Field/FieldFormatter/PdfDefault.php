@@ -43,7 +43,7 @@ class PdfDefault extends FormatterBase {
       '#type' => 'checkbox',
       '#title' => $this->t('Always use pdf.js'),
       '#default_value' => $this->getSetting('keep_pdfjs'),
-      '#description' => $this->t("Use pdf.js even the browser has Adobe Reader Plugin, WebKit PDF Reader for Safari or the PDF Reader for Chrome (Chrome's default alternative to the Adobe Reader Plugin) installed."),
+      '#description' => t("Use pdf.js even when the browser has Adobe Reader Plugin, WebKit PDF Reader for Safari or the PDF Reader for Chrome (Chrome's default alternative to the Adobe Reader Plugin) installed."),
     ];
 
     $elements['width'] = [
@@ -136,7 +136,7 @@ class PdfDefault extends FormatterBase {
       $summary[] = $this->t('No settings');
     }
     else {
-      $summary[] = $this->t('Use pdf.js even users have PDF reader plugin: @keep_pdfjs', ['@keep_pdfjs' => $keep_pdfjs ? t('Yes') : t('No')]) . '. ' . t('Width: @width , Height: @height', [
+      $summary[] = t('Use pdf.js even when users have PDF reader plugin: @keep_pdfjs', ['@keep_pdfjs' => $keep_pdfjs ? t('Yes') : t('No')]) . '. ' . t('Width: @width , Height: @height', [
         '@width' => $width,
         '@height' => $height,
       ]);
@@ -150,6 +150,8 @@ class PdfDefault extends FormatterBase {
    */
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = [];
+    $config = \Drupal::config('pdf.settings');
+    $viewer_path = $config->get('custom_viewer') ? $config->get('custom_viewer') : base_path() . 'libraries/pdf.js/web/viewer.html';
     $keep_pdfjs = $this->getSetting('keep_pdfjs');
     $extra_options = array_filter(array_intersect_key($this->getSettings(), array_flip([
       'page',
@@ -165,7 +167,7 @@ class PdfDefault extends FormatterBase {
     foreach ($items as $delta => $item) {
       if ($item->entity->getMimeType() == 'application/pdf') {
         $file_url = file_create_url($item->entity->getFileUri());
-        $iframe_src = file_create_url(base_path() . 'libraries/pdf.js/web/viewer.html') . '?file=' . rawurlencode($file_url);
+        $iframe_src = file_create_url($viewer_path) . '?file=' . rawurlencode($file_url);
         $iframe_src = !empty($query) && $keep_pdfjs ? $iframe_src . '#' . $query : $iframe_src;
         $html = [
           '#theme' => 'file_pdf',

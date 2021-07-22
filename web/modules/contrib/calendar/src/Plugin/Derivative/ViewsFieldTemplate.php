@@ -43,17 +43,15 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
   protected $viewsData;
 
   /**
-   * The entity field manager service.
-   *
    * @var \Drupal\Core\Entity\EntityFieldManagerInterface
    */
-  protected $fieldManager;
+  protected $field_manager;
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, $base_plugin_id) {
-    return new static(
+    return new static (
       $base_plugin_id,
       $container->get('entity_type.manager'),
       $container->get('views.views_data'),
@@ -68,18 +66,17 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
    * @param string $base_plugin_id
    *   The base plugin ID.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $manager
-   *   The entity type manager service.
-   * @param \Drupal\views\ViewsData $views_data
+   * @param ViewsData $views_data
    *   The entity storage to load views.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $field_manager
-   *   The entity field manager interface.
    */
   public function __construct($base_plugin_id, EntityTypeManagerInterface $manager, ViewsData $views_data, EntityFieldManagerInterface $field_manager) {
     $this->basePluginId = $base_plugin_id;
     $this->entityManager = $manager;
     $this->viewsData = $views_data;
-    $this->fieldManager = $field_manager;
+    $this->field_manager = $field_manager;
   }
+
 
   /**
    * {@inheritdoc}
@@ -138,13 +135,11 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
    * Set all derivatives for an entity type.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   The entity type service.
    * @param array $base_plugin_definition
-   *   The array.
    */
   protected function setConfigurableFieldsDerivatives(EntityTypeInterface $entity_type, array $base_plugin_definition) {
     /** @var \Drupal\Core\Field\FieldStorageDefinitionInterface $field_storage */
-    $field_storages = $this->fieldManager->getFieldStorageDefinitions($entity_type->id());
+    $field_storages = $this->field_manager->getFieldStorageDefinitions($entity_type->id());
 
     foreach ($field_storages as $field_id => $field_storage) {
       $type = $field_storage->getType();
@@ -159,7 +154,7 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
       }
       if (in_array("Drupal\datetime\Plugin\Field\FieldType\DateTimeItem", $classes[$type])) {
         $entity_type_id = $entity_type->id();
-        $views_data = $this->viewsData->getAll();
+        $views_data = $this->viewsData->get();
         foreach ($views_data as $key => $data) {
           if (strstr($key, $field_id) && isset($data[$field_id])) {
             $field_table = $key;
@@ -189,24 +184,23 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
             'view_template_id' => 'calendar_config_field',
           ];
           $this->setDerivative($derivative, $base_plugin_definition);
-          // $this->setDerivative($field_info, $entity_type, $field_table_data, $base_plugin_definition);
+          //$this->setDerivative($field_info, $entity_type, $field_table_data, $base_plugin_definition);
         }
 
       }
+
 
     }
   }
 
   /**
    * Determine if a field is an date field.
-   *
    * @param array $field_info
-   *   Field array form ViewsData.
+   *  Field array form ViewsData.
    *
    * @return bool
-   *   Returns a boolean value.
    */
-  protected function isDateField(array $field_info) {
+  protected function isDateField($field_info) {
     if (!empty($field_info['field']['id']) && $field_info['field']['id'] == 'field') {
       if (!empty($field_info['argument']['id']) && $field_info['argument']['id'] == 'date') {
         return TRUE;
@@ -215,9 +209,6 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
     return FALSE;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   protected function setDerivative(array $derivative, array $base_plugin_definition) {
 
     $info = $derivative['replacements'];
@@ -226,9 +217,9 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
     // Move some replacements values to root of derivative also.
     $derivative['entity_type'] = $info['entity_type'];
     $derivative['field_id'] = $info['field_id'];
-    // Create base path.
+    // Create base path
     if ($derivative['entity_type'] == 'node') {
-      $base_path = 'calendar-' . $derivative['field_id'];
+      $base_path = 'calendar-' .$derivative['field_id'];
     }
     else {
       $base_path = "calendar-{$derivative['entity_type']}-{$derivative['field_id']}";
@@ -240,11 +231,11 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
     $this->derivatives[$derivative_id] = $derivative;
   }
 
+
   /**
    * Return the default field from a View table array.
    *
    * @param array $table_data
-   * @param mixed $entity_type_id
    *
    * @return null|string
    */
@@ -275,5 +266,6 @@ class ViewsFieldTemplate implements ContainerDeriverInterface {
     }
     return NULL;
   }
+
 
 }
