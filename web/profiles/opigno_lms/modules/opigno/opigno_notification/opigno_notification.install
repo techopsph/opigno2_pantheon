@@ -1,0 +1,68 @@
+<?php
+
+/**
+ * @file
+ * Opigno notification app install/update functionality.
+ */
+
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Field\BaseFieldDefinition;
+
+/**
+ * Add "properties" field to "opigno_notification" entity.
+ */
+function opigno_notification_update_8001() {
+  $definition = BaseFieldDefinition::create('string')
+    ->setLabel(t('Url'))
+    ->setDescription(t('The url string for notification entity.'))
+    ->setSettings([
+      'max_length' => 50,
+    ])
+    ->setInitialValue('/notifications')
+    ->setDefaultValue('/notifications');
+
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition('url', 'opigno_notification', 'opigno_notification', $definition);
+}
+
+/**
+ * Update views: 'Opigno notifications'.
+ */
+function opigno_notification_update_8002() {
+  $config_path = drupal_get_path('module', 'opigno_notification')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_notifications');
+  $config_storage->write('views.view.opigno_notifications', $data);
+}
+
+/**
+ * Update views: 'Opigno notifications'.
+ */
+function opigno_notification_update_8003() {
+  $config_path = drupal_get_path('module', 'opigno_notification')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_notifications');
+  $config_storage->write('views.view.opigno_notifications', $data);
+}
+
+/**
+ * Update views: 'Opigno notifications'.
+ */
+function opigno_notification_update_8004() {
+  $config_path = drupal_get_path('module', 'opigno_notification')
+    . '/config/optional';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $data = $storage->read('views.view.opigno_notifications');
+  $config_storage->write('views.view.opigno_notifications', $data);
+}

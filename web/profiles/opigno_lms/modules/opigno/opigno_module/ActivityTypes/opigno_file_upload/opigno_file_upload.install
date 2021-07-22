@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Contains opigno_file_upload.install.
+ */
+
+use Drupal\Core\Config\FileStorage;
+
+/**
+ * Update opigno_file field for opigno_answer entity.
+ */
+function opigno_file_upload_update_8001() {
+  $config_path = drupal_get_path('module', 'opigno_file_upload')
+    . '/config/optional';
+  /* @var Drupal\Core\Config\CachedStorage $config_storage */
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('field.storage.opigno_answer.opigno_file');
+  $config_storage->write('field.storage.opigno_answer.opigno_file', $data);
+}

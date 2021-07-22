@@ -1,0 +1,29 @@
+***************
+*** 91,96 ****
+  
+    protected function createFromFormat($value) {
+      $format = $this->getArgFormat();
+      if ($format == 'YW') {
+        $date = new \DateTime();
+        $year = (int)substr($value, 0, 4);
+--- 91,110 ----
+  
+    protected function createFromFormat($value) {
+      $format = $this->getArgFormat();
++ 
++     // Manage date argument from not active tabs
++     $task_manager = \Drupal::service('plugin.manager.menu.local_task');
++     $route_name = \Drupal::routeMatch()->getRouteName();
++     $tasks = $task_manager->getLocalTasks($route_name, $level = 0);
++     $tabs = $tasks['tabs'];
++     if (count($tabs) > 0) {
++       foreach($tabs as $tab) {
++         if (!$tab['#active']) {
++           $tab['#link']['url']->setRouteParameter('arg_0', NULL);
++         }
++       }
++     }
++ 
+      if ($format == 'YW') {
+        $date = new \DateTime();
+        $year = (int)substr($value, 0, 4);

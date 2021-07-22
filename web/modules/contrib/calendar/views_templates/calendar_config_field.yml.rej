@@ -1,0 +1,40 @@
+***************
+*** 245,254 ****
+      position: 1
+      display_options:
+        display_extenders: {  }
+-       path: __BASE_PATH/month
+        display_description: ''
+        menu:
+-         type: tab
+          title: Month
+          description: ''
+          expanded: false
+--- 245,254 ----
+      position: 1
+      display_options:
+        display_extenders: {  }
++       path: __BASE_PATH
+        display_description: ''
+        menu:
++         type: default tab
+          title: Month
+          description: ''
+          expanded: false
+***************
+*** 257,263 ****
+          context: '0'
+          menu_name: main
+        tab_options:
+-         type: normal
+          title: Calendar
+          description: ''
+          weight: 0
+--- 257,263 ----
+          context: '0'
+          menu_name: main
+        tab_options:
++         type: none
+          title: Calendar
+          description: ''
+          weight: 0

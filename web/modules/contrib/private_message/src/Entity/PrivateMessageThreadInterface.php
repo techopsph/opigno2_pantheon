@@ -36,11 +36,6 @@ interface PrivateMessageThreadInterface extends ContentEntityInterface {
   public function addMemberById($id);
 
   /**
-   * Retrieve the ids of the members of the private message thread.
-   */
-  public function getMembersId();
-
-  /**
    * Retrieve the members of the private message thread.
    */
   public function getMembers();
@@ -120,7 +115,7 @@ interface PrivateMessageThreadInterface extends ContentEntityInterface {
   public function getLastAccessTime(AccountInterface $account);
 
   /**
-   * Get the PrivateMessageThreadAccessTime entities referenced by this thread.
+   * Get the PrivateMessageThreadAccessTime entites referenced by this thread.
    *
    * @return \Drupal\private_message\Entity\PrivateMessageThreadAccessTime[]
    *   An array of PrivateMessageThreadAccessTime entities

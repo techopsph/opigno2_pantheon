@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display the metric items.
+ *
+ * Available variables:
+ * - elements['#help_text']: Popover text.
+ * - elements.
+ */
+#}
+
+<div class="user-metrics">
+  <h3 class="user-metrics-title">
+    {{ 'Users metrics'|t }}
+    {% if elements['#help_text'] %}
+      <div class="popover-help"
+           data-toggle="popover"
+           data-content="{{ elements['#help_text'] }}">
+        ?
+      </div>
+    {% endif %}
+  </h3>
+
+  <div class="user-metrics-content">
+    {{ elements }}
+  </div>
+</div>

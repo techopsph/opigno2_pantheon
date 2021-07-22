@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display the training elements.
+ *
+ * Available variables:
+ * - #label: Training name.
+ * - elements: The training elements.
+ */
+#}
+
+<div class="lp_wrapper">
+  <h2 class="lp_title px-3 px-md-5 pt-5 pb-4 mb-0 h4 text-uppercase">
+    {{ 'Training: @label'|t({'@label': elements['#label']}) }}
+  </h2>
+  {{ elements }}
+</div>

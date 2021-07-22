@@ -1,0 +1,19 @@
+<div class="learning-path-progress d-flex flex-column {{ 'progress-bar-' ~ class|clean_class }}">
+  <div class="progress-content">
+    {% if label %}
+      <div class="progress-label">
+        {{ label }}
+      </div>
+    {% endif %}
+
+    <div class="progress-value">
+      {{ value }}%
+    </div>
+  </div>
+
+  {% if progress_bar %}
+    <div class="progress-bar">
+      <div class="progress-progress" style="width: {{ value }}%;"></div>
+    </div>
+  {% endif %}
+</div>

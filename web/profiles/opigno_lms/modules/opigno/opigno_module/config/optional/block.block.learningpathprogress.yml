@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - opigno_module
+  theme:
+    - platon
+id: learningpathprogress
+theme: platon
+region: top
+weight: 0
+provider: null
+plugin: opigno_module_learning_path_progress_block
+settings:
+  id: opigno_module_learning_path_progress_block
+  label: 'Learning path progress'
+  provider: opigno_module
+  label_display: '0'
+visibility: {  }

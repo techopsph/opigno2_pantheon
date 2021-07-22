@@ -21,11 +21,11 @@ class PrivateMessageThreadManager implements PrivateMessageThreadManagerInterfac
   private $privateMessageService;
 
   /**
-   * The private message notifier service.
+   * The private message mailer service.
    *
-   * @var \Drupal\private_message\Service\PrivateMessageNotifierInterface
+   * @var \Drupal\private_message\Service\PrivateMessageMailerInterface
    */
-  private $privateMessageNotifier;
+  private $privateMessageMailer;
 
   /**
    * The private message.
@@ -42,11 +42,11 @@ class PrivateMessageThreadManager implements PrivateMessageThreadManagerInterfac
   private $recipients = [];
 
   /**
-   * An array of members to exclude from notifications.
+   * An array of members to exclude from notification emails.
    *
    * @var \Drupal\Core\Session\AccountInterface[]
    */
-  private $excludeFromNotification = [];
+  private $excludeFromMail = [];
 
   /**
    * The private message thread.
@@ -58,31 +58,31 @@ class PrivateMessageThreadManager implements PrivateMessageThreadManagerInterfac
   /**
    * PrivateMessageThreadManager constructor.
    *
-   * @param \Drupal\private_message\Service\PrivateMessageServiceInterface $privateMessageService
+   * @param \Drupal\private_message\Service\PrivateMessageServiceInterface $private_message_service
    *   The private message service.
-   * @param \Drupal\private_message\Service\PrivateMessageNotifierInterface $privateMessageNotifier
-   *   The private message notifier service.
+   * @param \Drupal\private_message\Service\PrivateMessageMailerInterface $mailer
+   *   The private message mailer service.
    */
   public function __construct(
-    PrivateMessageServiceInterface $privateMessageService,
-    PrivateMessageNotifierInterface $privateMessageNotifier
+    PrivateMessageServiceInterface $private_message_service,
+    PrivateMessageMailerInterface $mailer
   ) {
-    $this->privateMessageService = $privateMessageService;
-    $this->privateMessageNotifier = $privateMessageNotifier;
+    $this->privateMessageService = $private_message_service;
+    $this->privateMessageMailer = $mailer;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function saveThread(PrivateMessageInterface $message, array $recipients = [], array $excludeFromNotification = [], PrivateMessageThreadInterface $thread = NULL) {
+  public function saveThread(PrivateMessageInterface $message, array $recipients = [], array $excludeFromMail = [], PrivateMessageThreadInterface $thread = NULL) {
     $this->message = $message;
     $this->thread = $thread;
     $this->recipients = $recipients;
-    $this->excludeFromNotification = $excludeFromNotification;
+    $this->excludeFromMail = $excludeFromMail;
 
     $this->getThread()
       ->addMessage()
-      ->sendNotification();
+      ->sendMail();
   }
 
   /**
@@ -111,32 +111,32 @@ class PrivateMessageThreadManager implements PrivateMessageThreadManagerInterfac
   }
 
   /**
-   * Send the notification.
+   * Send the notification email.
    *
    * @return $this
    */
-  private function sendNotification() {
-    $this->privateMessageNotifier->notify($this->message, $this->thread, $this->getNotificationRecipients());
+  private function sendMail() {
+    $this->privateMessageMailer->send($this->message, $this->thread, $this->getMailRecipients());
 
     return $this;
   }
 
   /**
-   * The users to receive notifications.
+   * The users to receive email notifications.
    *
    * @return \Drupal\Core\Session\AccountInterface[]
-   *   An array of Account objects of the thread members who are to receive
-   *   the notification.
+   *   An array of  Account objects of the thread memebers who are to receive
+   *   the email notification.
    */
-  private function getNotificationRecipients() {
-    if (empty($this->excludeFromNotification)) {
+  private function getMailRecipients() {
+    if (empty($this->excludeFromMail)) {
       return $this->recipients;
     }
 
     return array_filter($this->recipients, function (AccountInterface $account) {
       // If this user is in the excluded list, filter them from the recipients
-      // list so they do not receive the notification.
-      return !in_array($account, $this->excludeFromNotification);
+      // list so they do not receive the email.
+      return !in_array($account, $this->excludeFromMail);
     });
   }
 

@@ -12,11 +12,9 @@ class PrivateMessageInsertNewMessagesCommand extends PrivateMessageInsertMessage
    *
    * @param string $messages
    *   The HTML for the messages to be inserted in the page.
-   * @param int $messagesCount
-   *   The number of messages.
    */
-  public function __construct($messages, $messagesCount) {
-    parent::__construct('new', $messages, $messagesCount);
+  public function __construct($messages) {
+    parent::__construct('new', $messages);
   }
 
 }

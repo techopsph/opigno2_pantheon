@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * @file
+ * Contains opigno_migration.module.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Database\Database;
+
+/**
+ * @file
+ * Contains custom hooks and functions.
+ */
+
+/**
+ * Implements hook_form_alter().
+ */
+function opigno_migration_form_alter(&$form, FormStateInterface &$form_state, $form_id) {
+  if ($form_id == 'migrate_drupal_ui_incremental_form' || $form_id == 'migrate_drupal_ui_idconflict_form') {
+    $form['#submit'][0] = 'opigno_migration_credit_form_submit';
+  }
+
+  if ($form_id == 'migrate_drupal_ui_credential_form') {
+    try {
+      $has_connection = (bool) Database::getConnection('default', 'legacy')->schema();
+    }
+    catch (\Exception $e) {
+      \Drupal::messenger()->addError($e->getMessage());
+      unset($form['actions']);
+      return;
+    }
+
+    $connection = Database::getConnection('default', 'legacy');
+    $connection_options = $connection->getConnectionOptions();
+
+    $form['database']['settings']['mysql']['host']['#default_value'] = $connection_options['host'];
+    $form['database']['settings']['mysql']['host']['#attributes']['readonly'] = 'readonly';
+    $form['database']['settings']['mysql']['database']['#default_value'] = $connection_options['database'];
+    $form['database']['settings']['mysql']['database']['#attributes']['readonly'] = 'readonly';
+    $form['database']['settings']['mysql']['username']['#default_value'] = $connection_options['username'];
+    $form['database']['settings']['mysql']['username']['#attributes']['readonly'] = 'readonly';
+    $form['database']['settings']['mysql']['password']['#default_value'] = $connection_options['password'];
+    $form['database']['settings']['mysql']['password']['#type'] = 'hidden';
+  }
+}
+
+/**
+ * Custom submit for credit form.
+ */
+function opigno_migration_credit_form_submit($form, FormStateInterface $form_state) {
+  $form_state->setRedirect('opigno_migration.upgrade_review');
+
+  // Fills temporary table with data from source database table.
+  $connect = FALSE;
+  try {
+    $db_legacy_connect = Database::getConnection('default', 'legacy');
+    $connect = TRUE;
+  }
+  catch (Exception $e) {
+    $message = t('Connect to migration database failed: ');
+    \Drupal::logger('opigno_migration')->error($message . $e->getMessage());
+    $messenger = \Drupal::messenger();
+    $messenger->addError($message . $e->getMessage());
+  }
+
+  try {
+    if ($connect && !empty($db_legacy_connect)) {
+      $query = $db_legacy_connect->select('pm_index', 'pmi')
+        ->fields('pmi');
+      $result = $query->execute()->fetchAll();
+      if ($result) {
+        $db_connect = \Drupal::service('database');
+        foreach ($result as $item) {
+          $fields = [
+            'thread_id' => $item->thread_id,
+            'owner' => $item->recipient,
+            'delete_time' => $item->deleted,
+          ];
+          $db_connect->insert('pm_thread_delete_time_migration')
+            ->fields($fields)
+            ->execute();
+        }
+      }
+    }
+  }
+  catch (Exception $e) {
+    \Drupal::logger('opigno_migration')->error($e->getMessage());
+  }
+}

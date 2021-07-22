@@ -1,0 +1,52 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display the summary of traning.
+ *
+ * Available variables:
+ * - progress: The percent of the process.
+ * - score: The percent of the score.
+ * - group_id: group/training id.
+ * - has_certificate: The certificate mark.
+ * - is_passed: The passed mark.
+ * - state_class: The extended class for status
+ * - registration_date: Registration date.
+ * - validation_message: Validation masssage with date.
+ * - time_spend: Time spends in training.
+ */
+#}
+
+{% set certificate_class = not certificate_url ? 'lp_summary_certificate_inactive' %}
+
+<div class="lp_summary d-flex flex-wrap py-5">
+  <div class="lp_summary_content">
+    <div class="lp_step_summary_title h4 mb-0 text-uppercase">{{ 'Training Progress'|t }}</div>
+    <div class="lp_step_summary_progress">{{ progress ~ '%' }}</div>
+  </div>
+  <div class="lp_summary_content {{ 'mobile--' ~ state_class }}">
+    <div class="lp_step_summary_title h4 mb-0 text-uppercase">{{ 'Training Score'|t }}</div>
+    <div class="lp_step_summary_score">{{ score ~ '%' }}</div>
+  </div>
+  <div class="{{ state_class }}"></div>
+  <div class="lp_summary_certificate {{ certificate_class }}">
+    {% if certificate_url %}
+      <a href="{{ certificate_url }}" class="lp_summary_certificate_text">{{ 'Download certificate'|t }}</a>
+      <a href="{{ certificate_url }}" class="lp_summary_certificate_icon">
+        <span class="sr-only"> {{ 'Download certificate'|t }}</span>
+      </a>
+    {% else %}
+      <span class="lp_summary_certificate_text">{{ 'Download certificate'|t }}</span>
+      <span class="lp_summary_certificate_icon"></span>
+    {% endif %}
+  </div>
+  <div class="mt-4 w-100 d-flex justify-content-center lp-step-summary">
+    <div class="lp_step_summary_registration font-italic">
+      {{ 'Registration date: @date'|t({'@date': registration_date}) }}</div>
+    <div class="lp_step_summary_validation ml-3 ml-md-5 font-italic">
+      {{ validation_message|raw }}
+    </div>
+    <div class="lp_step_summary_time_spent ml-3 ml-md-5 font-italic">
+      {{ 'Time spent: @date'|t({'@date': time_spend}) }}
+    </div>
+  </div>
+</div>

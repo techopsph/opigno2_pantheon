@@ -9,7 +9,7 @@ use Drupal\Core\Session\AccountInterface;
 /**
  * Access control handler for private message thread last access time entities.
  */
-class PrivateMessageThreadAccessTimeAccessControlHandler extends EntityAccessControlHandler {
+class PrivateMessageThreadAccessAccessControlHandler extends EntityAccessControlHandler {
 
   /**
    * {@inheritdoc}

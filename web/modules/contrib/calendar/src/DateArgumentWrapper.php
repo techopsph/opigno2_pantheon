@@ -2,47 +2,66 @@
 
 namespace Drupal\calendar;
 
-
 use Drupal\views\Plugin\views\argument\Date;
 
+/**
+ * The DateArgumentWrapper class.
+ */
 class DateArgumentWrapper {
 
   /**
+   * The date object.
+   *
    * @var \Drupal\views\Plugin\views\argument\Date
    */
   protected $dateArg;
 
   /**
+   * The variable declaration of type DateTime.
+   *
    * @var \DateTime
    */
-  protected $min_date;
+  protected $minDate;
 
   /**
+   * The variable declaration of type DateTime.
+   *
    * @var \DateTime
    */
-  protected $max_date;
+  protected $maxDate;
 
   /**
+   * The variable declaration of type int.
+   *
    * @var int
    */
   protected $position;
 
   /**
+   * Function to get the position.
+   *
    * @return int
+   *   Returns position.
    */
   public function getPosition() {
     return $this->position;
   }
 
   /**
+   * Function to set position.
+   *
    * @param int $position
+   *   The position.
    */
   public function setPosition($position) {
     $this->position = $position;
   }
 
   /**
-   * @return Date
+   * The function to return date.
+   *
+   * @return \Drupal\views\Plugin\views\argument\Date
+   *   Returns date.
    */
   public function getDateArg() {
     return $this->dateArg;
@@ -75,10 +94,13 @@ class DateArgumentWrapper {
       return 'Y';
     }
     if (stripos($class, 'YearWeekDate') !== FALSE) {
-      return 'YW';
+      return 'oW';
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public function createDateTime() {
     if ($value = $this->dateArg->getValue()) {
       if (!$this->validateValue()) {
@@ -89,26 +111,15 @@ class DateArgumentWrapper {
     return NULL;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   protected function createFromFormat($value) {
     $format = $this->getArgFormat();
-
-    // Manage date argument from not active tabs
-    $task_manager = \Drupal::service('plugin.manager.menu.local_task');
-    $route_name = \Drupal::routeMatch()->getRouteName();
-    $tasks = $task_manager->getLocalTasks($route_name, $level = 0);
-    $tabs = $tasks['tabs'];
-    if (count($tabs) > 0) {
-      foreach($tabs as $tab) {
-        if (!$tab['#active']) {
-          $tab['#link']['url']->setRouteParameter('arg_0', NULL);
-        }
-      }
-    }
-
-    if ($format == 'YW') {
+    if ($format == 'oW') {
       $date = new \DateTime();
-      $year = (int)substr($value, 0, 4);
-      $month = (int)substr($value, 4, 2);
+      $year = (int) substr($value, 0, 4);
+      $month = (int) substr($value, 4, 2);
       $date->setISODate($year, $month);
     }
     else {
@@ -116,11 +127,14 @@ class DateArgumentWrapper {
       // using the current day info, which can lead to issues for months with
       // 31 days.
       $format = '!' . $this->getArgFormat();
-      $date =  \DateTime::createFromFormat($format, $value);
+      $date = \DateTime::createFromFormat($format, $value);
     }
     return $date;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public function format($format) {
     if ($date = $this->createDateTime()) {
       return $date->format($format);
@@ -128,6 +142,9 @@ class DateArgumentWrapper {
     return NULL;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public function getGranularity() {
     $plugin_id = $this->dateArg->getPluginId();
     $plugin_granularity = str_replace('datetime_range_', '', $plugin_id);
@@ -136,26 +153,32 @@ class DateArgumentWrapper {
     switch ($plugin_granularity) {
       case 'year_month':
         return 'month';
-        break;
+
+      break;
       // Views and Datetime module don't use same suffix :(.
       case 'full_date':
       case 'fulldate':
         return 'day';
-        break;
+
+      break;
       case 'year':
         return 'year';
-        break;
+
+      break;
       case 'year_week';
         return 'week';
-        break;
+
+      break;
     }
   }
 
   /**
+   * Function to get min date.
+   *
    * @return \DateTime
    */
   public function getMinDate() {
-    if(!$this->min_date) {
+    if (!$this->minDate) {
       $date = $this->createDateTime();
       $granularity = $this->getGranularity();
       if ($granularity == 'month') {
@@ -167,17 +190,19 @@ class DateArgumentWrapper {
       elseif ($granularity == 'year') {
         $date->modify("first day of January");
       }
-      $date->setTime(0,0,0);
-      $this->min_date = $date;
+      $date->setTime(0, 0, 0);
+      $this->minDate = $date;
     }
-    return $this->min_date;
+    return $this->minDate;
   }
 
   /**
+   * Function to get max date.
+   *
    * @return \DateTime
    */
   public function getMaxDate() {
-    if(!$this->max_date) {
+    if (!$this->maxDate) {
       $date = $this->createDateTime();
       $granularity = $this->getGranularity();
       if ($granularity == 'month') {
@@ -189,10 +214,10 @@ class DateArgumentWrapper {
       elseif ($granularity == 'year') {
         $date->modify("last day of December");
       }
-      $date->setTime(23,59,59);
-      $this->max_date = $date;
+      $date->setTime(23, 59, 59);
+      $this->maxDate = $date;
     }
-    return $this->max_date;
+    return $this->maxDate;
   }
 
   /**
@@ -205,13 +230,12 @@ class DateArgumentWrapper {
    *
    * @return bool
    */
-  public function validateValue()
-  {
+  public function validateValue() {
     $value = $this->dateArg->getValue();
     if (empty($value)) {
       return FALSE;
     }
-    if ($this->getArgFormat() == 'YW') {
+    if ($this->getArgFormat() == 'oW') {
       $info = $this->getYearWeek($value);
       // Find the max week for a year. Some years start a 53rd week.
       $max_week = gmdate("W", strtotime("28 December {$info['year']}"));
@@ -225,12 +249,16 @@ class DateArgumentWrapper {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   protected function getYearWeek($value) {
     if (is_numeric($value) && strlen($value) == 6) {
-      $return['year'] = (int)substr($value, 0, 4);
-      $return['week'] = (int)substr($value, 4, 2);
+      $return['year'] = (int) substr($value, 0, 4);
+      $return['week'] = (int) substr($value, 4, 2);
       return $return;
     }
     return FALSE;
   }
+
 }

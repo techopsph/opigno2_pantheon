@@ -1,0 +1,84 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display learnign path module.
+ *
+ * - status
+ * - group_id
+ * - step
+ * - approved
+ * - completed
+ * - badges
+ * - time_spent
+ */
+#}
+
+{% set process = (100 * step.progress)|round() %}
+
+<div class="lp_step_summary_wrapper">
+  <div class="lp_step_summary px-3">
+    <div class="row">
+      <div class="col-lg-4 col-md-2 d-sm-flex d-md-block d-lg-flex align-items-center mb-4 mb-md-0 col-step-item">
+        <div class="lp_step_summary_title h4 mb-0 mb-md-3 mb-lg-0 text-uppercase lp-step-title">{{ status.title }}</div>
+        <div class="lp_step_summary_icon ml-3 ml-md-0 ml-lg-3 lp-step-icon {{ status.class }}"></div>
+      </div>
+      <div class="col-lg-4 col-md-5 mb-4 mb-md-0 col-step-item">
+        <div class="ml-0 ml-md-5 mr-3 pull-left lp-step-title">
+          <div class="h4 color-blue mb-0">{{ process ~ '%' }}</div>
+          <div>{{ 'Completion'|t }}</div>
+        </div>
+        <div class="lp_step_summary_completion_chart donut-wrapper ml-3 lp-step-icon">
+          <canvas class="donut"
+                  data-value="{{ process }}"
+                  data-width="7"
+                  data-color="#5bb4d8"
+                  data-track-color="#fff"
+                  width="67"
+                  height="67"
+                  style="box-shadow: rgb(255, 255, 255) 0 0 0 3.5px inset;">
+          </canvas>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-5 col-step-item">
+        <div class="ml-0 ml-md-5 lp_step_summary_approved mr-3 pull-left lp-step-title">
+          <div class="h4 color-blue mb-0">{{ approved.value }}</div>
+          <div>
+            {{ 'Activities'|t }}<br>
+            {{ 'done'|t }}
+          </div>
+        </div>
+        <div class="lp_step_summary_approved_chart donut-wrapper ml-3 mr-auto lp-step-icon">
+          <canvas class="donut"
+                  data-value="{{ approved_percent }}"
+                  data-width="7"
+                  data-color="#5bb4d8"
+                  data-track-color="#fff"
+                  width="67"
+                  height="67"
+                  style="box-shadow: rgb(255, 255, 255) 0 0 0 3.5px inset;">
+          </canvas>
+        </div>
+      </div>
+    </div>
+    <div class="w-100 mt-4 d-flex justify-content-center">
+      <div>
+        <div class="text-italic">{{ 'Time spent'|t }}</div>
+        <div class="color-blue h5">{{ time_spent }}</div>
+      </div>
+      <div class="ml-3 ml-md-5">
+        <div class="text-italic">{{ 'Completed on'|t }}</div>
+        <div class="color-blue h5">{{ completed }}</div>
+      </div>
+      <div class="ml-3 ml-md-5">
+        <div class="text-italic">{{ 'Badges earned'|t }}</div>
+        <div class="color-blue h5">{{ badges }}</div>
+       </div>
+    </div>
+  </div>
+  <div class="lp_step_summary_clickable"
+       data-training="{{ group_id }}"
+       data-module="{{ step.id }}">
+    {{ 'more details'|t }}
+  </div>
+  <div id="{{ 'module_panel_' ~ group_id ~ '_' ~ step.id }}" class="lp_module_panel"></div>
+</div>

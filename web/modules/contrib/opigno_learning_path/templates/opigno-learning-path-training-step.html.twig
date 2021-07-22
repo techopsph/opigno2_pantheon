@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display learnign path step.
+ *
+ * - elements['#step']
+ * - elements['#is_module']
+ * - elements
+ */
+#}
+
+{% set step = elements['#step'] %}
+
+<div class="lp_step">
+  <div class="lp_step_title_wrapper">
+    {% if step.mandatory %}
+      <span class="lp_step_required"></span>
+    {% endif %}
+
+    <h3 class="lp_step_title">{{ step.name }}</h3>
+    <span class="view_trigger"
+          data-open="{{ 'Show details'|t }}"
+          data-close="{{ 'Hide details'|t }}">
+    </span>
+  </div>
+  <div class="lp_step_content {{ elements['#is_module'] ? 'lp_step_content_module' : '' }}">
+    {{ elements }}
+  </div>
+</div>

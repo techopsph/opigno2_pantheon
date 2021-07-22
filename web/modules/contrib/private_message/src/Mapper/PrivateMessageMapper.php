@@ -45,23 +45,28 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
   public function getThreadIdForMembers(array $members) {
     $uids = [];
     foreach ($members as $member) {
-      $uids[$member->id()] = $member->id();
+      $uids[] = $member->id();
     }
 
-    // There is quite possibly a cleaner way to do this entirely in SQL, but
-    // the previous method using JOINs hit a system join limit in MySQL.
-    $query = $this->database->select('private_message_thread__members', 'pmt')
-      ->fields('pmt', ['entity_id', 'members_target_id'])
-      ->condition('members_target_id', $uids, 'IN')
-      ->groupBy('entity_id')
-      ->groupBy('members_target_id')
-      ->orderBy('entity_id', 'ASC');
-    $threads = [];
-    foreach ($query->execute()->fetchAll() as $result) {
-      $threads[$result->entity_id] = isset($threads[$result->entity_id]) ? ++$threads[$result->entity_id] : 1;
+    $query = $this->database->select('private_message_threads', 'pm')
+      ->fields('pm', ['id'])
+      ->range(0, 1);
+
+    // First do an inner join for each user, to ensure that the user exists in
+    // the theread.
+    $i = 0;
+    foreach ($uids as $uid) {
+      $tmp_alias = 'member_' . $i;
+      $query->join('private_message_thread__members', $tmp_alias, $tmp_alias . '.entity_id = pm.id AND ' . $tmp_alias . '.members_target_id = :uid' . $i, [':uid' . $i => $uid]);
+      $i++;
     }
-    $threads = array_flip($threads);
-    return $threads[count($uids)];
+
+    // Next, do a left join for all rows that don't contain the users, and
+    // ensure that there aren't any additional users in selected threads.
+    $alias = $query->leftJoin('private_message_thread__members', 'member', 'member.entity_id = pm.id AND member.members_target_id NOT IN (:uids[])', [':uids[]' => $uids]);
+    $query->isNull($alias . '.members_target_id');
+
+    return $query->execute()->fetchField();
   }
 
   /**
@@ -70,8 +75,8 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
   public function getFirstThreadIdForUser(UserInterface $user) {
     return $this->database->queryRange('SELECT thread.id ' .
       'FROM {private_message_threads} AS thread ' .
-      'JOIN {private_message_thread__members} AS thread_member ' .
-      'ON thread_member.entity_id = thread.id AND thread_member.members_target_id = :uid ' .
+      'JOIN {private_message_thread__members} AS member ' .
+      'ON member.entity_id = thread.id AND member.members_target_id = :uid ' .
       'JOIN {private_message_thread__private_messages} AS thread_messages ' .
       'ON thread_messages.entity_id = thread.id ' .
       'JOIN {private_messages} AS messages ' .
@@ -91,11 +96,11 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
   /**
    * {@inheritdoc}
    */
-  public function getThreadIdsForUser(UserInterface $user, $count = FALSE, $timestamp = FALSE) {
+  public function getThreadIdsForUser(UserInterface $user, $count, $timestamp = FALSE) {
     $query = 'SELECT DISTINCT(thread.id), MAX(thread.updated) ' .
       'FROM {private_message_threads} AS thread ' .
-      'JOIN {private_message_thread__members} AS thread_member ' .
-      'ON thread_member.entity_id = thread.id AND thread_member.members_target_id = :uid ' .
+      'JOIN {private_message_thread__members} AS member ' .
+      'ON member.entity_id = thread.id AND member.members_target_id = :uid ' .
       'JOIN {private_message_thread__private_messages} AS thread_messages ' .
       'ON thread_messages.entity_id = thread.id ' .
       'JOIN {private_messages} AS messages ' .
@@ -114,19 +119,11 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
 
     $query .= 'GROUP BY thread.id ORDER BY MAX(thread.updated) DESC, thread.id';
 
-    if ($count > 0) {
-      $thread_ids = $this->database->queryRange(
-        $query,
-        0, $count,
-        $vars
-      )->fetchCol();
-    }
-    else {
-      $thread_ids = $this->database->query(
-        $query,
-        $vars
-      )->fetchCol();
-    }
+    $thread_ids = $this->database->queryRange(
+      $query,
+      0, $count,
+      $vars
+    )->fetchCol();
 
     return is_array($thread_ids) ? $thread_ids : [];
   }
@@ -137,8 +134,8 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
   public function checkForNextThread(UserInterface $user, $timestamp) {
     $query = 'SELECT DISTINCT(thread.id) ' .
       'FROM {private_message_threads} AS thread ' .
-      'JOIN {private_message_thread__members} AS thread_member ' .
-      'ON thread_member.entity_id = thread.id AND thread_member.members_target_id = :uid ' .
+      'JOIN {private_message_thread__members} AS member ' .
+      'ON member.entity_id = thread.id AND member.members_target_id = :uid ' .
       'JOIN {private_message_thread__private_messages} AS thread_messages ' .
       'ON thread_messages.entity_id = thread.id ' .
       'JOIN {private_messages} AS messages ' .
@@ -186,6 +183,7 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
           ':current_user' => $this->currentUser->getAccountName(),
           ':authenticated_config' => 'user.role.authenticated',
           ':use_pm_permission' => '%s:28:"use private messaging system"%',
+          ':access_user_profiles_permission' => '%s:20:"access user profiles"%',
         ]
       )->fetchCol();
     }
@@ -200,8 +198,8 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
   public function getUpdatedInboxThreadIds(array $existingThreadIds, $count = FALSE) {
     $query = 'SELECT DISTINCT(thread.id), updated ' .
       'FROM {private_message_threads} AS thread ' .
-      'JOIN {private_message_thread__members} AS thread_member ' .
-      'ON thread_member.entity_id = thread.id AND thread_member.members_target_id = :uid ' .
+      'JOIN {private_message_thread__members} AS member ' .
+      'ON member.entity_id = thread.id AND member.members_target_id = :uid ' .
       'JOIN {private_message_thread__private_messages} AS thread_messages ' .
       'ON thread_messages.entity_id = thread.id ' .
       'JOIN {private_messages} AS messages ' .
@@ -252,18 +250,10 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
    */
   public function getUnreadThreadCount($uid, $lastCheckTimestamp) {
     return $this->database->query(
-      'SELECT COUNT(DISTINCT thread.id) FROM {private_messages} AS message ' .
-      'JOIN {private_message_thread__private_messages} AS thread_message ' .
-      'ON message.id = thread_message.private_messages_target_id ' .
-      'JOIN {private_message_threads} AS thread ' .
-      'ON thread_message.entity_id = thread.id ' .
-      'JOIN {private_message_thread__members} AS thread_member ' .
-      'ON thread_member.entity_id = thread.id AND thread_member.members_target_id = :uid ' .
-      'JOIN {private_message_thread__last_access_time} AS last_access ' .
-      'ON last_access.entity_id = thread.id ' .
-      'JOIN {pm_thread_access_time} as access_time ' .
-      'ON access_time.id = last_access.last_access_time_target_id AND access_time.owner = :uid AND access_time.access_time <= thread.updated ' .
-      'WHERE thread.updated > :timestamp AND message.created > :timestamp AND message.owner <> :uid',
+      'SELECT COUNT(thread.id) FROM {private_message_threads} AS thread JOIN ' .
+      '{private_message_thread__members} AS member ' .
+      'ON member.entity_id = thread.id AND member.members_target_id = :uid ' .
+      'WHERE thread.updated > :timestamp',
       [
         ':uid' => $uid,
         ':timestamp' => $lastCheckTimestamp,
@@ -285,13 +275,6 @@ class PrivateMessageMapper implements PrivateMessageMapperInterface {
         ':message_id' => $privateMessage->id(),
       ]
     )->fetchField();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getThreadIds() {
-    return $this->database->query('SELECT id FROM {private_message_threads}')->fetchCol();
   }
 
 }

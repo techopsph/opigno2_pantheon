@@ -4,8 +4,6 @@ namespace Drupal\private_message\Plugin\Field\FieldWidget;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\CsrfTokenGenerator;
-use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
@@ -51,20 +49,6 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
   protected $requestStack;
 
   /**
-   * The user manager service.
-   *
-   * @var \Drupal\user\UserStorageInterface
-   */
-  protected $userManager;
-
-  /**
-   * The configuration factory.
-   *
-   * @var \Drupal\Core\Config\ImmutableConfig
-   */
-  protected $config;
-
-  /**
    * Constructs a PrivateMessageThreadMemberWidget object.
    *
    * @param string $plugin_id
@@ -83,10 +67,6 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
    *   The current user.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The request stack.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   The entity type manager service.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
-   *   The configuration factory.
    */
   public function __construct(
     $plugin_id,
@@ -96,17 +76,13 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
     array $third_party_settings,
     CsrfTokenGenerator $csrfTokenGenerator,
     AccountProxyInterface $currentUser,
-    RequestStack $requestStack,
-    EntityTypeManagerInterface $entityTypeManager,
-    ConfigFactoryInterface $configFactory
+    RequestStack $requestStack
   ) {
     parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $third_party_settings);
 
     $this->csrfTokenGenerator = $csrfTokenGenerator;
     $this->currentUser = $currentUser;
     $this->requestStack = $requestStack;
-    $this->userManager = $entityTypeManager->getStorage('user');
-    $this->config = $configFactory->get('private_message.settings');
   }
 
   /**
@@ -121,9 +97,7 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
       $configuration['third_party_settings'],
       $container->get('csrf_token'),
       $container->get('current_user'),
-      $container->get('request_stack'),
-      $container->get('entity_type.manager'),
-      $container->get('config.factory')
+      $container->get('request_stack')
     );
   }
 
@@ -166,7 +140,6 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
     $form = parent::settingsForm($form, $form_state);
     // This setting has no bearing on this widget, so it is removed.
     unset($form['match_operator']);
-    unset($form['match_limit']);
 
     $form['max_members'] = [
       '#type' => 'number',
@@ -185,32 +158,23 @@ class PrivateMessageThreadMemberWidget extends EntityReferenceAutocompleteWidget
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
-    $recipient = FALSE;
     if ($this->currentUser->hasPermission('access user profiles')) {
       $recipient_id = $this->requestStack->getCurrentRequest()->get('recipient');
       if ($recipient_id) {
-        $recipient = $this->userManager->load($recipient_id);
+        $recipient = user_load($recipient_id);
         if ($recipient) {
           $element['target_id']['#default_value'] = $recipient;
         }
       }
     }
 
-    if ($recipient && $this->config->get('hide_recipient_field_when_prefilled')) {
-      $max_members = 1;
+    $max_members = $this->getSetting('max_members');
+    if ($max_members) {
       $element['#element_validate'][] = [__CLASS__, 'validateFormElement'];
-      $element['#max_members'] = $max_members;
-    }
-    elseif ($max_members = $this->getSetting('max_members')) {
-      $element['#element_validate'][] = [__CLASS__, 'validateFormElement'];
-      $element['#max_members'] = $max_members;
+      $element['#max_members'] = $this->getSetting('max_members');
     }
 
-    $element['#attached']['library'][] = 'private_message/members_widget_script';
-    $style_disabled = $this->config->get('remove_css');
-    if (!$style_disabled) {
-      $element['#attached']['library'][] = 'private_message/members_widget_style';
-    }
+    $element['#attached']['library'][] = 'private_message/members_widget';
     $url = Url::fromRoute('private_message.members_widget_callback');
     $token = $this->csrfTokenGenerator->get($url->getInternalPath());
     $url->setOptions(['absolute' => TRUE, 'query' => ['token' => $token]]);

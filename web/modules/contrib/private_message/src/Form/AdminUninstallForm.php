@@ -5,39 +5,11 @@ namespace Drupal\private_message\Form;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\Core\Messenger\MessengerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Defines the admin uninstall form for the Private Message module.
+ * Definest he admin uninstall form for the Private Message module.
  */
 class AdminUninstallForm extends ConfirmFormBase {
-
-  /**
-   * The messenger.
-   *
-   * @var \Drupal\Core\Messenger\MessengerInterface
-   */
-  protected $messenger;
-
-  /**
-   * Constructs a new AdminUninstallForm object.
-   *
-   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
-   *   The messenger service.
-   */
-  public function __construct(MessengerInterface $messenger) {
-    $this->messenger = $messenger;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('messenger')
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -106,7 +78,7 @@ class AdminUninstallForm extends ConfirmFormBase {
     ];
     batch_set($batch);
 
-    $this->messenger->addMessage($this->t('Private message data has been deleted.'));
+    drupal_set_message($this->t('Private message data has been deleted.'));
   }
 
   /**
@@ -114,7 +86,7 @@ class AdminUninstallForm extends ConfirmFormBase {
    */
   public static function deletePrivateMessageAccessTimes(&$context) {
     $access_time_ids = \Drupal::entityQuery('pm_thread_access_time')->range(0, 100)->execute();
-    $storage = \Drupal::entityTypeManager()->getStorage('pm_thread_access_time');
+    $storage = \Drupal::entityManager()->getStorage('pm_thread_access_time');
     if ($access_times = $storage->loadMultiple($access_time_ids)) {
       $storage->delete($access_times);
     }
@@ -126,7 +98,7 @@ class AdminUninstallForm extends ConfirmFormBase {
    */
   public static function deletePrivateMessageDeleteTimes(&$context) {
     $delete_time_ids = \Drupal::entityQuery('pm_thread_delete_time')->range(0, 100)->execute();
-    $storage = \Drupal::entityTypeManager()->getStorage('pm_thread_delete_time');
+    $storage = \Drupal::entityManager()->getStorage('pm_thread_delete_time');
     if ($delete_times = $storage->loadMultiple($delete_time_ids)) {
       $storage->delete($delete_times);
     }
@@ -138,7 +110,7 @@ class AdminUninstallForm extends ConfirmFormBase {
    */
   public static function deletePrivateMessageMessages(&$context) {
     $private_message_ids = \Drupal::entityQuery('private_message')->range(0, 100)->execute();
-    $storage = \Drupal::entityTypeManager()->getStorage('private_message');
+    $storage = \Drupal::entityManager()->getStorage('private_message');
     if ($private_messages = $storage->loadMultiple($private_message_ids)) {
       $storage->delete($private_messages);
     }
@@ -150,7 +122,7 @@ class AdminUninstallForm extends ConfirmFormBase {
    */
   public static function deletePrivateMessageThreads(&$context) {
     $private_message_thread_ids = \Drupal::entityQuery('private_message_thread')->range(0, 100)->execute();
-    $storage = \Drupal::entityTypeManager()->getStorage('private_message_thread');
+    $storage = \Drupal::entityManager()->getStorage('private_message_thread');
     if ($private_message_threads = $storage->loadMultiple($private_message_thread_ids)) {
       $storage->delete($private_message_threads);
     }

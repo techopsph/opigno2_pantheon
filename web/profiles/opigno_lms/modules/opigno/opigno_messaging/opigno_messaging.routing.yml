@@ -1,0 +1,6 @@
+opigno_messaging.mark_read_all:
+  path: 'ajax/messages/mark-read-all'
+  defaults:
+    _controller: '\Drupal\opigno_messaging\OpignoMessageThread::markReadAll'
+  requirements:
+    _permission: 'access content'

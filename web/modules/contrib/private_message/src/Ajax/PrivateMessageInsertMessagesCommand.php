@@ -36,13 +36,10 @@ abstract class PrivateMessageInsertMessagesCommand implements CommandInterface {
    *     - previous.
    * @param string $messages
    *   The HTML for the messages to be inserted in the page.
-   * @param int $messagesCount
-   *   The number of messages.
    */
-  public function __construct($insertType, $messages, $messagesCount) {
+  public function __construct($insertType, $messages) {
     $this->insertType = $insertType;
     $this->messages = $messages;
-    $this->messagesCount = $messagesCount;
   }
 
   /**
@@ -53,7 +50,6 @@ abstract class PrivateMessageInsertMessagesCommand implements CommandInterface {
       'command' => 'insertPrivateMessages',
       'insertType' => $this->insertType,
       'messages' => $this->messages,
-      'messagesCount' => $this->messagesCount,
     ];
   }
 

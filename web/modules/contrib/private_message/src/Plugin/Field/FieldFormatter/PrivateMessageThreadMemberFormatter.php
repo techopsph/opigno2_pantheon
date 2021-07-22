@@ -3,8 +3,7 @@
 namespace Drupal\private_message\Plugin\Field\FieldFormatter;
 
 use Drupal\Component\Render\FormattableMarkup;
-use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FormatterBase;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -30,9 +29,9 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
   /**
    * The entity manager service.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
-  protected $entityTypeManager;
+  protected $entityManager;
 
   /**
    * The current user.
@@ -40,13 +39,6 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
    * @var \Drupal\Core\Session\AccountProxyInterface
    */
   protected $currentUser;
-
-  /**
-   * The entity display repository.
-   *
-   * @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface
-   */
-  protected $entityDisplayRepository;
 
   /**
    * Construct a PrivateMessageThreadFormatter object.
@@ -65,12 +57,10 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
    *   The current view mode.
    * @param array $third_party_settings
    *   The third party settings.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entityManager
    *   The entity manager service.
    * @param |Drupal\Core\Session\AccountProxyInterface $currentUser
    *   The current user.
-   * @param \Drupal\Core\Entity\EntityDisplayRepositoryInterface $entity_display_repository
-   *   The entity display repository.
    */
   public function __construct(
     $plugin_id,
@@ -80,14 +70,13 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
     $label,
     $view_mode,
     array $third_party_settings,
-    EntityTypeManagerInterface $entityTypeManager,
-    AccountProxyInterface $currentUser,
-    EntityDisplayRepositoryInterface $entity_display_repository) {
+    EntityManagerInterface $entityManager,
+    AccountProxyInterface $currentUser
+  ) {
     parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $label, $view_mode, $third_party_settings);
 
-    $this->entityTypeManager = $entityTypeManager;
+    $this->entityManager = $entityManager;
     $this->currentUser = $currentUser;
-    $this->entityDisplayRepository = $entity_display_repository;
   }
 
   /**
@@ -102,9 +91,8 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
       $configuration['label'],
       $configuration['view_mode'],
       $configuration['third_party_settings'],
-      $container->get('entity_type.manager'),
-      $container->get('current_user'),
-      $container->get('entity_display.repository')
+      $container->get('entity.manager'),
+      $container->get('current_user')
     );
   }
 
@@ -148,7 +136,7 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
     return [
       'display_type' => 'label',
       'entity_display_mode' => 'private_message_author',
-      'members_prefix' => 'You',
+      'members_prefix' => t('You and'),
     ] + parent::defaultSettings();
   }
 
@@ -175,7 +163,7 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
       '#suffix' => '</div>',
     ];
 
-    foreach ($this->entityDisplayRepository->getViewModes('user') as $display_mode_id => $display_mode) {
+    foreach ($this->entityManager->getViewModes('user') as $display_mode_id => $display_mode) {
       $options[$display_mode_id] = $display_mode['label'];
     }
 
@@ -230,7 +218,7 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
     $access_profiles = $this->currentUser->hasPermission('access user profiles');
     $users = [];
 
-    $view_builder = $this->entityTypeManager->getViewBuilder('user');
+    $view_builder = $this->entityManager->getViewBuilder('user');
     foreach ($items as $delta => $item) {
       $user = $item->entity;
       if ($user) {
@@ -261,14 +249,12 @@ class PrivateMessageThreadMemberFormatter extends FormatterBase implements Conta
       '#markup' => '',
     ];
 
-    $separator = $this->getSetting('display_type') === 'label' ? ', ' : '';
-
     $members_prefix = $this->getSetting('members_prefix');
     if (strlen($members_prefix)) {
-      $element['#markup'] .= '<span>' . $this->t($members_prefix) . '</span>';
-      $element['#markup'] .= (count($users) > 0) ? $separator : '';
+      $element['#markup'] .= '<span>' . $members_prefix . ' </span>';
     }
 
+    $separator = $this->getSetting('display_type') == 'label' ? ', ' : '';
     $element['#markup'] .= implode($separator, $users);
 
     return $element;

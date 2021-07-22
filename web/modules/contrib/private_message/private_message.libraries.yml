@@ -3,8 +3,11 @@ history_api:
   js:
     js/history_api.js: {}
 
-inbox_block_script:
+inbox_block:
   version: VERSION
+  css:
+    theme:
+      css/private_message_inbox_block.css: {}
   js:
     js/private_message_inbox_block.js: {}
   dependencies:
@@ -13,14 +16,11 @@ inbox_block_script:
     - core/drupal.ajax
     - core/drupalSettings
 
-inbox_block_style:
+notification_block:
   version: VERSION
   css:
     theme:
-      css/private_message_inbox_block.css: {}
-
-notification_block_script:
-  version: VERSION
+      css/private_message_notification_block.css: {}
   js:
     js/private_message_notification_block.js: {}
   dependencies:
@@ -29,14 +29,11 @@ notification_block_script:
     - core/jquery.once
     - core/drupal.ajax
 
-notification_block_style:
+private_message_thread:
   version: VERSION
   css:
     theme:
-      css/private_message_notification_block.css: {}
-
-private_message_thread_script:
-  version: VERSION
+      css/private_message_thread.css: {}
   js:
     js/private_message_thread.js: {}
   dependencies:
@@ -45,26 +42,17 @@ private_message_thread_script:
     - core/jquery.once
     - private_message/history_api
 
-private_message_thread_style:
+members_widget:
   version: VERSION
   css:
     theme:
-      css/private_message_thread.css: {}
-
-members_widget_script:
-  version: VERSION
+      css/private_message_members_widget.css: {}
   js:
     js/private_message_members_widget.js: {}
   dependencies:
     - core/jquery
     - core/drupalSettings
     - core/jquery.once
-
-members_widget_style:
-  version: VERSION
-  css:
-    theme:
-      css/private_message_members_widget.css: {}
 
 message_form:
   version: VERSION
@@ -73,8 +61,6 @@ message_form:
   dependencies:
     - core/jquery
     - core/jquery.once
-    - core/drupalSettings
-    - private_message/browser_notification
 
 uninstall_page:
   version: VERSION

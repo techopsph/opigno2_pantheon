@@ -1,0 +1,1 @@
+CkEditor Background Image

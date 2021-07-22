@@ -1,0 +1,51 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display the statistics chart.
+ *
+ * Available variables:
+ * - data: The data array.
+ * - max_count: Max value of data.
+ */
+#}
+
+{% set min_day = 1 %}
+{% set max_day = 31 %}
+{% set day_x_step = 15 %}
+{% set height = 175 %}
+{% set h_lines = 5 %}
+{% set padding = 20 %}
+
+<h3 class="users-per-day-title">
+  {{ 'Number of active users per day'|t }}
+  <div class="popover-help" data-toggle="popover" data-content="{{ 'This chart persents the number of unique user login per day.'|t }}" data-drupal-selector="edit-0">?</div>
+</h3>
+<svg class="users-per-day" viewBox="-20 -20 500 220">
+  {% for i in 0..h_lines %}
+    {% set y = height - height * i / h_lines %}
+    <line x1="{{ padding }}" y1="{{ y }}" x2="{{ padding + day_x_step * (max_day - min_day) }}" y2="{{ y }}"></line>
+    <text x="0" y="{{ y }}">{{ (max_count * i / h_lines)|round }}</text>
+  {% endfor %}
+
+  {% for i in min_day..max_day %}
+    {% set x = -5 + padding + day_x_step * (i - min_day) %}
+    {% set y = padding + height %}
+    <text x="{{ x }}" y="{{ y }}">{{ i }}</text>
+  {% endfor %}
+
+  <path d="
+  {% set y = height - height * data[min_day] / max_count %}
+  M{{ padding }},{{ y }}
+  {% for i in (min_day + 1)..max_day %}
+    {% set x = padding + day_x_step * (i - min_day) %}
+    {% set y = height - height * data[i] / max_count %}
+    L{{ x }},{{ y }}
+  {% endfor %}
+  "></path>
+
+  {% for i in min_day..max_day %}
+    {% set x = padding + day_x_step * (i - min_day) %}
+    {% set y = height - height * data[i] / max_count %}
+    <circle cx="{{ x }}" cy="{{ y }}" r="4"></circle>
+  {% endfor %}
+</svg>

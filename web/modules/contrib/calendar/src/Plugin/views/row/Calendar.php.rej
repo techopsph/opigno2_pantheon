@@ -1,0 +1,262 @@
+***************
+*** 5,23 ****
+  use Drupal\calendar\CalendarEvent;
+  use Drupal\calendar\CalendarHelper;
+  use Drupal\calendar\CalendarViewsTrait;
+  use Drupal\Core\Entity\EntityFieldManagerInterface;
+- use Drupal\Core\Field\BaseFieldDefinition;
+- use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+  use Drupal\taxonomy\Entity\Term;
+  use Drupal\views\Plugin\views\argument\Date;
+- use Drupal\Core\Datetime\DateFormatter;
+- use Drupal\Core\Form\FormStateInterface;
+  use Drupal\views\Plugin\views\display\DisplayPluginBase;
+  use Drupal\views\Plugin\views\row\RowPluginBase;
+  use Drupal\views\ViewExecutable;
+  use Drupal\views\Views;
+  use Symfony\Component\DependencyInjection\ContainerInterface;
+- use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+  
+  /**
+   * Plugin which creates a view on the resulting object and formats it as a
+--- 5,21 ----
+  use Drupal\calendar\CalendarEvent;
+  use Drupal\calendar\CalendarHelper;
+  use Drupal\calendar\CalendarViewsTrait;
++ use Drupal\Core\Datetime\DateFormatter;
+  use Drupal\Core\Entity\EntityFieldManagerInterface;
++ use Drupal\Core\Form\FormStateInterface;
++ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+  use Drupal\taxonomy\Entity\Term;
+  use Drupal\views\Plugin\views\argument\Date;
+  use Drupal\views\Plugin\views\display\DisplayPluginBase;
+  use Drupal\views\Plugin\views\row\RowPluginBase;
+  use Drupal\views\ViewExecutable;
+  use Drupal\views\Views;
+  use Symfony\Component\DependencyInjection\ContainerInterface;
+  
+  /**
+   * Plugin which creates a view on the resulting object and formats it as a
+***************
+*** 177,199 ****
+        $type_names = node_type_get_names();
+        foreach ($type_names as $key => $name) {
+          $form['colors']['calendar_colors_type'][$key] = [
+-             '#title' => $name,
+-             '#default_value' => isset($colors[$key]) ? $colors[$key] : CALENDAR_EMPTY_STRIPE,
+-             '#dependency' => ['edit-row-options-colors-legend' => ['type']],
+-             '#type' => 'textfield',
+-             '#size' => 7,
+-             '#maxlength' => 7,
+-             '#element_validate' => [[$this, 'validateHexColor']],
+-             '#prefix' => '<div class="calendar-colorpicker-wrapper">',
+-             '#suffix' => '<div class="calendar-colorpicker"></div></div>',
+-             '#attributes' => ['class' => ['edit-calendar-colorpicker']],
+-             '#attached' => [
+-               // Add Farbtastic color picker and the js to trigger it.
+-               'library' => [
+-                 'calendar/calendar.colorpicker',
+-               ],
+              ],
+-           ] + $this->visibleOnLegendState('type');
+        }
+      }
+  
+--- 175,197 ----
+        $type_names = node_type_get_names();
+        foreach ($type_names as $key => $name) {
+          $form['colors']['calendar_colors_type'][$key] = [
++           '#title' => $name,
++           '#default_value' => isset($colors[$key]) ? $colors[$key] : CALENDAR_EMPTY_STRIPE,
++           '#dependency' => ['edit-row-options-colors-legend' => ['type']],
++           '#type' => 'textfield',
++           '#size' => 7,
++           '#maxlength' => 7,
++           '#element_validate' => [[$this, 'validateHexColor']],
++           '#prefix' => '<div class="calendar-colorpicker-wrapper">',
++           '#suffix' => '<div class="calendar-colorpicker"></div></div>',
++           '#attributes' => ['class' => ['edit-calendar-colorpicker']],
++           '#attached' => [
++             // Add Farbtastic color picker and the js to trigger it.
++             'library' => [
++               'calendar/calendar.colorpicker',
+              ],
++           ],
++         ] + $this->visibleOnLegendState('type');
+        }
+      }
+  
+***************
+*** 206,227 ****
+        foreach ($fields as $name => $field_info) {
+          // Select the proper field type.
+          if ($this->isTermReferenceField($field_info, $this->fieldManager)) {
+-           $vocabulary_field_options[$name] = $field_info['label'] ?: $name;
+          }
+        }
+        if (empty($vocabulary_field_options)) {
+          return;
+        }
+        $form['colors']['taxonomy_field'] = [
+-           '#title' => t('Term field'),
+-           '#type' => !empty($vocabulary_field_options) ? 'select' : 'hidden',
+-           '#default_value' => $this->options['colors']['taxonomy_field'],
+-           '#empty_value' => (string) $this->t('None'),
+-           '#description' => $this->t("Select the taxonomy term field to use when setting stripe colors. This works best for vocabularies with only a limited number of possible terms."),
+-           '#options' => $vocabulary_field_options,
+-           // @todo Is this in the form api?
+-           '#dependency' => ['edit-row-options-colors-legend' => ['taxonomy']],
+-         ] + $this->visibleOnLegendState('taxonomy');
+  
+        if (empty($vocabulary_field_options)) {
+          $form['colors']['taxonomy_field']['#options'] = ['' => ''];
+--- 204,225 ----
+        foreach ($fields as $name => $field_info) {
+          // Select the proper field type.
+          if ($this->isTermReferenceField($field_info, $this->fieldManager)) {
++             $vocabulary_field_options[$name] = $field_info['label'] ?: $name;
+          }
+        }
+        if (empty($vocabulary_field_options)) {
+          return;
+        }
+        $form['colors']['taxonomy_field'] = [
++         '#title' => t('Term field'),
++         '#type' => !empty($vocabulary_field_options) ? 'select' : 'hidden',
++         '#default_value' => $this->options['colors']['taxonomy_field'],
++         '#empty_value' => (string) $this->t('None'),
++         '#description' => $this->t("Select the taxonomy term field to use when setting stripe colors. This works best for vocabularies with only a limited number of possible terms."),
++         '#options' => $vocabulary_field_options,
++         // @todo Is this in the form api?
++         '#dependency' => ['edit-row-options-colors-legend' => ['taxonomy']],
++       ] + $this->visibleOnLegendState('taxonomy');
+  
+        if (empty($vocabulary_field_options)) {
+          $form['colors']['taxonomy_field']['#options'] = ['' => ''];
+***************
+*** 446,495 ****
+        $granularity = 'month';
+        $increment = 1;
+  
+-       // @todo implement timezone support
+-       // use $dateInfo to get field(s) used as arguments
+-       $entity_field_name = str_replace('_value', '', $dateInfo->getDateArgument()->realField);
+-       $field_definition = $entity->getFieldDefinition($entity_field_name);
+-       if ($field_definition instanceof BaseFieldDefinition) {
+-         $storage_format = 'U';
+-       }
+-       else {
+-         $datetime_type = $field_definition->getSetting('datetime_type');
+-         if ($datetime_type === DateTimeItem::DATETIME_TYPE_DATE) {
+-           $storage_format = DateTimeItemInterface::DATE_STORAGE_FORMAT;;
+-         }
+-         else {
+-           $storage_format = DateTimeItemInterface::DATETIME_STORAGE_FORMAT;
+-         }
+-       }
+          $item = $entity->get($field_name)->getValue();
+- //        // @todo handle timezones
+-       $timezone = new \DateTimeZone(DateTimeItemInterface::STORAGE_TIMEZONE);
+- ////        $db_tz   = date_get_timezone_db($tz_handling, isset($item->$tz_field) ? $item->$tz_field : timezone_name_get($dateInfo->getTimezone()));
+- ////        $to_zone = date_get_timezone($tz_handling, isset($item->$tz_field) ? $item->$tz_field : timezone_name_get($dateInfo->getTimezone()));
+- ////        $item_start_date = new dateObject($item, $db_tz);
+-         $event_date_value = (isset($row->{$info['query_name']})) ? $row->{$info['query_name']} : $row->_entity->get($entity_field_name)->getString();
+-         if (isset($item[0])) {
+-           $item_start_date = \DateTime::createFromFormat($storage_format, $item[0]['value'], $timezone);
+-         }
+-         if (isset($item[0]) && !empty($item[0]['end_value'])) {
+-           $item_end_date = \DateTime::createFromFormat($storage_format, $item[0]['end_value'], $timezone);
+          }
+          else {
+            $item_end_date = $item_start_date;
+          }
+-         $entity->date_id = ['calendar.' . $id . '.' . $field_name . '.0'];
+  
+        // If we don't have a date value, go no further.
+        if (empty($item_start_date)) {
+          continue;
+        }
+  
+-       // Set the item date to the proper display timezone;
+-       // @todo handle timezones
+- //      $item_start_date->setTimezone(new dateTimezone($to_zone));
+- //      $item_end_date->setTimezone(new dateTimezone($to_zone));
+- 
+        $event->setStartDate($item_start_date);
+        $event->setEndDate($item_end_date);
+        $event->setTimezone(new \DateTimeZone(timezone_name_get($dateInfo->getTimezone())));
+--- 444,471 ----
+        $granularity = 'month';
+        $increment = 1;
+  
++       if ($entity->hasField($field_name) && $entity->get($field_name)) {
+          $item = $entity->get($field_name)->getValue();
++ //        $db_tz   = date_get_timezone_db($tz_handling, isset($item->$tz_field) ? $item->$tz_field : timezone_name_get($dateInfo->getTimezone()));
++ //        $to_zone = date_get_timezone($tz_handling, isset($item->$tz_field) ? $item->$tz_field : timezone_name_get($dateInfo->getTimezone()));
++ //        $item_start_date = new dateObject($item, $db_tz);
++         $timezone = new \DateTimeZone(DateTimeItemInterface::STORAGE_TIMEZONE);
++         $item_start_date = new \DateTime($item[0]['value'], $timezone);
++ 
++         if (!empty($item[0]['end_value'])) {
++           $item_end_date = new \DateTime($item[0]['end_value'], $timezone);
+          }
+          else {
+            $item_end_date = $item_start_date;
+          }
++         $entity->date_id = array('calendar.' . $id . '.' . $field_name . '.0');
++       }
+  
+        // If we don't have a date value, go no further.
+        if (empty($item_start_date)) {
+          continue;
+        }
+  
+        $event->setStartDate($item_start_date);
+        $event->setEndDate($item_end_date);
+        $event->setTimezone(new \DateTimeZone(timezone_name_get($dateInfo->getTimezone())));
+***************
+*** 580,587 ****
+      // this view.
+      // @TODO make this work with the CalendarDateInfo object
+  
+-     $now = $event->getStartDate()->format('Y-m-d');
+-     $to = $event->getEndDate()->format('Y-m-d');
+      $next = new \DateTime();
+      $next->setTimestamp($event->getStartDate()->getTimestamp());
+  
+--- 560,568 ----
+      // this view.
+      // @TODO make this work with the CalendarDateInfo object
+  
++     $start = $this->dateFormatter->format($event->getStartDate()->getTimestamp(), 'custom', 'Y-m-d');
++     $now = $start;
++     $to = $this->dateFormatter->format($event->getEndDate()->getTimestamp(), 'custom', 'Y-m-d');
+      $next = new \DateTime();
+      $next->setTimestamp($event->getStartDate()->getTimestamp());
+  
+***************
+*** 620,628 ****
+        $entity->calendar_end_date = (new \DateTime($end_string));
+  
+        // @TODO don't hardcode granularity and increment
+-       $granularity = 'day';
+-       $increment = 1;
+-       $entity->setAllDay(CalendarHelper::dateIsAllDay($entity->getStartDate()->format('Y-m-d H:i:s'), $entity->getEndDate()->format('Y-m-d H:i:s'), $granularity, $increment));
+  
+        $calendar_start = $this->dateFormatter->format($entity->calendar_start_date->getTimestamp(), 'custom', 'Y-m-d H:i:s');
+        $calendar_end = $this->dateFormatter->format($entity->calendar_end_date->getTimestamp(), 'custom', 'Y-m-d H:i:s');
+--- 601,614 ----
+        $entity->calendar_end_date = (new \DateTime($end_string));
+  
+        // @TODO don't hardcode granularity and increment
++       if ($now === $start || $now === $to) {
++         $granularity = 'second';
++         $increment = 1;
++         $entity->setAllDay(CalendarHelper::dateIsAllDay($entity->getStartDate()->format('Y-m-d H:i:s'), $entity->getEndDate()->format('Y-m-d H:i:s'), $granularity, $increment));
++       }
++       else {
++         $entity->setAllDay(TRUE);
++       }
+  
+        $calendar_start = $this->dateFormatter->format($entity->calendar_start_date->getTimestamp(), 'custom', 'Y-m-d H:i:s');
+        $calendar_end = $this->dateFormatter->format($entity->calendar_end_date->getTimestamp(), 'custom', 'Y-m-d H:i:s');

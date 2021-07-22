@@ -1,0 +1,14 @@
+opigno_skills_using_vis:
+  version: 1.0
+  js:
+    /libraries/vis/dist/vis.js: {}
+    js/opigno-skills-tree.js: {}
+  css:
+    theme:
+      /libraries/vis/dist/vis.css: {}
+
+opigno_skills_entity:
+  version: 1.0
+  css:
+    theme:
+      css/skill-entity.css: {}

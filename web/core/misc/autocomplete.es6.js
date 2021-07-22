@@ -296,6 +296,7 @@
     },
     ajax: {
       dataType: 'json',
+      jsonp: false,
     },
   };
 
